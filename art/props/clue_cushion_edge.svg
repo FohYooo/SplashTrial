@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="100" y1="100" x2="100" y2="180"><stop offset="0" stop-color="#9ea1ac" stop-opacity="1.0"/><stop offset="0.6" stop-color="#7d8290" stop-opacity="1.0"/><stop offset="1" stop-color="#51545e" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="74" x2="0" y2="126"><stop offset="0" stop-color="#eef8fc" stop-opacity="1.0"/><stop offset="0.6" stop-color="#bfe3f0" stop-opacity="1.0"/><stop offset="1" stop-color="#9ccbe0" stop-opacity="1.0"/></linearGradient></defs>
+<ellipse cx="100" cy="180" rx="76" ry="10" fill="#000000" opacity="0.2"/>
+<path d="M176.4 140 C174.6 148.6 165.2 156.9 154.8 163.6 C144.4 170.3 128.9 178.6 113.8 180.1 C98.6 181.5 78.3 176.5 63.9 172.1 C49.4 167.7 32.8 161.2 27 153.6 C21.2 146.1 23.7 135.1 29.2 126.8 C34.6 118.5 45.6 107.9 59.5 104 C73.4 100.1 95 102 112.6 103.3 C130.3 104.6 154.7 105.8 165.3 111.9 C176 118 178.1 131.4 176.4 140 Z" fill="url(#l1)"/>
+<path d="M53.2 122 C50.6 118.7 77.9 106.7 92.2 106 C106.5 105.3 136.4 114.7 139 118 C141.6 121.3 122.1 125.3 107.8 126 C93.5 126.7 55.8 125.3 53.2 122 Z" fill="#aaaeb7" opacity="0.3"/>
+<path d="M30 104 Q26 140 46 146 L154 146 Q174 140 170 104 Z" fill="#8ab8cc" stroke="#2a1a10" stroke-width="4.5" stroke-linejoin="round"/>
+<rect x="26" y="74" width="148" height="52" fill="url(#l2)" rx="24" stroke="#2a1a10" stroke-width="4.5"/>
+<rect x="40" y="80" width="120" height="12" fill="#ffffff" rx="6" opacity="0.7"/>
+<path d="M42 116 L158 116" stroke="#6a9ab0" stroke-width="2" stroke-dasharray="6 5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="112" y="94" width="38" height="20" fill="#fffdf2" rx="3" stroke="#2a1a10" stroke-width="2"/>
+<path d="M117 105 l5 -4 l5 4 l5 -4 l5 4 l5 -4" stroke="#c0392b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60 56 Q64 46 60 36 M100 52 Q104 40 100 28 M140 56 Q144 46 140 36" stroke="#8fd0e8" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

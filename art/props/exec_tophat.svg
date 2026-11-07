@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="190" viewBox="0 0 220 190">
+<defs><linearGradient id="hat" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a1424" stop-opacity="1"/><stop offset="0.35" stop-color="#3a3050" stop-opacity="1"/><stop offset="0.60" stop-color="#221a30" stop-opacity="1"/><stop offset="1" stop-color="#100c18" stop-opacity="1"/></linearGradient></defs>
+<ellipse cx="110" cy="172" rx="104" ry="16" fill="#2a1a10" opacity="0.3"/>
+<path d="M50,26 C50,12 170,12 170,26 L162,150 L58,150 Z" fill="url(#hat)" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="110" cy="24" rx="60" ry="12" fill="#2e2440" stroke="#2a1a10" stroke-width="4"/>
+<path d="M56,110 L164,110 L162,140 L58,140 Z" fill="#7d44c8" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="132,112 135.23,120.55 144.36,120.98 137.23,126.70 139.64,135.52 132,130.50 124.36,135.52 126.77,126.70 119.64,120.98 128.77,120.55" fill="#e8e6ff" stroke="#2a1a10" stroke-width="2.50" stroke-linejoin="round"/>
+<path d="M6,158 C6,140 214,140 214,158 C214,176 6,176 6,158 Z" fill="#221a30" stroke="#2a1a10" stroke-width="5"/>
+<path d="M74,34 L70,104" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.25"/>
+</svg>

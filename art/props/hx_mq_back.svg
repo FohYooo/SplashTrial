@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="mqg" cx="0.50" cy="0.30" r="0.75"><stop offset="0" stop-color="#efe4c8" stop-opacity="1"/><stop offset="0.55" stop-color="#d9ccb0" stop-opacity="1"/><stop offset="1" stop-color="#b3a486" stop-opacity="1"/></radialGradient><linearGradient id="mqshade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="0.60" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.35"/></linearGradient></defs>
+<rect x="80" y="160" width="40" height="40" fill="#b3a486"/>
+<ellipse cx="50" cy="34" rx="10" ry="8" fill="#b3a486" stroke="#8e7f63" stroke-width="2"/>
+<ellipse cx="150" cy="34" rx="10" ry="8" fill="#b3a486" stroke="#8e7f63" stroke-width="2"/>
+<path d="M50 48 Q52 20 100 18 Q148 20 150 48 L156 112 Q160 150 152 168 Q140 180 100 180 Q60 180 48 168 Q40 150 44 112 Z" fill="url(#mqg)" stroke="#8e7f63" stroke-width="2.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M50 48 Q52 20 100 18 Q148 20 150 48 L156 112 Q160 150 152 168 Q140 180 100 180 Q60 180 48 168 Q40 150 44 112 Z" fill="url(#mqshade)"/>
+<line x1="100" y1="28" x2="100" y2="172" stroke="#8e7f63" stroke-width="1.40" stroke-linecap="round" opacity="0.45"/>
+<circle cx="100" cy="164" r="5" fill="#6a6050" stroke="#4a4234" stroke-width="1.50"/>
+<path d="M123.47 72.88 L125.17 79.95 L125.10 92.62 L126.95 101.69 L124.27 111.63" fill="none" stroke="#5e5240" stroke-width="1.40" stroke-linejoin="round" stroke-linecap="round" opacity="0.60"/>
+<path d="M103.06 67.28 L108.81 78.43 L118.31 86.71 L122.12 93.94 L122.73 104.33" fill="none" stroke="#5e5240" stroke-width="1.40" stroke-linejoin="round" stroke-linecap="round" opacity="0.60"/>
+</svg>

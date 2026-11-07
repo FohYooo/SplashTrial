@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="120" viewBox="0 0 1280 120">
+<defs><linearGradient id="lip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a1a2a" stop-opacity="1"/><stop offset="1" stop-color="#3a0812" stop-opacity="1"/></linearGradient><radialGradient id="fl" cx="0.50" cy="0.80" r="0.60"><stop offset="0" stop-color="#fff3c0" stop-opacity="0.85"/><stop offset="1" stop-color="#fff3c0" stop-opacity="0"/></radialGradient></defs>
+<rect x="0" y="22" width="1280" height="98" fill="url(#lip)"/>
+<rect x="0" y="18" width="1280" height="12" fill="#d8a93a" stroke="#2a1a10" stroke-width="4"/>
+<polygon points="46,59 49.82,68.74 60.27,69.36 52.18,76 54.82,86.14 46,80.50 37.18,86.14 39.82,76 31.73,69.36 42.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="138,59 141.82,68.74 152.27,69.36 144.18,76 146.82,86.14 138,80.50 129.18,86.14 131.82,76 123.73,69.36 134.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="230,59 233.82,68.74 244.27,69.36 236.18,76 238.82,86.14 230,80.50 221.18,86.14 223.82,76 215.73,69.36 226.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="322,59 325.82,68.74 336.27,69.36 328.18,76 330.82,86.14 322,80.50 313.18,86.14 315.82,76 307.73,69.36 318.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="414,59 417.82,68.74 428.27,69.36 420.18,76 422.82,86.14 414,80.50 405.18,86.14 407.82,76 399.73,69.36 410.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="506,59 509.82,68.74 520.27,69.36 512.18,76 514.82,86.14 506,80.50 497.18,86.14 499.82,76 491.73,69.36 502.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="598,59 601.82,68.74 612.27,69.36 604.18,76 606.82,86.14 598,80.50 589.18,86.14 591.82,76 583.73,69.36 594.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="690,59 693.82,68.74 704.27,69.36 696.18,76 698.82,86.14 690,80.50 681.18,86.14 683.82,76 675.73,69.36 686.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="782,59 785.82,68.74 796.27,69.36 788.18,76 790.82,86.14 782,80.50 773.18,86.14 775.82,76 767.73,69.36 778.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="874,59 877.82,68.74 888.27,69.36 880.18,76 882.82,86.14 874,80.50 865.18,86.14 867.82,76 859.73,69.36 870.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="966,59 969.82,68.74 980.27,69.36 972.18,76 974.82,86.14 966,80.50 957.18,86.14 959.82,76 951.73,69.36 962.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="1058,59 1061.82,68.74 1072.27,69.36 1064.18,76 1066.82,86.14 1058,80.50 1049.18,86.14 1051.82,76 1043.73,69.36 1054.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="1150,59 1153.82,68.74 1164.27,69.36 1156.18,76 1158.82,86.14 1150,80.50 1141.18,86.14 1143.82,76 1135.73,69.36 1146.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<polygon points="1242,59 1245.82,68.74 1256.27,69.36 1248.18,76 1250.82,86.14 1242,80.50 1233.18,86.14 1235.82,76 1227.73,69.36 1238.18,68.74" fill="#ffd166" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/>
+<ellipse cx="92" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M70,24 A22,18 0 0 1 114,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="92" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="184" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M162,24 A22,18 0 0 1 206,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="184" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="276" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M254,24 A22,18 0 0 1 298,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="276" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="368" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M346,24 A22,18 0 0 1 390,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="368" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="460" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M438,24 A22,18 0 0 1 482,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="460" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="552" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M530,24 A22,18 0 0 1 574,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="552" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="644" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M622,24 A22,18 0 0 1 666,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="644" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="736" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M714,24 A22,18 0 0 1 758,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="736" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="828" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M806,24 A22,18 0 0 1 850,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="828" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="920" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M898,24 A22,18 0 0 1 942,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="920" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="1012" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M990,24 A22,18 0 0 1 1034,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="1012" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="1104" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M1082,24 A22,18 0 0 1 1126,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="1104" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+<ellipse cx="1196" cy="8" rx="44" ry="26" fill="url(#fl)"/>
+<path d="M1174,24 A22,18 0 0 1 1218,24 Z" fill="#2a2030" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<ellipse cx="1196" cy="20" rx="12" ry="6" fill="#fff6c8"/>
+</svg>

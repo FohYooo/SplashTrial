@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="760" viewBox="0 0 520 760">
+<defs><linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d0" stop-opacity="0.75"/><stop offset="0.70" stop-color="#fff0c0" stop-opacity="0.28"/><stop offset="1" stop-color="#fff0c0" stop-opacity="0.18"/></linearGradient><radialGradient id="pool" cx="0.50" cy="0.50" r="0.50"><stop offset="0" stop-color="#fff6d0" stop-opacity="0.70"/><stop offset="1" stop-color="#fff6d0" stop-opacity="0"/></radialGradient></defs>
+<polygon points="236,0 284,0 500,700 20,700" fill="url(#cone)"/>
+<polygon points="250,0 270,0 360,700 160,700" fill="#ffffff" opacity="0.14"/>
+<ellipse cx="260" cy="700" rx="260" ry="60" fill="url(#pool)"/>
+</svg>

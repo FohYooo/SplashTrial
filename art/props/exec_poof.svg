@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="220" viewBox="0 0 280 220">
+<defs></defs>
+<circle cx="140" cy="110" r="75" fill="#9b84d6"/>
+<circle cx="80" cy="120" r="55" fill="#9b84d6"/>
+<circle cx="200" cy="118" r="59" fill="#9b84d6"/>
+<circle cx="110" cy="70" r="51" fill="#9b84d6"/>
+<circle cx="176" cy="72" r="49" fill="#9b84d6"/>
+<circle cx="60" cy="160" r="39" fill="#9b84d6"/>
+<circle cx="220" cy="160" r="41" fill="#9b84d6"/>
+<circle cx="140" cy="168" r="51" fill="#9b84d6"/>
+<circle cx="140" cy="110" r="70" fill="#f4f0ff"/>
+<circle cx="80" cy="120" r="50" fill="#f4f0ff"/>
+<circle cx="200" cy="118" r="54" fill="#f4f0ff"/>
+<circle cx="110" cy="70" r="46" fill="#f4f0ff"/>
+<circle cx="176" cy="72" r="44" fill="#f4f0ff"/>
+<circle cx="60" cy="160" r="34" fill="#f4f0ff"/>
+<circle cx="220" cy="160" r="36" fill="#f4f0ff"/>
+<circle cx="140" cy="168" r="46" fill="#f4f0ff"/>
+<circle cx="119" cy="89" r="28" fill="#ffffff" opacity="0.8"/>
+<circle cx="65" cy="105" r="20" fill="#ffffff" opacity="0.8"/>
+<circle cx="183" cy="101" r="21" fill="#ffffff" opacity="0.8"/>
+<circle cx="96" cy="56" r="18" fill="#ffffff" opacity="0.8"/>
+<circle cx="162" cy="58" r="17" fill="#ffffff" opacity="0.8"/>
+<path d="M91,145 A70,70 0 0 0 189,145" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M45,145 A50,50 0 0 0 115,145" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M162.20,145 A54,54 0 0 0 237.80,145" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M77.80,93 A46,46 0 0 0 142.20,93" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M145.20,94 A44,44 0 0 0 206.80,94" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M36.20,177 A34,34 0 0 0 83.80,177" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M194.80,178 A36,36 0 0 0 245.20,178" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<path d="M107.80,191 A46,46 0 0 0 172.20,191" fill="none" stroke="#c8b8f0" stroke-width="6" opacity="0.7"/>
+<polygon points="40,34 43.52,46.48 56,50 43.52,53.52 40,66 36.48,53.52 24,50 36.48,46.48" fill="#d9c8ff"/>
+<polygon points="250,48 252.64,57.36 262,60 252.64,62.64 250,72 247.36,62.64 238,60 247.36,57.36" fill="#ffffff"/>
+<polygon points="236,182 239.08,192.92 250,196 239.08,199.08 236,210 232.92,199.08 222,196 232.92,192.92" fill="#d9c8ff"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260" viewBox="0 0 720 260">
+<defs><linearGradient id="iron" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4458" stop-opacity="1"/><stop offset="1" stop-color="#1c1824" stop-opacity="1"/></linearGradient><radialGradient id="ov" cx="0.50" cy="0.50" r="0.60"><stop offset="0" stop-color="#ffd166" stop-opacity="1"/><stop offset="0.60" stop-color="#ff7a2a" stop-opacity="1"/><stop offset="1" stop-color="#a8281a" stop-opacity="1"/></radialGradient></defs>
+<rect x="20" y="40" width="680" height="214" rx="16" fill="url(#iron)" stroke="#2a1a10" stroke-width="6"/>
+<rect x="6" y="26" width="708" height="28" rx="8" fill="#5a5468" stroke="#2a1a10" stroke-width="6"/>
+<ellipse cx="360" cy="26" rx="220" ry="16" fill="#1a1620" stroke="#2a1a10" stroke-width="5"/>
+<rect x="170" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="218" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="266" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="314" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="362" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="410" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="458" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="506" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="554" y="10" width="10" height="20" rx="3" fill="#3a3448" stroke="#2a1a10" stroke-width="3"/>
+<rect x="200" y="86" width="320" height="140" rx="14" fill="#2a2434" stroke="#2a1a10" stroke-width="5"/>
+<rect x="232" y="110" width="256" height="84" rx="10" fill="url(#ov)" stroke="#2a1a10" stroke-width="5"/>
+<rect x="250" y="96" width="220" height="10" rx="5" fill="#c8ccd8" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="80" cy="150" r="30" fill="#c0303f" stroke="#2a1a10" stroke-width="5"/>
+<circle cx="80" cy="150" r="8" fill="#ffd166" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="640" cy="150" r="30" fill="#c0303f" stroke="#2a1a10" stroke-width="5"/>
+<circle cx="640" cy="150" r="8" fill="#ffd166" stroke="#2a1a10" stroke-width="3"/>
+<path d="M0,0" />
+</svg>

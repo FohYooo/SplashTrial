@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="240" viewBox="0 0 330 240">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="8" x2="0" y2="40"><stop offset="0" stop-color="#4a2c1a" stop-opacity="1"/><stop offset="1" stop-color="#8a5a34" stop-opacity="1"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="14" y1="0" x2="316" y2="0"><stop offset="0" stop-color="#24140c" stop-opacity="1"/><stop offset="0.18" stop-color="#4e3020" stop-opacity="1"/><stop offset="0.5" stop-color="#6a4228" stop-opacity="1"/><stop offset="0.82" stop-color="#4e3020" stop-opacity="1"/><stop offset="1" stop-color="#1c0f08" stop-opacity="1"/></linearGradient>
+<clipPath id="c3"><polygon points="14,38 316,38 304,206 282,232 48,232 26,206"/></clipPath>
+<linearGradient id="l4" gradientUnits="userSpaceOnUse" x1="0" y1="36" x2="0" y2="46"><stop offset="0" stop-color="#ffd166" stop-opacity="1"/><stop offset="1" stop-color="#a8741e" stop-opacity="1"/></linearGradient></defs>
+<polygon points="23,44 325,44 313,212 291,238 57,238 35,212" fill="#07040f" opacity="0.7"/>
+<polygon points="4,40 326,40 306,8 24,8" fill="url(#l1)"/>
+<polygon points="24,8 306,8 300,14 30,14" fill="#3ee0d0" opacity="0.75"/>
+<polygon points="4,40 326,40 306,8 24,8" fill="none" stroke="#07040f" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="14,38 316,38 304,206 282,232 48,232 26,206" fill="url(#l2)"/>
+<g clip-path="url(#c3)">
+<path d="M32.39 40 Q29.61 130 29.28 232 M52.58 40 Q46.42 130 52.3 232 M70.46 40 Q72.24 130 66.21 232 M91.05 40 Q91.06 130 95.26 232 M106.23 40 Q113.54 130 102.3 232 M132.51 40 Q132.62 130 136.54 232 M147.46 40 Q144.61 130 142.51 232 M172.23 40 Q172.77 130 168.69 232 M187.53 40 Q180.83 130 183.94 232 M210.48 40 Q209.48 130 212.93 232 M226.61 40 Q232.04 130 232.4 232 M251.92 40 Q255.81 130 256.11 232 M266.76 40 Q266.14 130 261.71 232 M292.25 40 Q292.86 130 287.53 232 " stroke="#000000" stroke-width="2" opacity="0.18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="180,38 226,38 128,232 82,232" fill="#ffffff" opacity="0.06"/>
+<polygon points="238,38 252,38 154,232 140,232" fill="#ffffff" opacity="0.05"/>
+<rect x="0" y="176" width="330" height="20" fill="#120a24"/>
+<path d="M-20 196 L-6 176 M2 196 L16 176 M24 196 L38 176 M46 196 L60 176 M68 196 L82 176 M90 196 L104 176 M112 196 L126 176 M134 196 L148 176 M156 196 L170 176 M178 196 L192 176 M200 196 L214 176 M222 196 L236 176 M244 196 L258 176 M266 196 L280 176 M288 196 L302 176 M310 196 L324 176 M332 196 L346 176 " stroke="#ffb347" stroke-width="7" opacity="0.85" stroke-linecap="butt" fill="none" stroke-linejoin="round"/>
+<rect x="0" y="174" width="330" height="3" fill="#ffd166"/>
+<rect x="0" y="195" width="330" height="3" fill="#ffd166"/>
+</g>
+<polygon points="98,69 268,69 246,137 76,137" fill="#07040f" opacity="0.7"/>
+<polygon points="92,64 262,64 240,132 70,132" fill="#140b26" stroke="#ffd166" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="M165 140 Q150 160 152 168 Q154 178 165 178 Q176 178 178 168 Q180 160 165 140 Z" fill="#3ee0d0" stroke="#07040f" stroke-width="3"/>
+<ellipse cx="160" cy="165" rx="3.5" ry="5" fill="#ffffff" opacity="0.7"/>
+<polygon points="4,36 326,36 322,46 8,46" fill="url(#l4)" stroke="#07040f" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="14,38 316,38 304,206 282,232 48,232 26,206" fill="none" stroke="#07040f" stroke-width="5" stroke-linejoin="round"/>
+<line x1="28" y1="206" x2="48" y2="228" stroke="#ffffff" stroke-width="2" opacity="0.25" stroke-linecap="round"/>
+<line x1="302" y1="206" x2="282" y2="228" stroke="#000000" stroke-width="2" opacity="0.4" stroke-linecap="round"/>
+</svg>

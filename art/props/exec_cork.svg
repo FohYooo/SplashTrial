@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="120" viewBox="0 0 140 120">
+<defs><linearGradient id="ck" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8703c" stop-opacity="1"/><stop offset="0.45" stop-color="#e0aa6a" stop-opacity="1"/><stop offset="1" stop-color="#9a6232" stop-opacity="1"/></linearGradient></defs>
+<path d="M10,22 C10,8 22,4 70,4 C118,4 130,8 130,22 L112,112 C110,118 30,118 28,112 Z" fill="url(#ck)" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="70" cy="16" rx="56" ry="10" fill="#f0c48a" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="78.85" cy="85.41" r="3.23" fill="#7a4a20" opacity="0.6"/>
+<circle cx="101.86" cy="85.27" r="3.46" fill="#7a4a20" opacity="0.6"/>
+<circle cx="36.09" cy="65.52" r="3.50" fill="#7a4a20" opacity="0.6"/>
+<circle cx="80.73" cy="96.86" r="2" fill="#7a4a20" opacity="0.6"/>
+<circle cx="67.77" cy="49.75" r="2.78" fill="#7a4a20" opacity="0.6"/>
+<circle cx="75.32" cy="32.94" r="2.19" fill="#7a4a20" opacity="0.6"/>
+<circle cx="54.12" cy="97.98" r="3.18" fill="#7a4a20" opacity="0.6"/>
+<circle cx="45.49" cy="89.39" r="2.05" fill="#7a4a20" opacity="0.6"/>
+<circle cx="78.46" cy="41.12" r="1.80" fill="#7a4a20" opacity="0.6"/>
+<circle cx="96.74" cy="47.08" r="2.19" fill="#7a4a20" opacity="0.6"/>
+<circle cx="104.73" cy="94.81" r="2.32" fill="#7a4a20" opacity="0.6"/>
+<circle cx="103.23" cy="70.82" r="3.02" fill="#7a4a20" opacity="0.6"/>
+<circle cx="48.74" cy="99.75" r="3.04" fill="#7a4a20" opacity="0.6"/>
+<circle cx="103.59" cy="96.35" r="2.34" fill="#7a4a20" opacity="0.6"/>
+<circle cx="60" cy="43.95" r="2.06" fill="#7a4a20" opacity="0.6"/>
+<circle cx="38.69" cy="53.70" r="2.89" fill="#7a4a20" opacity="0.6"/>
+</svg>

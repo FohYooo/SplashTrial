@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="250" viewBox="0 0 200 250">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="220"><stop offset="0" stop-color="#ffd166" stop-opacity="1"/><stop offset="0.5" stop-color="#a8741e" stop-opacity="1"/><stop offset="1" stop-color="#6a4a14" stop-opacity="1"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100"><stop offset="0" stop-color="#1a1030" stop-opacity="1"/><stop offset="1" stop-color="#07040f" stop-opacity="1"/></linearGradient></defs>
+<line x1="60" y1="200" x2="40" y2="248" stroke="#3a2214" stroke-width="8" stroke-linecap="round"/>
+<line x1="140" y1="200" x2="160" y2="248" stroke="#3a2214" stroke-width="8" stroke-linecap="round"/>
+<line x1="100" y1="200" x2="100" y2="246" stroke="#2a160c" stroke-width="6" stroke-linecap="round"/>
+<path d="M14 0 L186 0 L200 14 L200 206 L186 220 L14 220 L0 206 L0 14 Z M24 24 L24 196 L176 196 L176 24 Z" fill="#07040f" opacity="0.7" fill-rule="evenodd" transform="translate(7 6)"/>
+<path d="M14 0 L186 0 L200 14 L200 206 L186 220 L14 220 L0 206 L0 14 Z M24 24 L24 196 L176 196 L176 24 Z" fill="url(#l1)" fill-rule="evenodd" stroke="#07040f" stroke-width="4"/>
+<path d="M18 18 L182 18 L182 202 L18 202 Z M24 24 L24 196 L176 196 L176 24 Z" fill="#5a3a0a" fill-rule="evenodd" opacity="0.7"/>
+<polygon points="5,75 75,5 117,5 5,117" fill="#07040f" opacity="0.6"/>
+<polygon points="0,70 70,0 112,0 0,112" fill="url(#l2)" stroke="#07040f" stroke-width="3" stroke-linejoin="round"/>
+<line x1="4" y1="72" x2="72" y2="4" stroke="#ff4f6d" stroke-width="4" stroke-linecap="butt"/>
+<line x1="4" y1="108" x2="108" y2="4" stroke="#ff4f6d" stroke-width="4" stroke-linecap="butt"/>
+<polygon points="56,56 30,38 38,70" fill="#140a26" stroke="#07040f" stroke-width="2.5" stroke-linejoin="round"/>
+<polygon points="56,56 74,30 82,64" fill="#140a26" stroke="#07040f" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="56" cy="56" r="7" fill="#22143e" stroke="#07040f" stroke-width="2.5"/>
+<polygon points="150,30 170,30 100,190 80,190" fill="#ffffff" opacity="0.08"/>
+</svg>

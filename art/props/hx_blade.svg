@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="56" viewBox="0 0 700 56">
+<defs><linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a565a" stop-opacity="1"/><stop offset="0.45" stop-color="#2c3437" stop-opacity="1"/><stop offset="1" stop-color="#161c1e" stop-opacity="1"/></linearGradient><linearGradient id="grip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a201a" stop-opacity="1"/><stop offset="1" stop-color="#0e0a08" stop-opacity="1"/></linearGradient></defs>
+<circle cx="12" cy="28" r="11" fill="#2a2c2e" stroke="#0a0a0a" stroke-width="2"/>
+<rect x="18" y="19" width="96" height="18" fill="url(#grip)" rx="4"/>
+<line x1="26" y1="19" x2="32" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="38" y1="19" x2="44" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="50" y1="19" x2="56" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="62" y1="19" x2="68" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="74" y1="19" x2="80" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="86" y1="19" x2="92" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="98" y1="19" x2="104" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="110" y1="19" x2="116" y2="37" stroke="#050403" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<rect x="112" y="4" width="14" height="48" fill="#2a2e30" rx="3" stroke="#0a0a0a" stroke-width="2"/>
+<line x1="114" y1="7" x2="114" y2="49" stroke="#7fb8b4" stroke-width="1.50" stroke-linecap="round" opacity="0.60"/>
+<polygon points="126,15 640,19 700,28 640,37 126,41" fill="url(#steel)" stroke="#0a0d0e" stroke-width="1.50" stroke-linejoin="round"/>
+<line x1="130" y1="39" x2="690" y2="29" stroke="#a8dcd6" stroke-width="1.60" stroke-linecap="round" opacity="0.75"/>
+<line x1="130" y1="25" x2="600" y2="26" stroke="#0e1214" stroke-width="2.50" stroke-linecap="round" opacity="0.80"/>
+</svg>

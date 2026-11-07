@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="340" viewBox="0 0 620 340">
+<defs><linearGradient id="en" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="1"/><stop offset="0.60" stop-color="#e4ecf6" stop-opacity="1"/><stop offset="1" stop-color="#a8b8d0" stop-opacity="1"/></linearGradient><linearGradient id="wt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ff5ea" stop-opacity="0.95"/><stop offset="1" stop-color="#3ec8d0" stop-opacity="0.97"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a" stop-opacity="1"/><stop offset="1" stop-color="#b8862a" stop-opacity="1"/></linearGradient></defs>
+<ellipse cx="310" cy="66" rx="266" ry="30" fill="url(#wt)"/>
+<path d="M70,70 C140,60 200,82 270,70 C340,58 420,84 550,66" fill="none" stroke="#e8fffb" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+<path d="M84,270 C80,300 70,318 66,330 L130,330 C120,318 136,300 136,270 Z" fill="url(#gold)" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+<path d="M484,270 C480,300 470,318 466,330 L530,330 C520,318 536,300 536,270 Z" fill="url(#gold)" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+<path d="M14,70 C14,96 30,100 34,140 C40,220 90,280 170,286 L450,286 C530,280 580,220 586,140 C590,100 606,96 606,70 C606,104 14,104 14,70 Z" fill="url(#en)" stroke="#2a1a10" stroke-width="6" stroke-linejoin="round"/>
+<path d="M14,70 C14,108 606,108 606,70 L606,64 C606,98 14,98 14,64 Z" fill="#ffffff" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+<path d="M70,150 C90,220 130,256 190,264" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+<path d="M548,150 C536,200 520,230 494,250" fill="none" stroke="#a8b8d0" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+<polygon points="310,168 315.29,182.72 330.92,183.20 318.56,192.78 322.93,207.80 310,199 297.07,207.80 301.44,192.78 289.08,183.20 304.71,182.72" fill="#3ee0d0" stroke="#2a1a10" stroke-width="3.50" stroke-linejoin="round"/>
+</svg>

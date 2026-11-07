@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="620" viewBox="0 0 320 620">
+<defs><linearGradient id="inner" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1426" stop-opacity="1"/><stop offset="0.50" stop-color="#0f0a14" stop-opacity="1"/><stop offset="1" stop-color="#050307" stop-opacity="1"/></linearGradient></defs>
+<rect x="36" y="91" width="248" height="488" fill="url(#inner)"/>
+<line x1="70" y1="95" x2="70" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="100" y1="95" x2="100" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="130" y1="95" x2="130" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="160" y1="95" x2="160" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="190" y1="95" x2="190" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="220" y1="95" x2="220" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<line x1="250" y1="95" x2="250" y2="575" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.50"/>
+<rect x="40" y="276" width="240" height="8" fill="#000000" opacity="0.70"/>
+<rect x="40" y="366" width="240" height="8" fill="#000000" opacity="0.70"/>
+<rect x="40" y="456" width="240" height="8" fill="#000000" opacity="0.70"/>
+<polygon points="99.69,376.21 102.04,381.98 108.25,382.43 103.50,386.45 104.98,392.49 99.69,389.21 94.40,392.49 95.89,386.45 91.13,382.43 97.34,381.98" fill="#4a4a56" opacity="0.25"/>
+<polygon points="184.30,298.27 186.65,304.03 192.86,304.49 188.10,308.50 189.59,314.55 184.30,311.27 179,314.55 180.50,308.50 175.74,304.49 181.95,304.03" fill="#4a4a56" opacity="0.25"/>
+<polygon points="108.88,414.27 111.23,420.04 117.44,420.49 112.69,424.51 114.17,430.56 108.88,427.27 103.59,430.56 105.08,424.51 100.32,420.49 106.53,420.04" fill="#4a4a56" opacity="0.25"/>
+<polygon points="215.41,310.61 217.76,316.37 223.97,316.83 219.22,320.84 220.70,326.89 215.41,323.61 210.12,326.89 211.61,320.84 206.85,316.83 213.06,316.37" fill="#4a4a56" opacity="0.25"/>
+<polygon points="160.92,208.34 163.27,214.10 169.47,214.56 164.72,218.58 166.21,224.62 160.92,221.34 155.63,224.62 157.11,218.58 152.36,214.56 158.56,214.10" fill="#4a4a56" opacity="0.25"/>
+<polygon points="70.57,258.29 72.92,264.05 79.13,264.51 74.38,268.52 75.86,274.57 70.57,271.29 65.28,274.57 66.77,268.52 62.01,264.51 68.22,264.05" fill="#4a4a56" opacity="0.25"/>
+<rect x="40" y="553" width="240" height="22" fill="#140d10"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="210" viewBox="0 0 220 210">
+<defs><linearGradient id="felt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#100d14" stop-opacity="1"/><stop offset="0.40" stop-color="#2e2738" stop-opacity="1"/><stop offset="0.75" stop-color="#1a1620" stop-opacity="1"/><stop offset="1" stop-color="#0a080c" stop-opacity="1"/></linearGradient><linearGradient id="band" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f3d7e" stop-opacity="1"/><stop offset="1" stop-color="#3a2450" stop-opacity="1"/></linearGradient></defs>
+<ellipse cx="110" cy="196" rx="104" ry="14" fill="#000000" opacity="0.50"/>
+<ellipse cx="110" cy="186" rx="100" ry="18" fill="#0c0a0f" stroke="#000000" stroke-width="3"/>
+<path d="M50 184 L56 40 Q58 22 110 22 Q162 22 164 40 L170 184 Z" fill="url(#felt)" stroke="#000000" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M60 70 Q86 82 104 64 Q120 50 150 64" fill="none" stroke="#000000" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.50"/>
+<path d="M52 150 L168 150 L170 182 L50 182 Z" fill="url(#band)"/>
+<polygon points="132,155 134.94,161.95 142.46,162.60 136.76,167.55 138.47,174.90 132,171 125.53,174.90 127.24,167.55 121.54,162.60 129.06,161.95" fill="#9aa1a1" opacity="0.85"/>
+<path d="M70 46 L66 140" fill="none" stroke="#3a3446" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" opacity="0.50"/>
+<ellipse cx="80" cy="60" rx="10" ry="5" fill="#4a4450" opacity="0.25"/>
+<ellipse cx="140" cy="110" rx="10" ry="5" fill="#4a4450" opacity="0.25"/>
+<ellipse cx="98" cy="128" rx="10" ry="5" fill="#4a4450" opacity="0.25"/>
+</svg>

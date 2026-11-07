@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="800" viewBox="0 0 1000 800">
+<defs></defs>
+<path d="M60 800 Q120 560 360 520 L700 520 Q900 560 960 800 Z" fill="#050404" stroke="#3a0008" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M300 420 Q260 300 380 250 L700 230 Q800 240 820 330 Q840 430 760 500 L520 540 Q330 540 300 420 Z" fill="#070505" stroke="#3a0008" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M380 300 L80 330 Q40 345 50 380 L70 400 L400 430 Z" fill="#060404" stroke="#3a0008" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M70 410 L420 440 L560 520 Q300 500 90 450 Z" fill="#040303" stroke="#3a0008" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M78 402 L90 424 L102 404 L114 430 L126 405 L138 424 L150 406 L162 430 L174 408 L186 424 L198 409 L210 430 L222 411 L234 424 L246 412 L258 430 L270 413 L282 424 L294 415 L306 430 L318 416 L330 424 L342 418 L354 430 L366 419 L378 424 L390 420 L402 430 L414 422" fill="none" stroke="#b8b0a0" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/>
+<path d="M96 448 L104 432 L117 450 L130 427 L143 452 L156 432 L169 454 L182 427 L195 456 L208 432 L221 458 L234 427 L247 461 L260 432 L273 463 L286 427 L299 465 L312 432 L325 467 L338 427 L351 469 L364 432 L377 472 L390 427 L403 474" fill="none" stroke="#8a8478" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.60"/>
+<path d="M430 250 L460 40 Q470 20 560 22 Q650 24 652 44 L668 238 Z" fill="#060505" stroke="#3a0008" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="550" cy="246" rx="190" ry="26" fill="#070606" stroke="#3a0008" stroke-width="5"/>
+<rect x="452" y="196" width="214" height="26" fill="#1a0306" opacity="0.90"/>
+<circle cx="620" cy="330" r="64" fill="none" stroke="#6a5420" stroke-width="7" opacity="0.70"/>
+<path d="M676 362 Q700 470 660 560" fill="none" stroke="#4a3a14" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.60"/>
+<path d="M540 290 Q620 260 700 286" fill="none" stroke="#1e2224" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

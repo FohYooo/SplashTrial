@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="170" viewBox="0 0 140 170">
+<defs><linearGradient id="fo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd166" stop-opacity="1"/><stop offset="0.50" stop-color="#ff7a2a" stop-opacity="1"/><stop offset="1" stop-color="#e2302a" stop-opacity="1"/></linearGradient><linearGradient id="fi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe0" stop-opacity="1"/><stop offset="1" stop-color="#ffd166" stop-opacity="1"/></linearGradient></defs>
+<path d="M70,4 C86,40 128,70 124,116 C120,150 96,166 70,166 C44,166 18,150 16,116 C14,84 40,70 46,40 C54,58 60,62 64,66 C64,44 62,26 70,4 Z" fill="url(#fo)" stroke="#a8281a" stroke-width="4" stroke-linejoin="round"/>
+<path d="M70,60 C80,84 102,100 100,126 C98,148 84,158 70,158 C56,158 42,148 40,126 C40,106 58,96 62,80 C66,88 68,90 70,92 C70,80 66,72 70,60 Z" fill="url(#fi)"/>
+<ellipse cx="70" cy="150" rx="24" ry="12" fill="#5ab4ff" opacity="0.85"/>
+</svg>

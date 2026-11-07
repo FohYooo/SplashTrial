@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="176"><stop offset="0" stop-color="#d8f0ff" stop-opacity="1.0"/><stop offset="0.5" stop-color="#bfe3c0" stop-opacity="1.0"/><stop offset="1" stop-color="#7ab86a" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="176"><stop offset="0" stop-color="#c48a52" stop-opacity="1.0"/><stop offset="1" stop-color="#8a5a30" stop-opacity="1.0"/></linearGradient></defs>
+<ellipse cx="100" cy="184" rx="70" ry="9" fill="#000000" opacity="0.2"/>
+<rect x="36" y="20" width="128" height="162" fill="#4a2e1c" stroke="#2a1a10" stroke-width="4.5" rx="3"/>
+<rect x="46" y="30" width="108" height="146" fill="url(#l1)"/>
+<path d="M46 90 C50 81.7 61.7 75 70 74 C78.3 73 87 84.7 96 84 C105 83.3 114.3 70.3 124 70 C133.7 69.7 149 73 154 82 C159 91 172 117 154 124 C136 131 64 129.7 46 124 C28 118.3 42 98.3 46 90 Z" fill="#5f9e5a"/>
+<circle cx="122" cy="98" r="12" fill="#d8333f"/>
+<circle cx="104" cy="104" r="8" fill="#e8506a"/>
+<ellipse cx="70" cy="160" rx="20" ry="7" fill="#d8d6cc" stroke="#2a1a10" stroke-width="2"/>
+<ellipse cx="96" cy="146" rx="16" ry="6" fill="#d8d6cc" stroke="#2a1a10" stroke-width="2"/>
+<ellipse cx="118" cy="136" rx="12" ry="4.5" fill="#d8d6cc" stroke="#2a1a10" stroke-width="2"/>
+<polygon points="46,176 100,176 150,200 20,200" fill="#fff8d0" opacity="0.3"/>
+<rect x="108" y="30" width="60" height="146" fill="url(#l2)" stroke="#2a1a10" stroke-width="4.5"/>
+<rect x="118" y="42" width="40" height="50" fill="#e8eee8" stroke="#2a1a10" stroke-width="2.5"/>
+<path d="M138 42 L138 92 M118 67 L158 67" stroke="#2a1a10" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="116" y="104" width="40" height="60" fill="none" stroke="#6a4228" stroke-width="2.5"/>
+<rect x="110" y="92" width="7" height="28" fill="#2a1a10" rx="3"/>
+<rect x="54" y="120" width="30" height="26" fill="#e7b347" stroke="#2a1a10" stroke-width="3" rx="4"/>
+<path d="M60 120 L60 108 Q60 98 70 98 Q80 98 80 108" stroke="#2a1a10" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60 120 L60 108 Q60 98 70 98 Q80 98 80 108" stroke="#c9ccd4" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="69" cy="131" r="3.5" fill="#2a1a10"/>
+</svg>
