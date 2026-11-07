@@ -6,10 +6,16 @@ and convince everyone of the truth at the **Splash Trial**, or you'll all pay th
 
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
-## Playing (Windows)
-Unzip `build/SplashTrial-v2-windows.zip` and run `SplashTrial.exe`. It's a single self-contained file; the zip also holds
-`GODOT_COPYRIGHT.txt` (the engine's open-source license notices, which must ship with the game). Windows SmartScreen may warn
-about an unknown publisher the first time; click *More info → Run anyway*.
+## How to download and play (Windows)
+1. Go to the [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) and download
+   **`SplashTrial-v2-windows.zip`**. The "Source code" links are not the game.
+2. Right-click the zip, choose **Extract All…**, then **Extract**.
+3. Double-click **`SplashTrial.exe`**. There's nothing to install. If Windows says *"Windows protected your PC"*, click
+   **More info → Run anyway**. It only asks the first time.
+
+The zip also holds `GODOT_COPYRIGHT.txt`, the engine's open-source license notices. Just leave it next to the exe.
+
+![Step-by-step guide: how to download and play Splash Trial](docs/download-guide.png)
 
 ## Controls
 | Action | Input |
