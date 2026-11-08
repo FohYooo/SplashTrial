@@ -1,13 +1,15 @@
 extends Control
 ## Title screen: purple-to-teal sky + key art (slow parallax), steam wisps, rising bubbles,
 ## the SPLASH TRIAL logo drawn in code, capybaras peeking from the bottom edge, and the menu.
-## Emits finished({"action": "new"|"continue"|"chapter2"|"credits"|"quit"}). Autotest -> "new".
+## Emits finished({"action": "new"|"continue"|"case<N>"|"credits"|"quit"}).
+## Autotest -> "new", or "case<N>" with --pick-case=<N>.
 
 signal finished(result: Dictionary)
 
 const Style := preload("res://scripts/ui/style.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 
 const LOGO_SIZE := 118
 const LOGO_Y := 148.0
@@ -18,7 +20,9 @@ const PEEK_SLOTS := [
 	{"x": 1184.0, "k": 0.5, "rot": -0.13, "vis": 205.0},
 ]
 const PEEK_START := ["mochi", "lulu", "bruno", "coco"]
-const MOODS := {"new": "happy", "continue": "happy", "chapter2": "shock", "credits": "normal", "quit": "sad"}
+const MOODS := {"new": "happy", "continue": "happy", "cases": "shock", "case1": "happy", "case2": "shock", "back": "normal", "credits": "normal", "quit": "sad"}
+const MENU_W := 330.0
+const CASE_MENU_W := 540.0
 
 ## Fill shader for the logo letters: white fill pixels get a yuzu-gold gradient with a gloss band,
 ## the dark outline is left alone.
@@ -60,6 +64,8 @@ var _wave: Sprite2D
 var _subtitle: Label
 var _sub_yuzus: Array[Sprite2D] = []
 var _menu: VBoxContainer
+var _in_cases := false
+var _case_note: Label
 var _buttons: Array[Button] = []
 var _actions: Array[String] = []
 var _ind_l: Sprite2D
@@ -117,8 +123,11 @@ func _ready() -> void:
 		_twinkles.append({"p": Vector2(randf_range(320, 1240), randf_range(20, 330)), "ph": randf() * TAU, "sp": randf_range(1.5, 3.2), "r": randf_range(7, 14)})
 	_intro()
 	if Game.autotest:
-		finished.emit.call_deferred({"action": "new"})
+		finished.emit.call_deferred({"action": "case%d" % Game.debug_case if Game.debug_case > 0 else "new"})
 		_chosen = true
+	elif Game.debug_case_menu:
+		_skip_intro()
+		_open_cases()
 
 
 # ------------------------------------------------------------------ building
@@ -325,22 +334,58 @@ func _build_logo() -> void:
 
 func _build_menu() -> void:
 	_menu = VBoxContainer.new()
-	_menu.add_theme_constant_override("separation", 14)
-	_menu.position = Vector2(640 - 165, 362)
-	_menu.size = Vector2(330, 10)
+	_menu.position = Vector2(640.0 - MENU_W * 0.5, 362)
 	add_child(_menu)
+	_case_note = Style.label("Case 2 opens with the ending of Case 1.", 19, Style.TEXT_DIM)
+	_case_note.add_theme_color_override("font_outline_color", Style.BG_DARK)
+	_case_note.add_theme_constant_override("outline_size", 6)
+	_case_note.visible = false
+	add_child(_case_note)
+	_case_note.reset_size()
+	_case_note.position = Vector2(640.0 - _case_note.size.x * 0.5, 574)
+	_fill_menu(_main_items(), MENU_W, true)
+	_ind_l = Sprite2D.new()
+	_ind_r = Sprite2D.new()
+	for s in [_ind_l, _ind_r]:
+		var sp: Sprite2D = s
+		sp.texture = _yuzu_tex
+		sp.scale = Vector2(0.3, 0.3)
+		sp.modulate.a = 0.0
+		add_child(sp)
+
+
+func _main_items() -> Array:
 	var items := [["New Game", "new"]]
 	if Game.has_save():
 		items.append(["Continue", "continue"])
-	if Game.chapter_unlocked >= 2:
-		items.append(["Chapter 2", "chapter2"])   # unlocked by finishing Chapter 1
+	items.append(["Choose Case", "cases"])
 	items.append(["Credits", "credits"])
 	items.append(["Quit", "quit"])
+	return items
+
+
+func _case_items() -> Array:
+	var items := []
+	for ch in range(1, Chapters.LAST + 1):
+		var d := Chapters.data(ch)
+		items.append(["%s: %s" % [d["case"], d["title"]], "case%d" % ch])
+	items.append(["Back", "back"])
+	return items
+
+
+## Replaces the menu's buttons. `hidden` leaves them invisible for the title intro to fade in.
+func _fill_menu(items: Array, width: float, hidden: bool) -> void:
+	for old in _buttons:
+		_menu.remove_child(old)
+		old.queue_free()
+	_buttons.clear()
+	_actions.clear()
 	var tight := items.size() > 4
-	if tight:
-		_menu.add_theme_constant_override("separation", 10)
+	_menu.add_theme_constant_override("separation", 10 if tight else 14)
+	_menu.position.x = 640.0 - width * 0.5
+	_menu.size = Vector2(width, 10)
 	for it in items:
-		var b := Style.button(str(it[0]), Vector2(330, 50 if tight else 56), 26 if tight else 27)
+		var b := Style.button(str(it[0]), Vector2(width, 50 if tight else 56), 26 if tight else 27)
 		b.add_theme_font_override("font", Style.display_font())
 		b.add_theme_stylebox_override("normal", Style.box(Color(0.10, 0.06, 0.22, 0.82), 14, Style.AQUA_DEEP, 3))
 		b.add_theme_stylebox_override("hover", Style.box(Color(0.20, 0.12, 0.40, 0.92), 14, Style.GOLD, 3))
@@ -350,18 +395,30 @@ func _build_menu() -> void:
 		b.pressed.connect(_choose.bind(act, b))
 		b.mouse_entered.connect(_on_hover.bind(b))
 		b.focus_entered.connect(_on_focus.bind(b, act))
-		b.modulate.a = 0.0
+		if hidden:
+			b.modulate.a = 0.0
 		_menu.add_child(b)
 		_buttons.append(b)
 		_actions.append(act)
-	_ind_l = Sprite2D.new()
-	_ind_r = Sprite2D.new()
-	for s in [_ind_l, _ind_r]:
-		var sp: Sprite2D = s
-		sp.texture = _yuzu_tex
-		sp.scale = Vector2(0.3, 0.3)
-		sp.modulate.a = 0.0
-		add_child(sp)
+
+
+func _open_cases() -> void:
+	_in_cases = true
+	_fill_menu(_case_items(), CASE_MENU_W, false)
+	_case_note.visible = true
+	_focus_action.call_deferred("case1")
+
+
+func _close_cases() -> void:
+	_in_cases = false
+	_fill_menu(_main_items(), MENU_W, false)
+	_case_note.visible = false
+	_focus_action.call_deferred("cases")
+
+
+## Deferred so the menu has laid out its new buttons before the indicator reads their position.
+func _focus_action(act: String) -> void:
+	_buttons[maxi(_actions.find(act), 0)].grab_focus()
 
 
 func _intro() -> void:
@@ -464,9 +521,14 @@ func _on_focus(b: Button, act: String) -> void:
 func _choose(act: String, b: Button) -> void:
 	if _chosen:
 		return
+	if act == "cases" or act == "back":
+		Audio.sfx("confirm")
+		# Deferred: this runs inside the pressed button's own signal, and that button gets replaced.
+		(_open_cases if act == "cases" else _close_cases).call_deferred()
+		return
 	_chosen = true
 	Audio.sfx("confirm")
-	if act == "new":
+	if act == "new" or act.begins_with("case"):
 		Audio.sfx("splash", 1.1, -4.0)
 	var c := b.global_position - global_position + b.size * 0.5
 	for i in 26:
@@ -498,7 +560,11 @@ func _unhandled_input(e: InputEvent) -> void:
 		return
 	if e is InputEventKey and e.pressed and not e.echo:
 		var k := e as InputEventKey
-		if k.keycode in [KEY_UP, KEY_DOWN, KEY_W, KEY_S] and not _any_focus():
+		if k.keycode == KEY_ESCAPE and _in_cases:
+			Audio.sfx("confirm")
+			_close_cases()
+			get_viewport().set_input_as_handled()
+		elif k.keycode in [KEY_UP, KEY_DOWN, KEY_W, KEY_S] and not _any_focus():
 			_buttons[0].grab_focus()
 			get_viewport().set_input_as_handled()
 

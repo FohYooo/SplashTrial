@@ -72,8 +72,11 @@ Look at PNGs with the Read tool. Fix every `SCRIPT ERROR` / `Parse Error` you se
   `trial_data_index.gd` (trial_data vs trial_data2), investigation_data vs investigation_data2, `Cast.survivors()` /
   `alive_at_start()` / `roster_alive()`.
 - Chapter 2 spoilers + content: docs/DESIGN2.md. Flow: aftermath → drain (cutscene screen) → prologue → ... like chapter 1.
-- Chapter 1's credits unlock chapter 2 (`Game.chapter_unlocked`, saved in settings) and lead straight into it. The title shows
-  "Chapter 2" once unlocked. Saves store the chapter.
+- Chapter 1's credits lead straight into chapter 2. Saves store the chapter. In this branch `Game.chapter_unlocked` is still
+  saved but no longer gates anything: the title's **Choose Case** list is always open.
+- Case select: `Main.start_case(n)`. Case 1 is `start_chapter(1)`. A later case sets `_bridge_to`, plays the previous chapter's
+  execution and epilogue, then `_on_finished` calls `start_chapter(n)` instead of going to the credits.
+  Test with `-- --pick-case=2 --autotest`; screenshot the list with `--case-menu`.
 - Debug: `--chapter=2` with any of `--start=`, `--script=`, `--minigame=` (e.g. `-- --chapter=2 --start=drain --autotest`).
   `python3 tools/check_content.py` checks both chapters.
 

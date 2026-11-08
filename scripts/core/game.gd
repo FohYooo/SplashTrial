@@ -48,6 +48,8 @@ var shot_delay := 3.0     # --shot-delay=<seconds>
 var skills_all := false   # --all-skills
 var autotest_slow := false  # --slow : with --autotest, advance text at a readable pace (for screenshots)
 var no_rewards := false   # --no-rewards : correct answers give no convince (tests the losing vote path)
+var debug_case := 0       # --pick-case=<n> : with --autotest, the title screen picks that case from Choose Case
+var debug_case_menu := false  # --case-menu : open the title screen's case list (for screenshots)
 
 # --- Settings ---
 var text_speed := 1.0     # characters-per-second multiplier
@@ -96,6 +98,10 @@ func _parse_args() -> void:
 			no_rewards = true
 		elif a.begins_with("--chapter="):
 			chapter = int(a.get_slice("=", 1))
+		elif a.begins_with("--pick-case="):
+			debug_case = int(a.get_slice("=", 1))
+		elif a == "--case-menu":
+			debug_case_menu = true
 		elif a.begins_with("--start="):
 			debug_start = a.get_slice("=", 1)
 		elif a.begins_with("--minigame="):

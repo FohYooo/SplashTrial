@@ -10,8 +10,10 @@ An original capybara murder-mystery trial game. Fifteen capybaras are trapped in
 and convince everyone of the truth at the **Splash Trial**, or you'll all pay the price.
 
 - **Chapter 1: Murder at Yuzu Springs**
-- **Chapter 2: Murder on the Mudlark** (new in v3; it follows straight on from Chapter 1. After you finish Chapter 1
-  once, the title screen also gets a **Chapter 2** button.)
+- **Chapter 2: Murder on the Mudlark** (new in v3; it follows straight on from Chapter 1.)
+
+**Choose Case** on the title screen lets you start at either case. Case 2 opens with the ending of Case 1, so play
+Case 1 first if you want to solve it yourself.
 
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
@@ -24,8 +26,7 @@ and convince everyone of the truth at the **Splash Trial**, or you'll all pay th
 3. Double-click **`SplashTrial3D.exe`**. There's nothing to install. If Windows says *"Windows protected your PC"*, click
    **More info → Run anyway**. It only asks the first time.
 
-The 3D version keeps its own save, so it never overwrites your 2D save. If you already unlocked Chapter 2 in the
-2D version, the 3D title screen offers it too.
+The 3D version keeps its own save, so it never overwrites your 2D save.
 
 The zip also holds `GODOT_COPYRIGHT.txt`, the engine's open-source license notices. Just leave it next to the exe.
 

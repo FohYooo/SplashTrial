@@ -39,6 +39,8 @@ var _step := ""
 var _fade: ColorRect
 var _pause: Control
 var _transitioning := false
+## Case select: the case to enter once the previous case's ending has played (0 = none).
+var _bridge_to := 0
 
 
 func _ready() -> void:
@@ -106,6 +108,7 @@ func goto(step: String) -> void:
 		Game.save_checkpoint(step)
 	match step:
 		"title":
+			_bridge_to = 0
 			_show("title", {}, step)
 		"freetime":
 			_show("freetime", {"slots": 3}, step)
@@ -130,6 +133,19 @@ func start_chapter(ch: int) -> void:
 	Game.chapter = ch
 	Game.new_game()
 	goto(str(Chapters.get_value("first_step", "prologue")))
+
+
+## Case select. A case with a predecessor opens on that case's ending (execution and epilogue,
+## no credits), which then flows into the chosen case; see _on_finished.
+func start_case(ch: int) -> void:
+	if ch <= 1:
+		start_chapter(1)
+		return
+	_bridge_to = ch
+	Game.chapter = ch - 1
+	Game.new_game()
+	_give_all_clues()
+	goto("execution")
 
 
 func open_notebook(tab: String = "clues") -> void:
@@ -212,6 +228,11 @@ func _on_finished(result: Variant, step: String) -> void:
 	var r: Dictionary = result if typeof(result) == TYPE_DICTIONARY else {}
 	if Game.autotest:
 		print("[autotest] finished step: ", step, " ", r)
+	if step == "epilogue" and _bridge_to > 0:
+		var ch := _bridge_to
+		_bridge_to = 0
+		start_chapter(ch)
+		return
 	match step:
 		"debug_minigame", "debug_script":
 			print("[debug] done: ", r, " convince=", Game.convince, " flags=", Game.flags)
@@ -228,8 +249,10 @@ func _on_finished(result: Variant, step: String) -> void:
 					_show("credits", {"from_title": true}, "credits_from_title")
 				"quit":
 					get_tree().quit()
-				"chapter2":
-					start_chapter(2)
+				"case1":
+					start_case(1)
+				"case2":
+					start_case(2)
 				_:
 					start_chapter(1)
 		"credits_from_title":
