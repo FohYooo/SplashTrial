@@ -10,6 +10,7 @@ signal finished(result: Dictionary)
 const Style := preload("res://scripts/ui/style.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 
 const SPEED := 82.0
 const FAST := 6.0
@@ -62,10 +63,17 @@ var _shooting: Array = []
 var _shoot_timer := 3.0
 var _bob_items: Array = []
 var _logo_mat: ShaderMaterial
+var _from_title := false
 
 
-func setup(_params: Dictionary) -> void:
-	pass
+## The finished chapter's title (from the title screen: the game's first chapter title).
+func _subtitle() -> String:
+	return str(Chapters.data(1 if _from_title else -1)["title"])
+
+
+func setup(params: Dictionary) -> void:
+	# Opened from the title screen the player may not have played yet: leave out the memorial card.
+	_from_title = bool(params.get("from_title", false))
 
 
 func _ready() -> void:
@@ -307,7 +315,7 @@ func _build_roll() -> void:
 	rim.add_theme_color_override("font_outline_color", Style.AQUA)
 	_add_center(rim, 640, y)
 	y += _add_center(title, 640, y)
-	y += _add_center(_lab("Murder at Yuzu Springs", 38, Style.TEXT, true, 12), 640, y - 4) + 10
+	y += _add_center(_lab(_subtitle(), 38, Style.TEXT, true, 12), 640, y - 4) + 10
 	var title_h := y
 	# center the title block on screen at the start
 	_roll.position.y = 360.0 - title_h * 0.5
@@ -319,7 +327,7 @@ func _build_roll() -> void:
 	y += _add_center(_lab("STARRING", 46, Style.AQUA, true, 12), 640, y) + 4
 	y += _add_center(_lab("the guests (and host) of Yuzu Springs Resort", 24, Style.TEXT_DIM, false, 6), 640, y) + 46
 	var ids: Array = []
-	for id in Cast.ORDER:
+	for id in Cast.ROSTER:
 		ids.append(id)
 	ids.append("snapjaw")
 	var row_h := 214.0
@@ -341,24 +349,26 @@ func _build_roll() -> void:
 			tal += "  (that's you!)"
 		_add_left(_lab(tal, 23, Style.TEXT, false, 6), cx - 20, ny + nh + 2, 296)
 	y += ceilf(ids.size() / 2.0) * row_h + 200
-	# --- in memoriam
-	_add_glow(Vector2(640, y + 150), Vector2(260, 220), Color(1.0, 0.85, 0.5, 0.35))
-	var halo := Line2D.new()
-	var pts := PackedVector2Array()
-	for k in 41:
-		var a := TAU * k / 40.0
-		pts.append(Vector2(640 + cos(a) * 92.0, y + 22 + sin(a) * 20.0))
-	halo.points = pts
-	halo.width = 7.0
-	halo.default_color = Color(1.0, 0.86, 0.4, 0.9)
-	_roll.add_child(halo)
-	_add_card(Rect2(640 - 140, y + 92, 280, 236), Color(1.0, 0.86, 0.45))
-	_add_sprite(Assets.portrait("coco", "happy"), Vector2(640, y + 170), 0.52)
-	y += 346
-	y += _add_center(_lab("In loving memory of", 30, Style.TEXT_DIM, true, 8), 640, y) + 2
-	y += _add_center(_lab("Captain Coco", 72, Color("8cc4ff"), true, 16), 640, y) + 2
-	y += _add_center(_lab("Ace Sailor. Protector of her crew. Ahoy, forever.", 24, Style.TEXT, false, 6), 640, y)
-	y += 300
+	# --- in memoriam (only after actually playing the case)
+	if not _from_title:
+		_add_glow(Vector2(640, y + 150), Vector2(260, 220), Color(1.0, 0.85, 0.5, 0.35))
+		var halo := Line2D.new()
+		var pts := PackedVector2Array()
+		for k in 41:
+			var a := TAU * k / 40.0
+			pts.append(Vector2(640 + cos(a) * 92.0, y + 22 + sin(a) * 20.0))
+		halo.points = pts
+		halo.width = 7.0
+		halo.default_color = Color(1.0, 0.86, 0.4, 0.9)
+		_roll.add_child(halo)
+		_add_card(Rect2(640 - 140, y + 92, 280, 236), Color(1.0, 0.86, 0.45))
+		var victim: String = str(Chapters.get_value("victim", "coco"))
+		_add_sprite(Assets.portrait(victim, "happy"), Vector2(640, y + 170), 0.52)
+		y += 346
+		y += _add_center(_lab("In loving memory of", 30, Style.TEXT_DIM, true, 8), 640, y) + 2
+		y += _add_center(_lab(str(Chapters.get_value("victim_name", "")), 72, Cast.color(victim).lightened(0.3), true, 16), 640, y) + 2
+		y += _add_center(_lab(str(Chapters.get_value("memorial_line", "")), 24, Style.TEXT, false, 6), 640, y)
+		y += 300
 	# --- thanks
 	var yz := Assets.prop("title_yuzu")
 	var th := _lab("Thanks for playing!", 78, Style.YUZU, true, 18)
@@ -377,7 +387,7 @@ func _build_roll() -> void:
 	var fy := y
 	var fh := _made_by_block(y)
 	y += fh + 18
-	y += _add_center(_lab("SPLASH TRIAL: Murder at Yuzu Springs", 28, Style.TEXT_DIM, true, 8), 640, y)
+	y += _add_center(_lab("SPLASH TRIAL: " + _subtitle(), 28, Style.TEXT_DIM, true, 8), 640, y)
 	_final_center = fy + (y - fy) * 0.5
 	_final_y = 360.0 - _final_center
 	_roll.size.y = y + 50

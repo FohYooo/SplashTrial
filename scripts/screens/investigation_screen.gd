@@ -16,7 +16,10 @@ const Style := preload("res://scripts/ui/style.gd")
 const Cast := preload("res://scripts/data/cast.gd")
 const Clues := preload("res://scripts/data/clues.gd")
 const Story := preload("res://scripts/data/story.gd")
-const Inv := preload("res://scripts/data/investigation_data.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
+## Room data for the current chapter (investigation_data.gd / investigation_data2.gd). Untyped on purpose:
+## its constants (ROOMS, ROOM_ORDER, START_ROOM, SLOT_X, PERSON_SCALE) are read dynamically.
+var Inv = preload("res://scripts/data/investigation_data.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -38,6 +41,16 @@ const MAP_LINKS := [
 	["lounge", "garden"], ["garden", "changing"], ["changing", "sauna"], ["changing", "bath"],
 ]
 const STONE_LINKS := [["lounge", "garden"], ["garden", "changing"]]
+## Chapter 2 map: a cross-section of the Mudlark (upper deck row, lower deck row, stairs as the hub).
+const MAP_POS2 := {
+	"purser": Vector2(250, 225), "hall": Vector2(560, 225), "tumble_cabin": Vector2(870, 225),
+	"laundry": Vector2(250, 455), "infirmary": Vector2(560, 455), "boiler": Vector2(870, 455),
+}
+const MAP_HUB2 := Vector2(560, 340)
+const MAP_LINKS2 := [
+	["purser", "hall"], ["hall", "tumble_cabin"], ["hall", "hub"], ["hub", "infirmary"],
+	["laundry", "infirmary"], ["infirmary", "boiler"],
+]
 
 const OUTLINE_SHADER := """shader_type canvas_item;
 uniform vec4 line_color : source_color = vec4(1.0, 0.82, 0.4, 1.0);
@@ -103,6 +116,12 @@ var _map_open := false
 var _lock_ms := 0
 var _cleared := {}
 var _mask_cache := {}
+
+
+func _init() -> void:
+	var path: String = str(Chapters.get_value("investigation", ""))
+	if path != "" and ResourceLoader.exists(path):
+		Inv = load(path)
 
 
 func _ready() -> void:
@@ -579,7 +598,7 @@ func _everything_examined() -> bool:
 
 func _missing_clues() -> Array:
 	var out: Array = []
-	for c in Clues.REQUIRED:
+	for c in Clues.required():
 		if not Game.has_clue(c):
 			out.append(c)
 	return out
@@ -617,14 +636,14 @@ func _check_room_cleared() -> void:
 
 func _owned_required() -> int:
 	var n := 0
-	for c in Clues.REQUIRED:
+	for c in Clues.required():
 		if Game.has_clue(c):
 			n += 1
 	return n
 
 
 func _update_drops(animated: bool) -> void:
-	var total := Clues.REQUIRED.size()
+	var total := Clues.required().size()
 	var n := _owned_required()
 	_drops_count.text = "%d/%d" % [n, total]
 	_drops_count.add_theme_color_override("font_color", Style.GOOD if n >= total else Style.GOLD)
@@ -816,7 +835,7 @@ func _celebrate() -> void:
 	tl.position = Vector2(0, 40)
 	tl.size = Vector2(W, 80)
 	band.add_child(tl)
-	var sub := Style.label("%d / %d Truth Drops - you're ready for the Splash Trial." % [_owned_required(), Clues.REQUIRED.size()], 24, Style.AQUA, true)
+	var sub := Style.label("%d / %d Truth Drops - you're ready for the Splash Trial." % [_owned_required(), Clues.required().size()], 24, Style.AQUA, true)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.position = Vector2(0, 118)
 	sub.size = Vector2(W, 40)
@@ -926,13 +945,15 @@ func _build_map() -> Control:
 	# card positions (unknown rooms get a spot along the bottom)
 	var pos := {}
 	var extra := 0
+	var map_pos: Dictionary = MAP_POS2 if Chapters.current == 2 else MAP_POS
 	for rid in Inv.ROOM_ORDER:
-		if MAP_POS.has(rid):
-			pos[rid] = MAP_POS[rid]
+		if map_pos.has(rid):
+			pos[rid] = map_pos[rid]
 		else:
 			pos[rid] = Vector2(140 + extra * 190, 560)
 			extra += 1
 	var decor := MapDecor.new()
+	decor.ship = Chapters.current == 2
 	decor.size = MAP_BOARD.size
 	decor.centers = pos
 	board.add_child(decor)
@@ -1277,17 +1298,22 @@ class DropIcon extends Control:
 ## Map background: building regions, paths, garden stepping stones, the lobby hub, decorations.
 class MapDecor extends Control:
 	var centers := {}
+	var ship := false
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _pt(id: String) -> Vector2:
+		var hub := MAP_HUB2 if ship else MAP_HUB
 		if id == "hub":
-			return MAP_HUB
-		return centers.get(id, MAP_HUB)
+			return hub
+		return centers.get(id, hub)
 
 	func _draw() -> void:
 		var f := Style.display_font()
+		if ship:
+			_draw_ship(f)
+			return
 		_region(Rect2(28, 108, 494, 482), Color(0.42, 0.3, 0.62, 0.2), Color(Style.VIOLET, 0.55), "MAIN BUILDING")
 		_region(Rect2(530, 240, 190, 350), Color(0.3, 0.62, 0.32, 0.2), Color(0.45, 0.8, 0.45, 0.55), "GARDEN")
 		_region(Rect2(736, 108, 380, 482), Color(Style.AQUA_DEEP, 0.22), Color(Style.AQUA, 0.5), "BATHHOUSE")
@@ -1334,6 +1360,46 @@ class MapDecor extends Control:
 		draw_circle(MAP_HUB, 7.0, Style.YUZU)
 		draw_string_outline(f, MAP_HUB + Vector2(-60, 46), "LOBBY", HORIZONTAL_ALIGNMENT_CENTER, 120, 15, 6, Style.BG_DARK)
 		draw_string(f, MAP_HUB + Vector2(-60, 46), "LOBBY", HORIZONTAL_ALIGNMENT_CENTER, 120, 15, Style.TEXT_DIM)
+
+	## Chapter 2: the Mudlark in cross-section - hull, two decks, smokestacks, paddle wheel, stairs hub.
+	func _draw_ship(f: Font) -> void:
+		var hull := PackedVector2Array([Vector2(40, 130), Vector2(1100, 130), Vector2(1060, 560),
+				Vector2(1000, 600), Vector2(140, 600), Vector2(70, 560)])
+		draw_colored_polygon(hull, Color(0.16, 0.36, 0.38, 0.35))
+		var outline := hull.duplicate()
+		outline.append(hull[0])
+		draw_polyline(outline, Color(Style.AQUA, 0.6), 3.0, true)
+		# smokestacks + paddle wheel
+		for x in [430.0, 690.0]:
+			draw_rect(Rect2(x - 22, 62, 44, 68), INK)
+			draw_rect(Rect2(x - 18, 66, 36, 64), Color("e9e2d0"))
+			draw_rect(Rect2(x - 18, 66, 36, 12), Color("2fb8b0"))
+		var wc := Vector2(1102, 470)
+		draw_circle(wc, 74.0, INK)
+		draw_circle(wc, 70.0, Color("b8342c"))
+		draw_circle(wc, 22.0, INK)
+		for i in 8:
+			var a := TAU * i / 8.0
+			draw_line(wc + Vector2(cos(a), sin(a)) * 22.0, wc + Vector2(cos(a), sin(a)) * 70.0, INK, 5.0, true)
+		# decks
+		_region(Rect2(70, 140, 990, 175), Color(0.42, 0.3, 0.62, 0.2), Color(Style.VIOLET, 0.55), "UPPER DECK")
+		_region(Rect2(96, 370, 940, 175), Color(Style.AQUA_DEEP, 0.22), Color(Style.AQUA, 0.5), "LOWER DECK")
+		# portholes along the hull
+		for i in 9:
+			var p := Vector2(150 + i * 105, 578)
+			draw_circle(p, 9.0, INK)
+			draw_circle(p, 6.5, Color("ffd27a"))
+		for link in MAP_LINKS2:
+			var a := _pt(link[0])
+			var b := _pt(link[1])
+			draw_line(a, b, Color(INK, 0.6), 9.0, true)
+			draw_dashed_line(a, b, Color(Style.TEXT_DIM, 0.85), 4.0, 10.0, true, true)
+		draw_circle(MAP_HUB2, 24.0, INK)
+		draw_circle(MAP_HUB2, 20.0, Style.PANEL_LIGHT)
+		draw_arc(MAP_HUB2, 20.0, 0.0, TAU, 40, Style.AQUA_DEEP, 3.0, true)
+		draw_circle(MAP_HUB2, 7.0, Style.YUZU)
+		draw_string_outline(f, MAP_HUB2 + Vector2(-110, 6), "STAIRS", HORIZONTAL_ALIGNMENT_RIGHT, 80, 15, 6, Style.BG_DARK)
+		draw_string(f, MAP_HUB2 + Vector2(-110, 6), "STAIRS", HORIZONTAL_ALIGNMENT_RIGHT, 80, 15, Style.TEXT_DIM)
 
 	func _region(r: Rect2, fill: Color, border: Color, label: String) -> void:
 		var sb := StyleBoxFlat.new()

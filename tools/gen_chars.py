@@ -281,9 +281,14 @@ class Doc:
 # ============================================================================ capybara anatomy
 # Canonical head space: centre x=240, crown y~74, chin y~341.  The whole head group is
 # transformed per character (scale) and per expression (tilt / bob).
+#
+# Every capybara is built from the same parts (head, ears, snout, nose, eyes, brows, mouth,
+# whiskers, blush) drawn with the same line weights and cel shading, but every part is
+# parametric: each character overrides FACE_DEF to get their own head silhouette, ear type,
+# snout and nose, eye type/shape/size/placement, brows and mouth, so the faces read apart
+# even without hats and outfits.
 
 EYE_Y = 178
-EYE_SCALE = 1.08
 EYE_DX = 64
 MOUTH_Y = 258
 
@@ -297,18 +302,56 @@ POSE = {  # tilt degrees, vertical bob
 	'sad': (3.5, 9.0),
 }
 
+# right half of the default (Mochi) head outline: top centre -> chin centre
+HEAD_DEF = [(240, 72), (300, 74), (344, 85), (364, 114), (371, 170), (378, 232), (374, 284), (340, 322), (240, 334)]
+
+FACE_DEF = dict(
+	head=HEAD_DEF, head_k=1.0,          # head outline half + spline tension (<1 = more angular)
+	eye_y=EYE_Y, eye_dx=EYE_DX, eye_rx=20.5, eye_ry=26.0,
+	eye='bead',                         # bead: dark-rimmed animal eye | white: anime eye with a white
+	eye_shape='oval',                   # oval | almond
+	eye_tilt=0.0,                       # almond: outer corner up (+) / down (-)
+	look=(0.0, 0.0),                    # iris offset as a fraction of the eye radii
+	iris_s=0.74,                        # white eyes: iris height / eye height
+	hl='two',                           # highlights: two big tiny idol sharp dreamy
+	lid=0.0, lid_slant=0.0,             # resting upper lid (0..1) + slant (+ = inner corner lower)
+	lashes=0, lash_len=12.0,
+	brow='line',                        # line | thick | thin | dot | bushy
+	brow_len=18.0, brow_w=8.5, brow_gap=16.0, brow_dy=0.0, brow_dx=0.0,
+	brow_tilt=0.0,                      # resting slant: + lifts the inner ends (worried), - drops them (stern)
+	brow_arch=0.0,                      # - lifts the middle of the brow (arched)
+	muz_top=200.0, muz_w=112.0,         # snout patch: top y, half width
+	nose='wide', nose_y=220.0, nose_w=51.0, nose_h=30.0,
+	mouth_y=MOUTH_Y, mouth_sx=1.0, mouth_sy=1.0, teeth='buck',
+	whisk=1.0,                          # whisker length factor (0 = none)
+)
+
+
+def fp(c, k):
+	return c[k] if k in c else FACE_DEF[k]
+
 
 def head_pts(c):
-	ch = c.get('cheek', 0)
-	half = [(240, 72), (300, 74), (344, 85), (364, 114), (371 + ch * 0.3, 170),
-		(378 + ch, 232), (374 + ch * 0.8, 284), (340 + ch * 0.5, 322), (240, 334)]
-	return sym(half)
+	return sym(fp(c, 'head'))
 
 
-# the broad blunt capybara snout: the whole lower face
-MUZZLE_PTS = sym([(240, 200), (288, 202), (322, 216), (344, 250), (352, 292), (334, 330), (240, 344)])
-# the long nose bridge running from between the eyes down to the nose
-BRIDGE_PTS = sym([(240, 132), (262, 136), (276, 170), (284, 214), (240, 222)])
+def head_d(c):
+	return smooth(head_pts(c), k=fp(c, 'head_k'))
+
+
+def muzzle_half(c):
+	if 'muz_pts' in c:
+		return c['muz_pts']
+	mt, mw = fp(c, 'muz_top'), fp(c, 'muz_w')
+	return [(240, mt), (240 + mw * 0.43, mt + 2), (240 + mw * 0.73, mt + 16), (240 + mw * 0.93, mt + 50), (240 + mw, mt + 92),
+		(240 + mw * 0.95, mt + 130), (240, mt + 144)]
+
+
+def bridge_pts(c):
+	ey, ny = fp(c, 'eye_y'), fp(c, 'nose_y')
+	bw = c.get('bridge_w', 1.0)
+	top = ey - 46
+	return sym([(240, top), (240 + 22 * bw, top + 4), (240 + 36 * bw, ey - 8), (240 + 44 * bw, ny - 6), (240, ny + 2)])
 
 
 def ellipse_d(x, y, rx, ry):
@@ -335,35 +378,81 @@ def cel_shade(c, e):
 	return mix(c['shade'], '#2a1240', {'shock': 0.3, 'angry': 0.22}.get(e, 0.13))
 
 
+# ---------------------------------------------------------------------------- ears
+
+
+def ear_path(x, y, rx, ry, style, side):
+	if style in ('round', 'tufted', 'floppy'):
+		return ellipse_d(x, y, rx, ry)
+	pts = []
+	notch = -50.0 if side > 0 else -130.0
+	for i in range(40):
+		a = -90.0 + i * 9.0
+		r = math.radians(a)
+		px, py = math.cos(r) * rx, math.sin(r) * ry
+		if style == 'pointy':
+			# egg shape tapering to a soft point on top
+			if py < 0:
+				f = -py / ry
+				px *= 1.0 - 0.42 * f * f
+				py *= 1.0 + 0.2 * f
+		elif style == 'notched':
+			da = abs((a - notch + 180.0) % 360.0 - 180.0)
+			if da < 22:
+				k = 1.0 - 0.42 * (1.0 - da / 22.0)
+				px, py = px * k, py * k
+		pts.append((x + px, y + py))
+	return smooth(pts, k=0.55)
+
+
 def draw_ears(d, c, e='normal'):
 	if c.get('ears') is False:
 		return ''
 	dx, y, tilt = c.get('ears', (98, 78, 18))
+	style = c.get('ear_style', 'round')
+	es = c.get('ear_s', 1.0)
+	rx, ry = 19 * es, 21 * es
+	if style == 'floppy':
+		rx, ry = 15 * es, 27 * es
 	s = ''
 	for side in (-1, 1):
 		x = 240 + side * dx
-		ear = E(x, y, 19, 21, fill=cel_shade(c, e), st=None)
-		k = d.clip(ellipse_d(x, y, 19, 21))
-		ear += G(E(x - 5, y - 4, 19, 21, fill=c['fur'], st=None), clip=k)
+		ed = ear_path(x, y, rx, ry, style, side)
+		ear = ''
+		if style == 'tufted':
+			for (ax, ln) in ((-0.25, 14), (0.15, 18)):
+				bx = x + ax * rx * 2
+				tuft = poly([(bx - 6, y - ry + 6), (bx + side * 4, y - ry - ln), (bx + 7, y - ry + 6)])
+				ear += P(tuft, fill=c['fur'], st=OUT, sw=4)
+		ear += P(ed, fill=cel_shade(c, e), st=None)
+		k = d.clip(ed)
+		inner = P(ed, fill=c['fur'], st=None, extra=' transform="translate(-5 -4)"')
 		if side == 1:
 			# pool light catching the shadow-side ear
-			ear += G(P('M%s A19 21 0 0 1 %s' % (pt((x + 2, y - 21)), pt((x + 10, y + 18))), st=rim_col(e), sw=15,
-				op=0.9 if e == 'angry' else 0.65), clip=k)
-		ear += E(x, y, 19, 21, st=OUT, sw=SW)
-		ear += E(x + side * 1.5, y + 3, 9.5, 11, fill=c['inner'], st=None)
-		ear += E(x - side * 5, y - 7, 5, 5, fill=WHITE, st=None, op=0.2)
+			inner += P(ed, st=rim_grad(d, e, (x - rx, y - ry), (x + rx, y + ry * 0.4), 0.9 if e == 'angry' else 0.7, 0.45), sw=14)
+		ear += G(inner, clip=k)
+		ear += P(ed, st=OUT, sw=SW)
+		if style == 'floppy':
+			ear += E(x + side * 1, y + 4, 7.5 * es, 16 * es, fill=c['inner'], st=None)
+		else:
+			ear += E(x + side * 1.5, y + 3, 9.5 * es, 11 * es, fill=c['inner'], st=None)
+		ear += E(x - side * 5, y - 7, 5 * es, 5 * es, fill=WHITE, st=None, op=0.2)
 		s += G(ear, tf=rot(side * tilt, x, y))
 	return s
 
 
+# ---------------------------------------------------------------------------- head / snout / nose
+
+
 def draw_head_base(d, c, e):
-	hp = smooth(head_pts(c))
+	hp = head_d(c)
 	hc = d.clip(hp)
 	s = P(hp, fill=cel_shade(c, e), st=None)
 	ox, oy = {'shock': (-22, -16), 'angry': (-21, -15)}.get(e, (-19, -14))
 	lit = P(hp, fill=c['fur'], st=None, extra=' transform="translate(%d %d)"' % (ox, oy))
-	glow = E(196, 116, 46, 22, fill=WHITE, st=None, op=0.24 if e == 'happy' else 0.16, extra=' transform="%s"' % rot(-14, 196, 116))
-	s += G(lit + glow + c.get('fur_marks', lambda d, c: '')(d, c), clip=hc)
+	top = fp(c, 'head')[0][1]
+	glow = E(196, top + 44, 46, 22, fill=WHITE, st=None, op=0.24 if e == 'happy' else 0.16, extra=' transform="%s"' % rot(-14, 196, top + 44))
+	s += G(lit + glow + c.get('fur_marks', lambda d, c, e: '')(d, c, e), clip=hc)
 	return s, hp, hc
 
 
@@ -377,64 +466,166 @@ def draw_head_rim(d, c, e, hp, hc):
 
 
 def draw_muzzle(d, c, hc, e='normal'):
-	mp = smooth(MUZZLE_PTS)
+	mp = smooth(sym(muzzle_half(c)))
 	mc = d.clip(mp)
 	shade = mix(c['muzzle'], cel_shade(c, e), 0.62)
 	inner = P(mp, fill=shade, st=None) + P(mp, fill=c['muzzle'], st=None, extra=' transform="translate(-12 -10)"')
-	bridge = P(smooth(BRIDGE_PTS), fill=lighter(c['fur'], 0.16), st=None, op=0.75)
+	bridge = P(smooth(bridge_pts(c)), fill=lighter(c['fur'], 0.16), st=None, op=0.75)
 	s = G(bridge, clip=hc)
 	s += G(P(mp, fill=c['muzzle'], st=None) + G(inner, clip=mc), clip=hc)
 	# soft upper snout contour
-	s += P('M%s C%s %s %s' % (pt((150, 268)), pt((152, 226)), pt((186, 202)), pt((240, 200))), st=OUT, sw=3.5, op=0.45)
-	s += P('M%s C%s %s %s' % (pt((330, 268)), pt((328, 226)), pt((294, 202)), pt((240, 200))), st=OUT, sw=3.5, op=0.45)
+	mt, mw = fp(c, 'muz_top'), fp(c, 'muz_w')
+	for side in (-1, 1):
+		s += P('M%s C%s %s %s' % (pt((240 + side * mw * 0.804, mt + 68)), pt((240 + side * mw * 0.786, mt + 26)), pt((240 + side * mw * 0.482, mt + 2)),
+			pt((240, mt))), st=OUT, sw=3.5, op=0.45)
 	return s
 
 
+def nose_shape(c):
+	st, ny, nw, nh = fp(c, 'nose'), fp(c, 'nose_y'), fp(c, 'nose_w'), fp(c, 'nose_h')
+	if st == 'heart':
+		return ('M%s C%s %s %s C%s %s %s C%s %s %s C%s %s %sZ' % (
+			pt((240, ny + nh)), pt((240 - nw * 1.05, ny + nh * 0.5)), pt((240 - nw * 1.0, ny - nh * 0.12)), pt((240 - nw * 0.46, ny)),
+			pt((240 - nw * 0.16, ny + nh * 0.02)), pt((240, ny + nh * 0.16)), pt((240, ny + nh * 0.24)),
+			pt((240, ny + nh * 0.16)), pt((240 + nw * 0.16, ny + nh * 0.02)), pt((240 + nw * 0.46, ny)),
+			pt((240 + nw * 1.0, ny - nh * 0.12)), pt((240 + nw * 1.05, ny + nh * 0.5)), pt((240, ny + nh))))
+	if st == 'button':
+		half = [(240, ny), (240 + nw * 0.7, ny + nh * 0.04), (240 + nw, ny + nh * 0.42), (240 + nw * 0.76, ny + nh * 0.86), (240, ny + nh)]
+	elif st == 'tri':
+		half = [(240, ny), (240 + nw * 0.8, ny + nh * 0.02), (240 + nw, ny + nh * 0.24), (240 + nw * 0.5, ny + nh * 0.8), (240, ny + nh)]
+	else:   # wide / boxer / roman: the broad blunt capybara nose pad
+		half = [(240, ny), (240 + nw * 0.59, ny), (240 + nw * 0.98, ny + nh * 0.2), (240 + nw, ny + nh * 0.6), (240 + nw * 0.71, ny + nh * 0.9),
+			(240 + nw * 0.31, ny + nh), (240, ny + nh * 0.9)]
+	return smooth(sym(half))
+
+
 def draw_nose(d, c):
-	np_ = smooth(sym([(240, 220), (270, 220), (290, 226), (291, 238), (276, 247), (256, 250), (240, 247)]))
-	s = P(np_, fill=c.get('nose', '#4a2b1b'), st=OUT, sw=3.5)
-	s += E(228, 227, 15, 4.2, fill=WHITE, st=None, op=0.5, extra=' transform="%s"' % rot(-5, 228, 227))
-	for side in (-1, 1):
-		x = 240 + side * 31
-		s += E(x, 237, 7, 3.4, fill='#120804', st=None, extra=' transform="%s"' % rot(side * 34, x, 237))
-	s += P('M240,247 L240,%s' % n(MOUTH_Y + 1), st=OUT, sw=4)
+	st, ny, nw, nh = fp(c, 'nose'), fp(c, 'nose_y'), fp(c, 'nose_w'), fp(c, 'nose_h')
+	my = fp(c, 'mouth_y')
+	s = ''
+	if st == 'roman':
+		# long proud nose ridge: shadow line down the bridge
+		ey = fp(c, 'eye_y')
+		s += P('M%s Q%s %s' % (pt((250, ey - 4)), pt((258, (ey + ny) / 2.0)), pt((262, ny - 2))), st=OUT, sw=3.2, op=0.4)
+		s += P('M%s Q%s %s' % (pt((232, ey + 2)), pt((228, (ey + ny) / 2.0)), pt((226, ny - 4))), st=WHITE, sw=3, op=0.35)
+	if st == 'boxer':
+		# flattened, once-broken wrestler's nose: bump lines across the bridge
+		s += P('M%s Q%s %s' % (pt((226, ny - 10)), pt((240, ny - 17)), pt((256, ny - 9))), st=OUT, sw=3.2, op=0.45)
+		s += P('M%s Q%s %s' % (pt((230, ny - 20)), pt((242, ny - 25)), pt((252, ny - 19))), st=OUT, sw=2.6, op=0.3)
+	np_ = nose_shape(c)
+	s += P(np_, fill=c.get('nose_col', '#4a2b1b'), st=OUT, sw=3.5)
+	sx = nw / 51.0
+	sy = min(1.0, nh / 30.0)
+	s += E(240 - nw * 0.24, ny + nh * 0.23, 15 * sx, 4.2 * sy, fill=WHITE, st=None, op=0.5, extra=' transform="%s"' % rot(-5, 240 - nw * 0.24, ny + nh * 0.23))
+	if st == 'heart':
+		for side in (-1, 1):
+			s += E(240 + side * nw * 0.42, ny + nh * 0.5, 3.4, 2.2, fill='#120804', st=None, op=0.8)
+		bot = ny + nh
+	else:
+		for side in (-1, 1):
+			x = 240 + side * nw * 0.61
+			yy = ny + nh * 0.57
+			s += E(x, yy, max(4.0, 7 * sx), max(2.4, 3.4 * sy), fill='#120804', st=None, extra=' transform="%s"' % rot(side * 34, x, yy))
+		bot = ny + nh * (0.9 if st in ('wide', 'boxer', 'roman') else 1.0)
+	if my - bot > 2:
+		s += P('M240,%s L240,%s' % (n(bot), n(my + 1)), st=OUT, sw=4)
 	return s
 
 
 def draw_whiskers(c):
+	f = fp(c, 'whisk')
+	if f <= 0:
+		return ''
 	s = ''
 	col = c.get('whisker', OUT)
+	mw, my = fp(c, 'muz_w'), fp(c, 'mouth_y')
+	droop = c.get('whisk_droop', 0.0)
+	ws = mw / 112.0
 	for side in (-1, 1):
-		for (yy, dy, ln) in ((266, -6, 40), (282, 4, 38)):
-			x0 = 240 + side * 96
+		for (yy, dy, ln) in ((my + 8, -6 + droop, 40 * f), (my + 24, 4 + droop * 1.6, 38 * f)):
+			x0 = 240 + side * mw * 0.857
 			s += P('M%s Q%s %s' % (pt((x0, yy)), pt((x0 + side * ln * 0.5, yy + dy * 0.3 - 2)), pt((x0 + side * ln, yy + dy))),
-				st=col, sw=3.2, op=0.85)
-		for (xx, yy) in ((76, 268), (68, 282), (80, 292)):
-			s += C(240 + side * xx, yy, 2.6, fill=darker(c['muzzle'], 0.45), st=None)
+				st=col, sw=c.get('whisk_w', 3.2), op=0.85)
+		for (xx, yy) in c.get('whisk_dots', ((76, 10), (68, 24), (80, 34))):
+			s += C(240 + side * xx * ws, my + yy, 2.6, fill=darker(c['muzzle'], 0.45), st=None)
 	return s
+
+
+def blush_pos(c):
+	return c.get('blush_dx', fp(c, 'eye_dx') + 36), c.get('blush_y', fp(c, 'eye_y') + 48)
 
 
 def draw_blush(c, e):
 	s = ''
 	op = c.get('blush_op', 0.28)
 	col = c.get('blush', '#ff6f8c')
+	bs = c.get('blush_s', 1.0)
 	if e == 'happy':
 		op = max(op, 0.5)
 	elif e == 'angry':
 		col, op = '#ff4a3a', max(op, 0.32)
 	elif e == 'shock':
 		op = op * 0.5
+	if op <= 0.01:
+		return ''
+	bdx, by = blush_pos(c)
 	for side in (-1, 1):
-		x = 240 + side * 100
-		s += E(x, 226, 24, 13, fill=col, st=None, op=op)
+		x = 240 + side * bdx
+		s += E(x, by, 24 * bs, 13 * bs, fill=col, st=None, op=op)
 		if e == 'happy' or c.get('blush_lines'):
 			for k in (-1, 0, 1):
-				xx = x + k * 9
-				s += P('M%s L%s' % (pt((xx + 3, 220)), pt((xx - 3, 232))), st=WHITE if e != 'happy' else '#ff3f6e', sw=2.6, op=0.7)
+				xx = x + k * 9 * bs
+				s += P('M%s L%s' % (pt((xx + 3, by - 6)), pt((xx - 3, by + 6))), st=WHITE if e != 'happy' else '#ff3f6e', sw=2.6, op=0.7)
 	return s
 
 
 # ---------------------------------------------------------------------------- eyes
+
+EYE_SH = '#c9cfe6'   # cool shade under the upper lid of white (anime) eyes
+
+
+def eye_geo(c, side):
+	ov = c.get('eye_side', {}).get(side, {})
+
+	def g(k):
+		return ov[k] if k in ov else fp(c, k)
+	return dict(cx=240 + side * g('eye_dx'), cy=g('eye_y'), rx=g('eye_rx'), ry=g('eye_ry'), shape=g('eye_shape'),
+		tilt=g('eye_tilt'), lid=g('lid'), slant=g('lid_slant'), look=g('look'), side=side)
+
+
+def almond_parts(g):
+	cx, cy, rx, ry, side, tilt = g['cx'], g['cy'], g['rx'], g['ry'], g['side'], g['tilt']
+	ix, iy = cx - side * rx, cy + ry * 0.12 + tilt * 0.35
+	ox, oy = cx + side * rx, cy + ry * 0.12 - tilt
+	top = [(ix, iy), (ix + side * rx * 0.15, cy - ry * 1.35), (ox - side * rx * 0.3, cy - ry * 1.35 - tilt * 0.4), (ox, oy)]
+	bot = [(ox, oy), (ox - side * rx * 0.2, cy + ry * 1.15), (ix + side * rx * 0.3, cy + ry * 1.15), (ix, iy)]
+	return top, bot
+
+
+def bez(b, move=True):
+	return ('M%s ' % pt(b[0]) if move else '') + 'C%s %s %s' % (pt(b[1]), pt(b[2]), pt(b[3]))
+
+
+def eye_path(g):
+	if g['shape'] == 'almond':
+		top, bot = almond_parts(g)
+		return bez(top) + ' ' + bez(bot, False) + 'Z'
+	return ellipse_d(g['cx'], g['cy'], g['rx'], g['ry'])
+
+
+def eye_top_d(g):
+	"""the upper lash line"""
+	if g['shape'] == 'almond':
+		return bez(almond_parts(g)[0])
+	cx, cy, rx, ry = g['cx'], g['cy'], g['rx'], g['ry']
+	return 'M%s A%s %s 0 0 1 %s' % (pt((cx - rx * 0.97, cy + ry * 0.22)), n(rx), n(ry), pt((cx + rx * 0.97, cy + ry * 0.22)))
+
+
+def eye_outer(g):
+	"""outer top corner (where lashes sprout)"""
+	if g['shape'] == 'almond':
+		return almond_parts(g)[0][3]
+	return (g['cx'] + g['side'] * g['rx'] * 0.8, g['cy'] - g['ry'] * 0.6)
 
 
 def lid_line_y(cx, rx, side, y0, slant):
@@ -448,56 +639,127 @@ def lid_line_y(cx, rx, side, y0, slant):
 	return f
 
 
-def eye_open(d, c, cx, cy, rx, ry, side, lid, slant, e):
-	s = ''
-	iris = c.get('iris_fill')
-	if not iris:
-		iris = c['_irisgrad']
-	core = E(cx, cy, rx, ry, fill=OUT, st=None)
-	core += E(cx, cy + 2, rx - 4, ry - 4.5, fill=iris, st=None)
-	pr = 0.42 if e != 'angry' else 0.3
-	core += E(cx, cy + 4, (rx - 4) * pr * 1.1, (ry - 4) * pr * 1.1, fill='#140a05', st=None)
-	# iris ring sparkle
-	core += P('M%s Q%s %s' % (pt((cx - rx * 0.55, cy + ry * 0.45)), pt((cx, cy + ry * 0.85)), pt((cx + rx * 0.55, cy + ry * 0.45))),
-		st=lighter(c['iris'], 0.45), sw=2.5, op=0.8)
+def highlights(cx, cy, rx, ry, style, big=1.0):
+	if style == 'idol':
+		return (P(sparkle(cx - rx * 0.3, cy - ry * 0.3, rx * 0.46 * big, ry * 0.4 * big), fill=WHITE, st=None)
+			+ C(cx + rx * 0.38, cy - ry * 0.4, rx * 0.13, fill=WHITE, st=None)
+			+ C(cx + rx * 0.32, cy + ry * 0.38, rx * 0.2 * big, fill=WHITE, st=None)
+			+ C(cx - rx * 0.36, cy + ry * 0.44, rx * 0.09, fill=WHITE, st=None, op=0.9))
+	if style == 'tiny':
+		return C(cx - rx * 0.3, cy - ry * 0.32, max(2.8, rx * 0.32) * big, fill=WHITE, st=None) + C(cx + rx * 0.32, cy + ry * 0.32, max(1.4, rx * 0.12), fill=WHITE, st=None)
+	if style == 'big':
+		return (E(cx - rx * 0.28, cy - ry * 0.32, rx * 0.44 * big, ry * 0.34 * big, fill=WHITE, st=None)
+			+ C(cx + rx * 0.38, cy + ry * 0.3, rx * 0.2 * big, fill=WHITE, st=None) + C(cx + rx * 0.16, cy - ry * 0.56, rx * 0.1, fill=WHITE, st=None))
+	if style == 'sharp':
+		a = rx * 0.34 * big
+		b = rx * 0.17
+		return (R(cx - rx * 0.5, cy - ry * 0.52, a, a, fill=WHITE, st=None, extra=' transform="%s"' % rot(45, cx - rx * 0.5 + a / 2, cy - ry * 0.52 + a / 2))
+			+ R(cx + rx * 0.24, cy + ry * 0.2, b, b, fill=WHITE, st=None))
+	if style == 'dreamy':
+		return (E(cx - rx * 0.3, cy - ry * 0.34, rx * 0.3 * big, ry * 0.24 * big, fill=WHITE, st=None)
+			+ C(cx + rx * 0.1, cy - ry * 0.52, rx * 0.11, fill=WHITE, st=None) + C(cx + rx * 0.4, cy - ry * 0.28, rx * 0.09, fill=WHITE, st=None)
+			+ C(cx + rx * 0.3, cy + ry * 0.38, rx * 0.15 * big, fill=WHITE, st=None))
+	return E(cx - rx * 0.3, cy - ry * 0.34, rx * 0.36 * big, ry * 0.3 * big, fill=WHITE, st=None) + C(cx + rx * 0.36, cy + ry * 0.34, rx * 0.16 * big, fill=WHITE, st=None)
+
+
+def eye_open(d, c, g, lid, slant, e):
+	cx, cy, rx, ry, side = g['cx'], g['cy'], g['rx'], g['ry'], g['side']
+	lx, ly = g['look'][0] * rx, g['look'][1] * ry
 	big = 1.25 if e == 'sad' else 1.0
-	if c.get('star_eyes') and e in ('normal', 'happy'):
-		core += P(sparkle(cx - rx * 0.28, cy - ry * 0.3, rx * 0.5, ry * 0.42), fill=WHITE, st=None)
+	hl = fp(c, 'hl')
+	if e == 'sad' and hl in ('sharp', 'tiny'):
+		hl = 'two'
+	shape = eye_path(g)
+	white = fp(c, 'eye') == 'white'
+	iris = c.get('iris_fill') or c['_irisgrad']
+	s = ''
+	if white:
+		k = d.clip(shape)
+		inner = P(shape, fill=EYE_SH, st=None) + P(shape, fill=WHITE, st=None, extra=' transform="translate(0 %s)"' % n(ry * 0.36))
+		ir = ry * fp(c, 'iris_s') * (0.84 if e == 'angry' else 1.0)
+		irx = ir * c.get('iris_w', 0.9)
+		icx, icy = cx + lx, cy + ly + ry * 0.08
+		inner += E(icx, icy, irx, ir, fill=OUT, st=None) + E(icx, icy + 1.5, irx - 3, ir - 3.5, fill=iris, st=None)
+		pr = 0.44 if e != 'angry' else 0.3
+		inner += E(icx, icy + 2.5, (irx - 3) * pr, (ir - 3) * pr, fill='#140a05', st=None)
+		inner += P('M%s Q%s %s' % (pt((icx - irx * 0.55, icy + ir * 0.45)), pt((icx, icy + ir * 0.85)), pt((icx + irx * 0.55, icy + ir * 0.45))),
+			st=lighter(c['iris'], 0.45), sw=2.2, op=0.8)
+		inner += highlights(icx, icy, irx, ir, hl, big)
+		if e == 'sad':
+			inner += E(cx, cy + ry * 0.62, rx * 0.85, ry * 0.3, fill='#a8e4ff', st=None, op=0.8)
+		core = G(inner, clip=k) + P(shape, st=OUT, sw=3.4)
 	else:
-		core += E(cx - rx * 0.3, cy - ry * 0.34, rx * 0.36 * big, ry * 0.3 * big, fill=WHITE, st=None)
-	core += C(cx + rx * 0.36, cy + ry * 0.34, rx * 0.16 * big, fill=WHITE, st=None)
-	if e == 'sad':
-		core += E(cx, cy + ry * 0.62, rx * 0.8, ry * 0.3, fill='#a8e4ff', st=None, op=0.85)
+		if g['shape'] == 'almond':
+			core = P(shape, fill=OUT, st=None)
+			core += G(P(shape, fill=iris, st=None), tf='translate(%s %s) scale(%s %s) translate(%s %s)' % (
+				n(cx), n(cy + 2), n3((rx - 4) / rx), n3((ry - 4.5) / ry), n(-cx), n(-cy)))
+			kk = d.clip(shape)
+		else:
+			core = E(cx, cy, rx, ry, fill=OUT, st=None)
+			core += E(cx, cy + 2, rx - 4, ry - 4.5, fill=iris, st=None)
+			kk = None
+		pr = c.get('pupil', 0.42) if e != 'angry' else 0.3
+		bits = E(cx + lx, cy + 4 + ly, (rx - 4) * pr * 1.1, (ry - 4) * pr * 1.1, fill='#140a05', st=None)
+		bits += P('M%s Q%s %s' % (pt((cx - rx * 0.55, cy + ry * 0.45)), pt((cx, cy + ry * 0.85)), pt((cx + rx * 0.55, cy + ry * 0.45))),
+			st=lighter(c['iris'], 0.45), sw=2.5 if rx > 15 else 2.0, op=0.8)
+		if hl == 'idol' and e not in ('normal', 'happy'):
+			hl = 'two'
+		bits += highlights(cx + lx * 0.6, cy + ly * 0.6, rx, ry, hl, big)
+		if e == 'sad':
+			bits += E(cx, cy + ry * 0.62, rx * 0.8, ry * 0.3, fill='#a8e4ff', st=None, op=0.85)
+		core += G(bits, clip=kk) if kk else bits
+	top_outer = eye_outer(g)
 	if lid > 0.001 or abs(slant) > 0.001:
 		y0 = cy - ry + lid * 2 * ry
 		f = lid_line_y(cx, rx, side, y0, slant)
 		xa, xb = cx - rx - 12, cx + rx + 12
 		clip = d.clip(poly([(xa, f(xa)), (xb, f(xb)), (xb, cy + ry + 20), (xa, cy + ry + 20)]))
 		s += G(core, clip=clip)
-		# lid line across the chord
 		xs = [cx - rx + i * (2 * rx) / 40.0 for i in range(41)]
-		inside = [x for x in xs if ((x - cx) / rx) ** 2 + ((f(x) - cy) / ry) ** 2 <= 1.0]
+		ery = ry * (0.92 if g['shape'] == 'almond' else 1.0)
+		ecy = cy + (ry * 0.04 if g['shape'] == 'almond' else 0)
+		inside = [x for x in xs if ((x - cx) / rx) ** 2 + ((f(x) - ecy) / ery) ** 2 <= 1.0]
 		if inside:
 			x1, x2 = inside[0] - 3, inside[-1] + 3
-			s += P('M%s L%s' % (pt((x1, f(x1))), pt((x2, f(x2)))), st=OUT, sw=6.5)
+			if c.get('shadow'):
+				s += P('M%s L%s' % (pt((x1 + 2, f(x1) - 6)), pt((x2 - 2, f(x2) - 6))), st=c['shadow'], sw=11, op=0.6)
+			if c.get('crease'):
+				mxx = (x1 + x2) / 2.0
+				s += P('M%s Q%s %s' % (pt((x1 + 3, f(x1) - 10)), pt((mxx, f(mxx) - 19)), pt((x2 - 3, f(x2) - 10))), st=OUT, sw=3, op=0.55)
+			s += P('M%s L%s' % (pt((x1, f(x1))), pt((x2, f(x2)))), st=OUT, sw=7 if white else 6.5)
 			top_outer = (x2, f(x2)) if side > 0 else (x1, f(x1))
-		else:
-			top_outer = (cx + side * rx * 0.8, cy - ry * 0.6)
 	else:
 		s += core
-		top_outer = (cx + side * rx * 0.78, cy - ry * 0.62)
-	if c.get('lashes'):
+		if white:
+			s += P(eye_top_d(g), st=OUT, sw=7)
+	if c.get('lower_lash'):
+		s += P('M%s Q%s %s' % (pt((cx + side * rx * 0.2, cy + ry * 0.98)), pt((cx + side * rx * 0.8, cy + ry * 0.82)), pt((cx + side * rx * 1.05, cy + ry * 0.4))),
+			st=OUT, sw=3, op=0.8)
+	cnt = fp(c, 'lashes')
+	if cnt:
 		ox, oy = top_outer
-		cnt = c.get('lashes') if isinstance(c.get('lashes'), int) else 2
+		ll = fp(c, 'lash_len')
 		for k in range(cnt):
-			ang = math.radians(-20 - k * 22)
-			ln = 12 - k * 1.5
+			ang = math.radians(-14 - k * 24)
+			ln = ll - k * 1.5
 			s += P('M%s L%s' % (pt((ox - side * 2, oy + 1)), pt((ox + side * ln * math.cos(ang), oy + ln * math.sin(ang) - 2))), st=OUT, sw=4.5)
 	return s
 
 
-def eye_happy(cx, cy, rx, ry, side):
-	return P('M%s Q%s %s' % (pt((cx - rx - 1, cy + 7)), pt((cx, cy - ry * 1.05)), pt((cx + rx + 1, cy + 7))), st=OUT, sw=7.5)
+def eye_happy(c, g):
+	cx, cy, rx, ry, side = g['cx'], g['cy'], g['rx'], g['ry'], g['side']
+	w = rx + 1
+	h = max(ry, 17.0)
+	style = c.get('happy_eye', 'arc')
+	if style == 'smile':
+		# content closed eye curving downward (peaceful)
+		s = P('M%s Q%s %s' % (pt((cx - w, cy - 3)), pt((cx, cy + h * 0.85)), pt((cx + w, cy - 3))), st=OUT, sw=7)
+	else:
+		s = P('M%s Q%s %s' % (pt((cx - w, cy + 7)), pt((cx, cy - h * 1.05)), pt((cx + w, cy + 7))), st=OUT, sw=c.get('happy_sw', 7.5))
+	if fp(c, 'lashes'):
+		yy = cy + 7 if style != 'smile' else cy - 3
+		s += P('M%s L%s' % (pt((cx + side * (rx + 1), yy)), pt((cx + side * (rx + 10), yy - 6))), st=OUT, sw=4.5)
+	return s
 
 
 def eye_shock(cx, cy, rx, ry, c=None):
@@ -512,23 +774,23 @@ def eye_shock(cx, cy, rx, ry, c=None):
 
 def draw_eyes(d, c, e):
 	s = ''
-	es = c.get('eye_scale', 1.0) * EYE_SCALE
-	rx, ry = 19 * es, 24 * es
 	for side in (-1, 1):
-		cx, cy = 240 + side * EYE_DX, EYE_Y
-		if e == 'happy':
-			s += eye_happy(cx, cy, rx, ry, side)
-			if c.get('lashes'):
-				s += P('M%s L%s' % (pt((cx + side * (rx + 1), cy + 7)), pt((cx + side * (rx + 10), cy + 1))), st=OUT, sw=4.5)
+		g = eye_geo(c, side)
+		cx, cy, rx, ry = g['cx'], g['cy'], g['rx'], g['ry']
+		if e == 'happy' and c.get('happy_eye') != 'open':
+			s += eye_happy(c, g)
 		elif e == 'shock':
-			s += eye_shock(cx, cy, rx, ry, c)
+			ss = c.get('shock_s', 1.0)
+			s += eye_shock(cx, cy, max(rx, 15.0) * ss, max(ry, 19.0) * ss, c)
 		else:
-			lid, slant = c.get('lid', 0.0), c.get('lid_slant', 0.0)
+			lid, slant = g['lid'], g['slant']
 			if e == 'angry':
 				lid, slant = max(lid * 0.8, 0.26), 9.0
 			elif e == 'sad':
 				lid, slant = max(lid * 0.8, 0.22), -8.0
-			s += eye_open(d, c, cx, cy, rx, ry, side, lid, slant, e)
+			elif e == 'happy':
+				lid, slant = 0.0, 0.0
+			s += eye_open(d, c, g, lid, slant, e)
 	return s
 
 
@@ -543,31 +805,80 @@ BROWS = {   # (outer dy, mid dy, inner dy) relative to base, inner = toward cent
 }
 
 
+def brow_pts(c, e, side):
+	g = eye_geo(c, side)
+	L = fp(c, 'brow_len')
+	base = g['cy'] - g['ry'] - fp(c, 'brow_gap') + fp(c, 'brow_dy')
+	o, m, i = BROWS[e]
+	if e == 'normal':
+		bs = c.get('brow_side', {}).get(side)
+		if bs:
+			o, m, i = bs
+		elif c.get('brow_raise') and side == 1:
+			o, m, i = (-6, -14, -8)
+	k = 0.5 if e == 'shock' else (0.4 if e in ('angry', 'sad') else 1.0)
+	t = fp(c, 'brow_tilt') * k
+	o, i = o + t * 0.3, i - t
+	m += fp(c, 'brow_arch') * (1.0 if e != 'angry' else 0.4)
+	cx = g['cx'] + side * fp(c, 'brow_dx')
+	ins = 4 if e == 'angry' else 0
+	return (cx + side * L, base + o), (cx - side * 1, base + m), (cx - side * (L + ins), base + i)
+
+
+def quad_at(p0, p1, p2, t):
+	u = 1 - t
+	return (u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1])
+
+
+def taper_d(po, pm, pi, wo, wm, wi, steps=14):
+	ctrl = (2 * pm[0] - (po[0] + pi[0]) / 2.0, 2 * pm[1] - (po[1] + pi[1]) / 2.0)
+	A, B = [], []
+	for j in range(steps + 1):
+		t = j / float(steps)
+		x, y = quad_at(po, ctrl, pi, t)
+		dx = 2 * (1 - t) * (ctrl[0] - po[0]) + 2 * t * (pi[0] - ctrl[0])
+		dy = 2 * (1 - t) * (ctrl[1] - po[1]) + 2 * t * (pi[1] - ctrl[1])
+		ln = math.hypot(dx, dy) or 1.0
+		nx, ny = -dy / ln, dx / ln
+		w = (wo + (wm - wo) * t * 2) if t < 0.5 else (wm + (wi - wm) * (t - 0.5) * 2)
+		A.append((x + nx * w / 2.0, y + ny * w / 2.0))
+		B.append((x - nx * w / 2.0, y - ny * w / 2.0))
+	return smooth(A + B[::-1], k=0.4)
+
+
 def draw_brows(c, e):
-	es = c.get('eye_scale', 1.0) * EYE_SCALE
-	base = EYE_Y - 24 * es - 16 + c.get('brow_dy', 0)
-	col = c.get('brow', darker(c['shade'], 0.55))
-	w = c.get('brow_w', 8.5) + (1.5 if e == 'angry' else 0)
+	style = fp(c, 'brow')
+	col = c.get('brow_col', darker(c['shade'], 0.55))
+	w = fp(c, 'brow_w') + (1.5 if e == 'angry' else 0)
 	s = ''
 	for side in (-1, 1):
-		cx = 240 + side * EYE_DX
-		o, m, i = BROWS[e]
-		if e == 'normal' and c.get('brow_raise') and side == 1:
-			o, m, i = (-6, -14, -8)
-		ins = 4 if e == 'angry' else 0
-		po = (cx + side * 18, base + o)
-		pm = (cx - side * 1, base + m)
-		pi = (cx - side * (18 + ins), base + i)
-		if c.get('bushy'):
-			# big fluffy old-man brows
-			col2 = c.get('brow', '#f4f1ea')
+		po, pm, pi = brow_pts(c, e, side)
+		if style == 'bushy':
+			# big fluffy old-man brows, the outer ends sweeping down into long whiskery tufts
+			col2 = c.get('brow_col', '#f4f1ea')
 			pts = [(po[0] + side * 8, po[1] + 6), pm, (pi[0], pi[1])]
 			lump = ''
-			for k, p in enumerate(resample(sample_smooth(pts, 8), 5)):
-				lump += C(p[0], p[1], 10 - k * 0.6, fill=col2, st=OUT, sw=3.5)
-			for k, p in enumerate(resample(sample_smooth(pts, 8), 5)):
-				lump += C(p[0], p[1], 8.3 - k * 0.6, fill=col2, st=None)
+			if c.get('brow_hang'):
+				hx, hy = po[0] + side * 30, po[1] + 34 + (8 if e == 'sad' else (-14 if e in ('shock', 'happy') else 0))
+				hang = smooth([(po[0] - side * 4, po[1] - 8), (po[0] + side * 18, po[1] - 2), (hx, hy), (po[0] + side * 12, po[1] + 14), (po[0] - side * 6, po[1] + 8)], k=0.7)
+				lump += P(hang, fill=col2, st=OUT, sw=3.5)
+			for kk, p in enumerate(resample(sample_smooth(pts, 8), 5)):
+				lump += C(p[0], p[1], 10 - kk * 0.6, fill=col2, st=OUT, sw=3.5)
+			for kk, p in enumerate(resample(sample_smooth(pts, 8), 5)):
+				lump += C(p[0], p[1], 8.3 - kk * 0.6, fill=col2, st=None)
 			s += lump
+		elif style == 'thick':
+			wo, wi = c.get('brow_taper', (w * 0.75, w * 1.15))
+			s += P(taper_d(po, pm, pi, wo, w, wi), fill=col, st=OUT, sw=3)
+		elif style == 'thin':
+			wo, wi = c.get('brow_taper', (w * 0.35, w * 0.9))
+			s += P(taper_d(po, pm, pi, wo, w, wi), fill=col, st=col, sw=1.2)
+		elif style == 'dot':
+			mx, my = (po[0] + pi[0] + pm[0] * 2) / 4.0, (po[1] + pi[1] + pm[1] * 2) / 4.0
+			ang = math.degrees(math.atan2(pi[1] - po[1], pi[0] - po[0]))
+			if side < 0:
+				ang += 180
+			s += E(mx, my, fp(c, 'brow_len') * 0.62, w * 0.62, fill=col, st=OUT, sw=2.5, extra=' transform="%s"' % rot(ang, mx, my))
 		else:
 			s += P('M%s Q%s %s' % (pt(po), pt((pm[0], pm[1] * 2 - (po[1] + pi[1]) / 2.0)), pt(pi)), st=col, sw=w)
 	return s
@@ -579,70 +890,135 @@ MOUTH_DARK = '#6e1f2b'
 TONGUE = '#ff7d92'
 
 
-def buck_teeth(y, clip):
-	t = R(229.5, y - 2, 10, 13, rx=2.5, fill=WHITE, st=OUT, sw=2.2) + R(240.5, y - 2, 10, 13, rx=2.5, fill=WHITE, st=OUT, sw=2.2)
-	return G(t, clip=clip)
+def teeth(c, ty, clip):
+	t = fp(c, 'teeth')
+	w, h = {'big': (12.5, 18), 'tiny': (7, 8)}.get(t, (10, 13))
+	s = R(240 - w - 0.5, ty - 2, w, h, rx=2.5, fill=WHITE, st=OUT, sw=2.2)
+	if t == 'gap':
+		# one chipped front tooth
+		s += P(poly([(240.5, ty - 2), (240.5 + w, ty - 2), (240.5 + w, ty + h * 0.62), (240.5 + w * 0.5, ty + h * 0.4), (240.5, ty + h * 0.55)]),
+			fill=WHITE, st=OUT, sw=2.2)
+	else:
+		s += R(240.5, ty - 2, w, h, rx=2.5, fill=WHITE, st=OUT, sw=2.2)
+	return G(s, clip=clip)
+
+
+def fang(x, y, side, h=11):
+	return P(poly([(x - side * 5, y - 1), (x + side * 5, y - 1), (x + side * 1, y + h)]), fill=WHITE, st=OUT, sw=2.4)
 
 
 def draw_mouth(d, c, e):
-	y = MOUTH_Y
+	my = fp(c, 'mouth_y')
+	sx, sy = fp(c, 'mouth_sx'), fp(c, 'mouth_sy')
+	lips = c.get('lips')
+
+	def q(dx, dy):
+		return pt((240 + dx * sx, my + dy * sy))
+
+	def edge(d_, sw):
+		if lips:
+			return P(d_, st=lips, sw=sw + 6) + P(d_, st=OUT, sw=sw * 0.75)
+		return P(d_, st=OUT, sw=sw)
+
+	def openm(d_, tongue, tooth_dy):
+		k = d.clip(d_)
+		out = P(d_, fill=MOUTH_DARK, st=None)
+		out += G(E(240 + tongue[0] * sx, my + tongue[1] * sy, tongue[2] * sx, tongue[3] * sy, fill=TONGUE, st=None), clip=k)
+		if tooth_dy is not None:
+			out += teeth(c, my + tooth_dy * sy, k)
+		return out + edge(d_, 4.8)
+
 	style = c.get('mouth', 'w')
+	if e == 'happy':
+		style = c.get('happy_mouth', 'open')
+	elif e != 'normal':
+		style = e
 	s = ''
-	if e == 'normal':
-		if style == 'w':
-			s = P('M%s C%s %s %s C%s %s %s' % (pt((219, y + 1)), pt((221, y + 11)), pt((237, y + 12)), pt((240, y + 2)),
-				pt((243, y + 12)), pt((259, y + 11)), pt((261, y + 1))), st=OUT, sw=4.5)
-		elif style == 'smile':
-			s = P('M%s C%s %s %s' % (pt((212, y + 2)), pt((220, y + 26)), pt((260, y + 26)), pt((268, y + 2))), st=OUT, sw=5)
-			s += P('M%s L%s M%s L%s' % (pt((208, y + 6)), pt((214, y)), pt((272, y + 6)), pt((266, y))), st=OUT, sw=4)
-		elif style == 'smirk':
-			s = P('M%s C%s %s %s' % (pt((222, y + 10)), pt((236, y + 16)), pt((256, y + 14)), pt((266, y + 1))), st=OUT, sw=4.8)
-			s += P('M%s C%s %s %s' % (pt((219, y + 1)), pt((221, y + 8)), pt((236, y + 10)), pt((240, y + 2))), st=OUT, sw=4)
-		elif style == 'flat':
-			s = P('M%s L%s' % (pt((224, y + 12)), pt((256, y + 12))), st=OUT, sw=4.8)
-			s += P('M%s C%s %s %s C%s %s %s' % (pt((228, y + 1)), pt((230, y + 6)), pt((238, y + 6)), pt((240, y + 2)),
-				pt((242, y + 6)), pt((250, y + 6)), pt((252, y + 1))), st=OUT, sw=3.5)
-		elif style == 'grin':
-			mp = 'M%s Q%s %s Q%s %s Z' % (pt((214, y + 2)), pt((240, y + 8)), pt((266, y + 2)), pt((240, y + 34)), pt((214, y + 2)))
-			k = d.clip(mp)
-			s = P(mp, fill=MOUTH_DARK, st=None) + G(E(240, y + 30, 16, 9, fill=TONGUE, st=None), clip=k) + buck_teeth(y + 4, k)
-			s += P(mp, st=OUT, sw=4.5)
-	elif e == 'happy':
-		mp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (pt((210, y + 1)), pt((240, y + 9)), pt((270, y + 1)),
-			pt((268, y + 42)), pt((240, y + 44)), pt((212, y + 42)), pt((210, y + 1)))
-		k = d.clip(mp)
-		s = P(mp, fill=MOUTH_DARK, st=None)
-		s += G(E(240, y + 42, 22, 14, fill=TONGUE, st=None), clip=k)
-		s += buck_teeth(y + 5, k)
-		s += P(mp, st=OUT, sw=4.8)
-	elif e == 'shock':
-		mp = smooth([(240, y + 3), (258, y + 10), (262, y + 30), (252, y + 48), (240, y + 51), (228, y + 48), (218, y + 30), (222, y + 10)])
-		k = d.clip(mp)
-		s = P(mp, fill=MOUTH_DARK, st=None)
-		s += G(E(240, y + 50, 16, 10, fill=TONGUE, st=None), clip=k)
-		s += buck_teeth(y + 6, k)
-		s += P(mp, st=OUT, sw=4.8)
-	elif e == 'angry':
-		mp = 'M%s Q%s %s Q%s %s Q%s %s Q%s %s Z' % (pt((206, y + 8)), pt((206, y + 2)), pt((214, y + 2)), pt((240, y + 6)), pt((266, y + 2)),
-			pt((274, y + 2)), pt((274, y + 8)), pt((272, y + 34)), pt((240, y + 36)))
-		mp = smooth([(206, y + 6), (222, y + 1), (240, y + 5), (258, y + 1), (274, y + 6), (272, y + 24), (258, y + 33), (240, y + 34), (222, y + 33), (208, y + 24)])
+	if style == 'w':
+		s = edge('M%s C%s %s %s C%s %s %s' % (q(-21, 1), q(-19, 11), q(-3, 12), q(0, 2), q(3, 12), q(19, 11), q(21, 1)), 4.5)
+	elif style == 'smile':
+		s = edge('M%s C%s %s %s' % (q(-28, 2), q(-20, 26), q(20, 26), q(28, 2)), 5)
+		s += P('M%s L%s M%s L%s' % (q(-32, 6), q(-26, 0), q(32, 6), q(26, 0)), st=OUT, sw=4)
+	elif style == 'soft':
+		s = edge('M%s Q%s %s' % (q(-14, 5), q(0, 17), q(14, 5)), 4.5)
+		s += P('M%s C%s %s %s C%s %s %s' % (q(-9, 0), q(-8, 4), q(-2, 4), q(0, 1), q(2, 4), q(8, 4), q(9, 0)), st=OUT, sw=3, op=0.7)
+	elif style == 'smirk':
+		s = edge('M%s C%s %s %s' % (q(-18, 10), q(-4, 16), q(16, 14), q(26, 1)), 4.8)
+		s += P('M%s C%s %s %s' % (q(-21, 1), q(-19, 8), q(-4, 10), q(0, 2)), st=OUT, sw=4)
+	elif style == 'flat':
+		s = edge('M%s L%s' % (q(-16, 12), q(16, 12)), 4.8)
+		s += P('M%s C%s %s %s C%s %s %s' % (q(-12, 1), q(-10, 6), q(-2, 6), q(0, 2), q(2, 6), q(10, 6), q(12, 1)), st=OUT, sw=3.5)
+		if fp(c, 'teeth') == 'fang':
+			s += fang(240 + 10 * sx, my + 13 * sy, 1, 10)
+	elif style == 'buck':
+		# prim flat mouth with two big front teeth resting on the lip
+		s = R(228, my + 5 * sy, 11.5, 17, rx=3, fill=WHITE, st=OUT, sw=2.6) + R(240.5, my + 5 * sy, 11.5, 17, rx=3, fill=WHITE, st=OUT, sw=2.6)
+		s += edge('M%s Q%s %s' % (q(-22, 3), q(0, 9), q(22, 3)), 4.6)
+	elif style == 'pout':
+		lp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (q(-15, 6), q(-7, -1), q(0, 3), q(7, -1), q(15, 6), q(0, 19), q(-15, 6))
+		s = P(lp, fill=lips or '#a8506e', st=OUT, sw=3.5)
+		s += P('M%s Q%s %s' % (q(-13, 6), q(0, 9), q(13, 6)), st=OUT, sw=2.6)
+		s += E(240 - 4 * sx, my + 12 * sy, 4, 2, fill=WHITE, st=None, op=0.55)
+	elif style == 'o':
+		s = P(ellipse_d(240, my + 9 * sy, 8 * sx, 9 * sy), fill=MOUTH_DARK, st=OUT, sw=4.2)
+	elif style == 'grin':
+		mp = 'M%s Q%s %s Q%s %s Z' % (q(-26, 2), q(0, 8), q(26, 2), q(0, 34), q(-26, 2))
+		s = openm(mp, (0, 30, 16, 9), 4)
+	elif style == 'laugh':
+		mp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (q(-28, 0), q(0, 9), q(28, 0), q(28, 30), q(0, 38), q(-28, 30), q(-28, 0))
+		s = openm(mp, (0, 36, 18, 11), 4)
+	elif style == 'cat':
+		mp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (q(-15, 2), q(0, 6), q(15, 2), q(13, 18), q(0, 21), q(-13, 18), q(-15, 2))
+		s = openm(mp, (0, 20, 10, 7), None)
+	elif style == 'jaunty':
+		mp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (q(-24, 8), q(0, 11), q(26, -3), q(26, 18), q(2, 27), q(-20, 24), q(-24, 8))
+		s = openm(mp, (2, 26, 14, 8), 6)
+	elif style == 'toothy':
+		# wide closed smile with two big front teeth peeking out under it
+		ty = my + 15 * sy
+		s = R(228, ty, 11.5, 14, rx=3, fill=WHITE, st=OUT, sw=2.6) + R(240.5, ty, 11.5, 14, rx=3, fill=WHITE, st=OUT, sw=2.6)
+		s += edge('M%s C%s %s %s' % (q(-28, 2), q(-20, 24), q(20, 24), q(28, 2)), 5)
+		s += P('M%s L%s M%s L%s' % (q(-32, 6), q(-26, 0), q(32, 6), q(26, 0)), st=OUT, sw=4)
+	elif style == 'cat3':
+		# smug little cat mouth
+		s = edge('M%s C%s %s %s C%s %s %s' % (q(-24, -2), q(-20, 14), q(-4, 14), q(0, 3), q(4, 14), q(20, 14), q(24, -2)), 4.6)
+		if fp(c, 'teeth') == 'fang':
+			s += fang(240 + 13 * sx, my + 12 * sy, 1, 10)
+	elif style == 'open':
+		mp = 'M%s Q%s %s Q%s %s Q%s %s Z' % (q(-30, 1), q(0, 9), q(30, 1), q(28, 42), q(0, 44), q(-28, 42), q(-30, 1))
+		s = openm(mp, (0, 42, 22, 14), 5)
+		if fp(c, 'teeth') == 'fang':
+			s += fang(240 + 20 * sx, my + 6 * sy, 1, 9)
+	elif style == 'shock':
+		mp = smooth([(240, my + 3 * sy), (240 + 18 * sx, my + 10 * sy), (240 + 22 * sx, my + 30 * sy), (240 + 12 * sx, my + 48 * sy), (240, my + 51 * sy),
+			(240 - 12 * sx, my + 48 * sy), (240 - 22 * sx, my + 30 * sy), (240 - 18 * sx, my + 10 * sy)])
+		s = openm(mp, (0, 50, 16, 10), 6)
+	elif style == 'angry':
+		mp = smooth([(240 - 34 * sx, my + 6 * sy), (240 - 18 * sx, my + 1 * sy), (240, my + 5 * sy), (240 + 18 * sx, my + 1 * sy), (240 + 34 * sx, my + 6 * sy),
+			(240 + 32 * sx, my + 24 * sy), (240 + 18 * sx, my + 33 * sy), (240, my + 34 * sy), (240 - 18 * sx, my + 33 * sy), (240 - 32 * sx, my + 24 * sy)])
 		k = d.clip(mp)
 		# clenched zig-zag fangs: a pointed upper row biting down over a pointed lower row
-		teeth = P(mp, fill=MOUTH_DARK, st=None)
-		up = [(200, y - 4)]
-		for i, x in enumerate(range(206, 276, 10)):
-			up += [(x, y - 4 if i == 0 else y + 2), (x + 5, y + 21 + (3 if 2 <= i <= 4 else 0))]
-		up += [(276, y + 2), (280, y - 4)]
-		lo = [(200, y + 40)]
-		for i, x in enumerate(range(211, 271, 10)):
-			lo += [(x, y + 34), (x + 5, y + 17)]
-		lo += [(271, y + 34), (280, y + 40)]
-		teeth += P(poly(lo), fill='#e9e4ec', st=OUT, sw=2.2) + P(poly(up), fill=WHITE, st=OUT, sw=2.2)
-		s = G(teeth, clip=k) + P(mp, st=OUT, sw=5.2)
-	elif e == 'sad':
-		mp = smooth([(240, y + 14), (254, y + 16), (264, y + 25), (262, y + 30), (250, y + 26), (240, y + 25), (230, y + 26), (218, y + 30), (216, y + 25), (226, y + 16)])
-		s = P(mp, fill=MOUTH_DARK, st=OUT, sw=4.5)
-		s += P('M%s Q%s %s' % (pt((230, y + 19)), pt((240, y + 17)), pt((250, y + 19))), st=lighter(MOUTH_DARK, 0.3), sw=2.5, op=0.6)
+		tt = P(mp, fill=MOUTH_DARK, st=None)
+		x0, x1 = 240 - 34 * sx, 240 + 36 * sx
+		cnt = max(5, int(round(7 * sx)))
+		stp = (x1 - x0) / cnt
+		up = [(x0 - 6, my - 4)]
+		for i in range(cnt):
+			x = x0 + i * stp
+			up += [(x, my - 4 if i == 0 else my + 2), (x + stp / 2, my + (21 + (3 if 2 <= i <= cnt - 3 else 0)) * sy)]
+		up += [(x1, my + 2), (x1 + 4, my - 4)]
+		lo = [(x0 - 6, my + 40 * sy)]
+		for i in range(cnt - 1):
+			x = x0 + stp / 2 + i * stp
+			lo += [(x, my + 34 * sy), (x + stp / 2, my + 17 * sy)]
+		lo += [(x1 - stp / 2, my + 34 * sy), (x1 + 4, my + 40 * sy)]
+		tt += P(poly(lo), fill='#e9e4ec', st=OUT, sw=2.2) + P(poly(up), fill=WHITE, st=OUT, sw=2.2)
+		s = G(tt, clip=k) + edge(mp, 5.2)
+	elif style == 'sad':
+		mp = smooth([(240, my + 14 * sy), (240 + 14 * sx, my + 16 * sy), (240 + 24 * sx, my + 25 * sy), (240 + 22 * sx, my + 30 * sy), (240 + 10 * sx, my + 26 * sy),
+			(240, my + 25 * sy), (240 - 10 * sx, my + 26 * sy), (240 - 22 * sx, my + 30 * sy), (240 - 24 * sx, my + 25 * sy), (240 - 14 * sx, my + 16 * sy)])
+		s = P(mp, fill=MOUTH_DARK, st=None) + edge(mp, 4.5)
+		s += P('M%s Q%s %s' % (q(-10, 19), q(0, 17), q(10, 19)), st=lighter(MOUTH_DARK, 0.3), sw=2.5, op=0.6)
 	return s
 
 
@@ -693,27 +1069,26 @@ def fx_cold(d, hc):
 
 def fx_eye_bags(c):
 	"""sad: long hard shadows hanging under the eyes"""
-	es = c.get('eye_scale', 1.0) * EYE_SCALE
 	s = ''
 	for side in (-1, 1):
-		cx = 240 + side * EYE_DX
-		y0 = EYE_Y + 16 * es
-		bag = smooth([(cx - 24, y0), (cx, y0 + 12), (cx + 24, y0), (cx + 20, y0 + 16), (cx + side * 4, y0 + 34), (cx - 20, y0 + 16)])
+		g = eye_geo(c, side)
+		cx = g['cx']
+		w = max(g['rx'], 15.0) * 1.17
+		y0 = g['cy'] + g['ry'] * 0.66
+		bag = smooth([(cx - w, y0), (cx, y0 + 12), (cx + w, y0), (cx + w * 0.83, y0 + 16), (cx + side * 4, y0 + 34), (cx - w * 0.83, y0 + 16)])
 		s += P(bag, fill='#1a1f5c', st=None, op=0.3)
-		s += P('M%s Q%s %s' % (pt((cx - 18, y0 + 16)), pt((cx, y0 + 28)), pt((cx + 18, y0 + 16))), st='#1a1f5c', sw=3, op=0.45)
+		s += P('M%s Q%s %s' % (pt((cx - w * 0.75, y0 + 16)), pt((cx, y0 + 28)), pt((cx + w * 0.75, y0 + 16))), st='#1a1f5c', sw=3, op=0.45)
 	return s
 
 
 def fx_brow_shadow(d, c, hc):
 	"""angry: deep shadow cast under the furrowed brows + a dark wash over the forehead"""
-	es = c.get('eye_scale', 1.0) * EYE_SCALE
-	base = EYE_Y - 24 * es - 16 + c.get('brow_dy', 0)
 	g = d.lin([(0, '#2a0818', 0.5), (1, '#2a0818', 0.0)], user=(0, 64, 0, 190))
 	s = R(60, 40, 360, 160, fill=g, st=None)
-	o, m, i = BROWS['angry']
 	for side in (-1, 1):
-		cx = 240 + side * EYE_DX
-		po, pm, pi = (cx + side * 24, base + o), (cx - side * 1, base + m), (cx - side * 26, base + i)
+		po, pm, pi = brow_pts(c, 'angry', side)
+		po = (po[0] + side * 6, po[1])
+		pi = (pi[0] - side * 4, pi[1])
 		sh = smooth([po, pm, pi, (pi[0] + side * 4, pi[1] + 26), (pm[0], pm[1] + 22), (po[0], po[1] + 16)])
 		s += P(sh, fill='#2a0818', st=None, op=0.42)
 	return G(s, clip=hc)
@@ -721,10 +1096,10 @@ def fx_brow_shadow(d, c, hc):
 
 def fx_tears(c):
 	s = ''
-	es = c.get('eye_scale', 1.0) * EYE_SCALE
 	for side in (-1, 1):
-		cx = 240 + side * EYE_DX
-		y0 = EYE_Y + 18 * es
+		g = eye_geo(c, side)
+		cx = g['cx'] + side * c.get('tear_dx', 0)
+		y0 = g['cy'] + g['ry'] * 0.7
 		path = smooth([(cx - side * 14, y0 - 3), (cx + side * 10, y0 - 2), (cx + side * 15, y0 + 34), (cx + side * 12, y0 + 68),
 			(cx + side * 2, y0 + 92), (cx - side * 8, y0 + 68), (cx - side * 5, y0 + 34)])
 		s += P(path, fill='#b4e8ff', st='#1f5fae', sw=3.6, op=0.97)
@@ -733,6 +1108,19 @@ def fx_tears(c):
 		# droplets falling off the end of each stream
 		s += P(drop(cx + side * 6, y0 + 112, 6.5), fill='#b4e8ff', st='#1f5fae', sw=3)
 		s += C(cx + side * 14, y0 + 130, 3.6, fill='#b4e8ff', st='#1f5fae', sw=2.4)
+	return s
+
+
+def fx_bags(c):
+	"""tired eyes (resting): soft bag arcs under the eyes"""
+	s = ''
+	for side in (-1, 1):
+		g = eye_geo(c, side)
+		cx, w = g['cx'], max(g['rx'], 15.0)
+		y0 = g['cy'] + g['ry'] * 0.92
+		col = c.get('bags_col', darker(c['shade'], 0.35))
+		s += P('M%s Q%s %s' % (pt((cx - w * 0.85, y0)), pt((cx, y0 + 13)), pt((cx + w * 0.85, y0))), st=col, sw=3.4, op=0.7)
+		s += P('M%s Q%s %s' % (pt((cx - w * 0.5, y0 + 9)), pt((cx + side * 2, y0 + 18)), pt((cx + w * 0.55, y0 + 9))), st=col, sw=2.6, op=0.45)
 	return s
 
 
@@ -792,9 +1180,12 @@ def n3(v):
 	return ('%.3f' % v).rstrip('0').rstrip('.')
 
 
+BODY_DEF = [(240, 292), (304, 298), (360, 318), (402, 356), (422, 416), (432, 500), (436, 640), (240, 640)]
+
+
 def body_outline(c):
 	bw = c.get('bw', 1.0)
-	half = [(240, 292), (304, 298), (360, 318), (402, 356), (422, 416), (432, 500), (436, 640), (240, 640)]
+	half = c.get('body', BODY_DEF)
 	return smooth(sym([(240 + (x - 240) * bw, y) for x, y in half]))
 
 
@@ -850,7 +1241,11 @@ def capybara(cid, c, e):
 		out += c['behind'](d, c, e)       # behind everything (not moving with the head)
 	out += draw_body(d, c, e)
 	if 'neck' in c:
-		out += c['neck'](d, c, e)
+		nk = c['neck'](d, c, e)
+		ns = c.get('neck_s', 1.0)
+		if abs(ns - 1.0) > 0.001:
+			nk = G(nk, tf='translate(240 0) scale(%s 1) translate(-240 0)' % n3(ns))
+		out += nk
 	head = ''
 	if 'back' in c:
 		head += c['back'](d, c, e)
@@ -861,6 +1256,8 @@ def capybara(cid, c, e):
 	head += draw_head_rim(d, c, e, hp, hc)
 	if 'fur_face' in c:
 		head += c['fur_face'](d, c, e)  # smudges / freckles on the fur (under the features)
+	if c.get('bags'):
+		head += fx_bags(c)
 	head += draw_blush(c, e)
 	head += draw_whiskers(c)
 	head += draw_nose(d, c)
@@ -880,6 +1277,8 @@ def capybara(cid, c, e):
 		head += c['outline'](d, c, e, hp)
 	else:
 		head += P(hp, st=OUT, sw=SIL)
+	if 'hair' in c:
+		head += c['hair'](d, c, e)      # fringe / tufts / beards over the silhouette line
 	if e == 'sad':
 		head += fx_tears(c)
 	if 'hat' in c:
@@ -964,6 +1363,40 @@ def hop_lines(x, y, w=40):
 	return s
 
 
+def lock_d(x0, y0, x1, y1, w, bend=0.0):
+	"""one pointed fur lock: base centred on (x0, y0), tip at (x1, y1); returns (fill path, free-edge path)"""
+	dx, dy = x1 - x0, y1 - y0
+	ln = math.hypot(dx, dy) or 1.0
+	nx, ny = -dy / ln, dx / ln
+	mx, my = x0 + dx * 0.55 + nx * bend, y0 + dy * 0.55 + ny * bend
+	a = (x0 + nx * w / 2.0, y0 + ny * w / 2.0)
+	b = (x0 - nx * w / 2.0, y0 - ny * w / 2.0)
+	ca = (mx + nx * w * 0.32, my + ny * w * 0.32)
+	cb = (mx - nx * w * 0.32, my - ny * w * 0.32)
+	edge = 'M%s Q%s %s Q%s %s' % (pt(a), pt(ca), pt((x1, y1)), pt(cb), pt(b))
+	return edge + 'Z', edge
+
+
+def fur_locks(spec, fill, sw=4.5):
+	"""fur tufts breaking the silhouette: filled, outlined only along their free edges (so they grow out of the head)"""
+	s = ''
+	for a in spec:
+		cd, ed = lock_d(*a)
+		s += P(cd, fill=fill, st=None) + P(ed, st=OUT, sw=sw)
+	return s
+
+
+def head_edge_x(c, y, side=1):
+	"""x of the head silhouette at height y (canonical head space)"""
+	pts = sample_smooth(head_pts(c), 10, closed=True)
+	best = None
+	for (x, yy) in pts:
+		if (x - 240) * side > 0:
+			if best is None or abs(yy - y) < abs(best[1] - y):
+				best = (x, yy)
+	return best[0] if best else 240 + side * 130
+
+
 # ============================================================================ characters
 # ---------------------------------------------------------------------------- MOCHI (player)
 
@@ -1038,6 +1471,9 @@ def mochi_hat(d, c, e):
 
 
 MOCHI = dict(fur='#d0965a', shade='#ae733f', muzzle='#ebc08c', inner='#a8653c', iris='#9a6230', iris2='#3a210f',
+	# the "everyday" capybara: classic boxy head, big round earnest eyes, soft short brows, cat-mouth
+	eye_rx=22.5, eye_ry=28.5, eye_dx=63, eye_y=181, hl='big',
+	brow_len=14, brow_w=7.5, brow_gap=12, brow_tilt=2,
 	outfit=mochi_outfit, neck=mochi_neck, hat=mochi_hat, mouth='w',
 	fx_sparkle=[(96, 140, 15), (388, 120, 12), (106, 200, 8)])
 
@@ -1095,8 +1531,22 @@ def coco_hat(d, c, e):
 	return G(s, tf=hat_pose(e, -7, 240, 100))
 
 
+def coco_hair(d, c, e):
+	# wind-swept tufts escaping from under the captain's cap
+	fl = {'shock': -8, 'sad': 8}.get(e, 0)
+	s = fur_locks([(118, 126, 84, 140 + fl, 17, 3), (116, 144, 86, 168 + fl, 15, 2)], c['fur'])
+	s += fur_locks([(362, 128, 392, 140 + fl, 15, -3)], cel_shade(c, e))
+	return s
+
+
 COCO = dict(fur='#b8633a', shade='#924a27', muzzle='#d68c60', inner='#7a3b22', iris='#3f86e0', iris2='#14305e',
-	lashes=2, brow_w=9.5, outfit=coco_outfit, neck=coco_neck, hat=coco_hat, mouth='smile', ears=(116, 104, 40),
+	# broad, sturdy, square-jawed; bold thick brows, wide-set confident eyes, a big open laugh
+	head=[(240, 74), (306, 76), (352, 88), (376, 118), (384, 172), (392, 234), (386, 288), (348, 328), (240, 342)],
+	eye_rx=19, eye_ry=23, eye_dx=72, eye_y=181, lid=0.12, lid_slant=3, lashes=2, lash_len=11,
+	brow='thick', brow_len=21, brow_w=10.5, brow_gap=12, brow_tilt=-3, brow_col='#5a2a14',
+	muz_w=126, muz_top=206, nose_w=56, nose_h=31, nose_y=222,
+	mouth='laugh', mouth_y=263, mouth_sx=1.1,
+	outfit=coco_outfit, neck=coco_neck, hat=coco_hat, hair=coco_hair, ears=(118, 104, 40), ear_s=1.1,
 	fx_sparkle=[(92, 160, 15), (392, 176, 12), (104, 212, 8)], fx_anger=(356, 156))
 
 
@@ -1165,11 +1615,13 @@ def wisp_hat(d, c, e):
 
 def wisp_face(d, c, e):
 	# monocle on the right eye + chain
-	x, y = 240 + EYE_DX, EYE_Y
-	s = C(x, y, 31, fill='#dff2ff', st=None, op=0.18)
-	s += C(x, y, 31, st=OUT, sw=10) + C(x, y, 31, st='#f0c75a', sw=4.5)
+	g = eye_geo(c, 1)
+	x, y = g['cx'], g['cy']
+	r = g['rx'] + 9
+	s = C(x, y, r, fill='#dff2ff', st=None, op=0.18)
+	s += C(x, y, r, st=OUT, sw=10) + C(x, y, r, st='#f0c75a', sw=4.5)
 	s += P('M%s Q%s %s' % (pt((x - 18, y - 16)), pt((x - 4, y - 28)), pt((x + 14, y - 24))), st=WHITE, sw=3, op=0.8)
-	ch = 'M%s Q%s %s' % (pt((x + 24, y + 20)), pt((x + 50, y + 70)), pt((x + 40, y + 150)))
+	ch = 'M%s Q%s %s' % (pt((x + 22, y + 20)), pt((x + 50, y + 70)), pt((x + 40, y + 150)))
 	s += P(ch, st=OUT, sw=5.5) + P(ch, st='#f0c75a', sw=2.6, extra=' stroke-dasharray="4 3"')
 	return s
 
@@ -1187,8 +1639,29 @@ def wisp_front(d, c, e):
 	return G(s, tf=rot(ang, 356, 430))
 
 
+def wisp_marks(d, c, e):
+	# dark widow's peak running down from under the top hat (drawn over the nose bridge)
+	col = darker(c['fur'], 0.42)
+	k = d.clip(head_d(c))
+	return G(P('M176,92 L304,92 L298,122 Q268,128 240,166 Q212,128 182,122 Z', fill=col, st=None, op=0.9), clip=k)
+
+
+def wisp_hair(d, c, e):
+	# long pointed goatee
+	cd, ed = lock_d(240, 342, 248, 392, 28, 3)
+	return P(cd, fill=darker(c['fur'], 0.42), st=None) + P(ed, st=OUT, sw=4.5)
+
+
 WISP = dict(fur='#6b4430', shade='#4e2f1f', muzzle='#8e6046', inner='#3e2418', iris='#b07cff', iris2='#2d1460',
-	lid=0.32, mouth='smirk', hy=12, ears=(110, 100, 34), arms=False, tilt=1.5, brow='#2a1a10',
+	# narrow face tapering into a goatee, widow's peak, sly half-lidded sideways glance, one arched brow up
+	head=[(240, 70), (294, 72), (334, 84), (354, 114), (360, 166), (358, 222), (340, 276), (298, 322), (254, 346), (240, 350)],
+	eye='white', eye_shape='almond', eye_rx=22.5, eye_ry=18, eye_tilt=6, eye_dx=60, eye_y=182, look=(0.3, 0.05), iris_s=0.84,
+	lid=0.3, lid_slant=-1, crease=True,
+	brow='thin', brow_len=20, brow_w=5.5, brow_gap=15, brow_arch=-4, brow_raise=True, brow_col='#1e120a',
+	muz_w=100, muz_top=208, nose='tri', nose_w=38, nose_h=24, nose_y=228,
+	mouth='smirk', mouth_y=264, mouth_sx=0.9,
+	hy=12, ears=(110, 100, 34), arms=False, tilt=1.5,
+	fur_face=wisp_marks, hair=wisp_hair,
 	outfit=wisp_outfit, neck=wisp_neck, hat=wisp_hat, face=wisp_face, front=wisp_front,
 	fx_sparkle=[(96, 150, 15), (396, 210, 11), (104, 206, 8)], fx_anger=(118, 150), fx_sweat=(118, 150), fx_lines=(380, 150))
 
@@ -1221,35 +1694,52 @@ def bruno_hat(d, c, e):
 	s = ''
 	flap = {'normal': 0, 'happy': -6, 'shock': -16, 'angry': 10, 'sad': 22}[e]
 	tails = ''
-	for (a, b, tip) in (((372, 120), (384, 136), (424, 96 + flap)), ((376, 136), (378, 150), (428, 156 + flap * 0.5))):
+	for (a, b, tip) in (((380, 124), (390, 140), (430, 100 + flap)), ((382, 140), (384, 154), (434, 160 + flap * 0.5))):
 		mid = ((a[0] + tip[0]) / 2.0, (a[1] + tip[1]) / 2.0 - 8)
 		tp = smooth([a, (mid[0], mid[1] - 6), tip, (mid[0] + 4, mid[1] + 12), b])
 		tails += P(tp, fill=BRUNO_RED, st=OUT, sw=5)
 		tails += P('M%s Q%s %s' % (pt(a), pt(mid), pt(tip)), st='#a82424', sw=3, op=0.6)
 	s += tails
-	band = 'M106,112 Q240,86 374,112 L376,142 Q240,116 104,142 Z'
+	band = 'M98,118 Q240,92 382,118 L386,150 Q240,124 94,150 Z'
 	k = d.clip(band)
 	s += P(band, fill=BRUNO_RED, st=None)
-	s += G(R(80, 128, 320, 30, fill='#a82424', st=None, op=0.8, extra=' transform="%s"' % rot(0, 240, 130))
-		+ P('M106,118 Q240,94 374,118', st=WHITE, sw=4, op=0.45), clip=k)
+	s += G(R(70, 134, 340, 30, fill='#a82424', st=None, op=0.8)
+		+ P('M98,124 Q240,100 382,124', st=WHITE, sw=4, op=0.45), clip=k)
 	s += P(band, st=OUT, sw=5.5)
-	s += P(smooth([(364, 112), (384, 116), (390, 132), (380, 148), (362, 146), (358, 128)]), fill=BRUNO_RED, st=OUT, sw=5)
+	s += P(smooth([(370, 116), (392, 120), (398, 136), (388, 152), (368, 150), (364, 132)]), fill=BRUNO_RED, st=OUT, sw=5)
 	return s
 
 
 def bruno_face(d, c, e):
 	# old scar through the left eyebrow
+	g = eye_geo(c, -1)
+	x, y = g['cx'] - 6, g['cy'] - g['ry']
 	sc = '#f0c4a8'
-	s = P('M162,118 L188,158', st=OUT, sw=8, op=0.25) + P('M162,118 L188,158', st=sc, sw=4.5)
-	s += P('M168,134 L178,128 M174,144 L184,138', st=sc, sw=3)
+	a, b = (x - 14, y - 34), (x + 8, y - 2)
+	s = P('M%s L%s' % (pt(a), pt(b)), st=OUT, sw=8, op=0.25) + P('M%s L%s' % (pt(a), pt(b)), st=sc, sw=4.5)
+	for t in (0.35, 0.62):
+		px, py = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+		s += P('M%s L%s' % (pt((px - 6, py + 4)), pt((px + 6, py - 4))), st=sc, sw=3)
+	# cleft chin + stubble
+	s += P('M%s Q%s %s' % (pt((228, 338)), pt((240, 330)), pt((252, 338))), st=OUT, sw=3.5, op=0.45)
 	return s
 
 
-BRUNO = dict(fur='#7a4f33', shade='#5b3822', muzzle='#a0714f', inner='#48291a', iris='#8a5328', iris2='#2a1608',
-	eye_scale=0.84, brow_w=11, hs=1.16, bw=1.1, arms=False, ears=(100, 80, 14), brow='#2a1a10',
-	outfit=bruno_outfit, hat=bruno_hat, face=bruno_face, mouth='smile',
-	fx_sweat=(112, 150), fx_lines=(100, 104), fx_anger=(124, 150),
-	fx_sparkle=[(84, 150, 15), (410, 210, 12), (96, 206, 8)])
+BRUNO = dict(fur='#7a4f33', shade='#5b3822', muzzle='#a0714f', inner='#48291a', iris='#6a3e1c', iris2='#1a0c04',
+	# huge: wide flat-topped head with a heavy square jaw, tiny kind eyes under a thick heavy brow,
+	# flattened boxer's nose, notched ear, small gentle smile with a chipped tooth
+	head=[(240, 82), (308, 82), (354, 92), (378, 118), (386, 166), (400, 232), (402, 290), (378, 328), (306, 348), (240, 350)],
+	hs=1.06, hy=-4, bw=1.17,
+	body=[(240, 284), (318, 286), (380, 302), (418, 340), (432, 410), (436, 500), (440, 640), (240, 640)],
+	eye_rx=12, eye_ry=13.5, eye_dx=66, eye_y=190, hl='tiny', pupil=0.55, shock_s=1.2,
+	brow='thick', brow_len=25, brow_w=14, brow_gap=5, brow_tilt=3, brow_col='#3a2416', brow_taper=(10, 15),
+	muz_w=136, muz_top=210, nose='boxer', nose_w=60, nose_h=28, nose_y=228,
+	mouth='smile', mouth_y=270, mouth_sx=0.72, teeth='gap',
+	whisk_dots=((76, 10), (68, 24), (80, 34), (92, 20), (58, 14), (88, 4)),
+	arms=False, ears=(120, 98, 14), ear_style='notched', ear_s=0.86,
+	outfit=bruno_outfit, hat=bruno_hat, face=bruno_face,
+	fx_sweat=(108, 156), fx_lines=(96, 108), fx_anger=(120, 156),
+	fx_sparkle=[(80, 150, 15), (414, 210, 12), (92, 206, 8)])
 
 
 # ---------------------------------------------------------------------------- LULU STARLING (pop idol)
@@ -1326,9 +1816,10 @@ def lulu_neck(d, c, e):
 
 def lulu_face(d, c, e):
 	s = ''
+	bdx, by = blush_pos(c)
 	for side in (-1, 1):
 		for (dx, dy, r) in ((-12, -6, 6), (6, 4, 4.5), (14, -10, 3.5)):
-			s += P(sparkle(240 + side * 100 + dx, 226 + dy, r), fill='#ff4fa0' if r > 5 else WHITE, st=None, op=0.95)
+			s += P(sparkle(240 + side * bdx + dx, by + dy, r), fill='#ff4fa0' if r > 5 else WHITE, st=None, op=0.95)
 	return s
 
 
@@ -1351,9 +1842,28 @@ def lulu_front(d, c, e):
 	return G(s, tf=rot(tilt, 368, 430))
 
 
+def lulu_hair(d, c, e):
+	# idol bangs: soft rounded fringe of fur under the bow
+	col = lighter(c['fur'], 0.08)
+	bang = ('M172,104 Q240,72 308,104 L310,118 Q300,138 286,124 Q276,146 260,128 Q250,150 240,132 Q230,150 220,128 '
+		'Q204,146 194,124 Q180,138 170,118 Z')
+	s = P(bang, fill=col, st=OUT, sw=4.5)
+	s += P('M%s Q%s %s M%s Q%s %s' % (pt((214, 106)), pt((220, 116)), pt((220, 126)), pt((262, 106)), pt((258, 116)), pt((260, 126))), st=OUT, sw=2.5, op=0.45)
+	s += P('M196,104 Q230,90 262,94', st=WHITE, sw=4, op=0.45)
+	return s
+
+
 LULU = dict(fur='#eac272', shade='#c99c4c', muzzle='#f7dc9e', inner='#c98a6a', iris='#ff4fa6', iris2='#6e0f46',
-	lashes=3, star_eyes=True, blush_op=0.42, blush='#ff5e9e', mouth='smile', ears=(100, 80, 16),
-	back=lulu_back, hat=lulu_hat, outfit=lulu_outfit, neck=lulu_neck, face=lulu_face, front=lulu_front,
+	# petite soft oval face with idol bangs, huge sparkly star eyes with long lashes, tiny heart nose, little :D mouth
+	head=[(240, 84), (292, 86), (334, 98), (356, 128), (364, 180), (362, 236), (348, 286), (306, 324), (240, 336)],
+	bw=0.88, neck_s=0.92, tilt=-3,
+	eye_rx=25, eye_ry=31, eye_dx=64, eye_y=191, hl='idol', lashes=3, lash_len=14, lower_lash=True, happy_eye='open',
+	brow='thin', brow_len=12, brow_w=4.5, brow_gap=9, brow_col='#9a6a2a',
+	muz_w=90, muz_top=218, nose='heart', nose_w=16, nose_h=15, nose_y=234, nose_col='#b5475f',
+	mouth='cat', mouth_y=262, mouth_sx=0.9, teeth='tiny',
+	blush_op=0.42, blush='#ff5e9e', blush_dx=104, blush_y=248,
+	ears=(100, 92, 16), ear_s=0.85,
+	back=lulu_back, hat=lulu_hat, hair=lulu_hair, outfit=lulu_outfit, neck=lulu_neck, face=lulu_face, front=lulu_front,
 	fx_sparkle=[(84, 150, 15), (100, 214, 9), (396, 120, 13)], fx_sweat=(370, 150))
 
 
@@ -1420,15 +1930,31 @@ def pepper_hat(d, c, e):
 
 def pepper_freckles(d, c, e):
 	s = ''
+	bdx, by = blush_pos(c)
 	for side in (-1, 1):
 		for (dx, dy) in ((-12, 0), (0, 8), (12, 0), (2, -8)):
-			s += C(240 + side * 102 + dx, 236 + dy, 2.6, fill=darker(c['shade'], 0.3), st=None, op=0.75)
+			s += C(240 + side * bdx + dx, by + dy, 2.6, fill=darker(c['shade'], 0.3), st=None, op=0.75)
+		# across the nose bridge
+		s += C(240 + side * 16, fp(c, 'nose_y') - 12, 2.2, fill=darker(c['shade'], 0.3), st=None, op=0.7)
 	return s
 
 
-PEPPER = dict(fur='#d9b27c', shade='#b48c58', muzzle='#eed3a5', inner='#a87a50', iris='#4fa35a', iris2='#163f1d',
-	lashes=2, mouth='grin', ears=(116, 100, 36), brow_raise=True,
-	outfit=pepper_outfit, neck=pepper_neck, hat=pepper_hat, fur_face=pepper_freckles,
+def pepper_hair(d, c, e):
+	# scruffy tufts sticking out from under the press cap
+	return (fur_locks([(118, 124, 88, 142, 16, 3), (116, 140, 90, 170, 14, -2)], c['fur'])
+		+ fur_locks([(364, 124, 394, 142, 16, -3), (364, 140, 390, 168, 13, 2)], cel_shade(c, e)))
+
+
+PEPPER = dict(fur='#d9b27c', shade='#b48c58', muzzle='#eed3a5', inner='#a87a50', iris='#d49a28', iris2='#5a3404',
+	# sharp angular face with pointed cheeks, sharp upswept hawk eyes, a skeptical raised brow, freckles, buck-tooth grin
+	head=[(240, 72), (302, 74), (346, 84), (366, 108), (370, 156), (392, 218), (378, 258), (334, 310), (240, 338)], head_k=0.55,
+	eye='white', eye_shape='almond', eye_rx=21.5, eye_ry=18, eye_tilt=7, eye_dx=62, eye_y=183, iris_s=0.74, look=(0.16, 0.0),
+	hl='sharp', lashes=1, lash_len=11,
+	brow='thin', brow_len=19, brow_w=6.5, brow_gap=13, brow_raise=True, brow_tilt=-3, brow_col='#5a3a1c',
+	muz_w=104, muz_top=208, nose='tri', nose_w=34, nose_h=23, nose_y=228,
+	mouth='grin', mouth_y=262, mouth_sx=0.92,
+	ears=(118, 100, 36), ear_style='pointy', tilt=-2,
+	outfit=pepper_outfit, neck=pepper_neck, hat=pepper_hat, fur_face=pepper_freckles, hair=pepper_hair,
 	fx_sparkle=[(88, 160, 14), (392, 176, 12), (100, 212, 8)])
 
 
@@ -1499,11 +2025,22 @@ def duchess_neck(d, c, e):
 
 
 def duchess_face(d, c, e):
-	return C(300, 292, 3.6, fill=OUT, st=None)
+	# beauty mark
+	return C(240 + 44 * fp(c, 'mouth_sx'), fp(c, 'mouth_y') + 18, 3.6, fill=OUT, st=None)
 
 
-DUCHESS = dict(fur='#f2e3c6', shade='#d6bf98', muzzle='#fcf3df', inner='#d9a89a', iris='#9a6dc8', iris2='#341a52',
-	lid=0.36, lid_slant=-2, lashes=3, mouth='smirk', ears=False, tilt=-3, arms=False, blush_op=0.22,
+DUCHESS = dict(fur='#f2e3c6', shade='#d6bf98', muzzle='#fcf3df', inner='#d9a89a', iris='#c8609a', iris2='#4a1436',
+	# long narrow elegant face, heavy-lidded haughty eyes with lilac shadow and long lashes, high thin arched brows,
+	# small refined nose, plum-painted pout and a beauty mark
+	head=[(240, 70), (288, 72), (326, 84), (344, 114), (348, 172), (346, 236), (332, 290), (296, 332), (240, 352)],
+	bw=0.92, neck_s=0.95,
+	eye='white', eye_shape='almond', eye_rx=20, eye_ry=16, eye_tilt=2, eye_dx=56, eye_y=184, iris_s=0.8, look=(0.0, 0.14),
+	lid=0.42, lid_slant=-2, crease=True, shadow='#b58ad8', lashes=3, lash_len=14,
+	brow='thin', brow_len=18, brow_w=4.5, brow_gap=24, brow_arch=-8, brow_col='#8a6a4a',
+	muz_w=94, muz_top=216, nose='button', nose_w=28, nose_h=19, nose_y=238, bridge_w=0.8,
+	mouth='pout', mouth_y=270, mouth_sx=0.85, lips='#a8506e', teeth='tiny',
+	whisk=1.3, whisk_w=2.4, blush_op=0.22, blush_dx=90,
+	ears=False, tilt=-3, arms=False,
 	back=duchess_back, hat=duchess_hat, outfit=duchess_outfit, neck=duchess_neck, face=duchess_face,
 	fx_sweat=(374, 162), fx_lines=(96, 150), fx_anger=(360, 160),
 	fx_sparkle=[(80, 170, 14), (400, 176, 12), (98, 222, 8)])
@@ -1583,7 +2120,14 @@ def bramble_dirt(d, c, e):
 
 
 BRAMBLE = dict(fur='#8e7a4b', shade='#6c5a32', muzzle='#b19c6a', inner='#5c4a2a', iris='#62b34c', iris2='#1d4618',
-	lid=0.18, lashes=2, mouth='smile', ears=(100, 82, 16),
+	# round soft face, calm droopy half-lidded eyes, little round "maro" dot brows, button nose, small soft smile, rosy cheeks
+	head=[(240, 78), (300, 80), (348, 94), (374, 128), (384, 186), (384, 240), (366, 292), (322, 330), (240, 340)],
+	eye_shape='almond', eye_rx=21, eye_ry=23, eye_tilt=-9, eye_dx=68, eye_y=190, lashes=1, lash_len=10, happy_eye='smile', hl='dreamy',
+	brow='dot', brow_len=13, brow_w=12, brow_gap=13, brow_tilt=3, brow_col='#5c4a26', tilt=3,
+	muz_w=98, muz_top=222, nose='button', nose_w=36, nose_h=24, nose_y=236,
+	mouth='soft', mouth_y=270, mouth_sx=0.95,
+	blush_op=0.5, blush='#ff7a6a', blush_s=1.35, blush_dx=104, blush_y=246,
+	ears=(102, 86, 16),
 	hat=bramble_hat, outfit=bramble_outfit, neck=bramble_neck, front=bramble_front, fur_face=bramble_dirt,
 	fx_sparkle=[(82, 160, 14), (398, 176, 12), (96, 214, 8)])
 
@@ -1640,10 +2184,28 @@ def nibs_hat(d, c, e):
 	return G(s, tf=hat_pose(e, 0, 240, 100, 8))
 
 
-NIBS = dict(fur='#958170', shade='#745f4e', muzzle='#b8a490', inner='#5e4a3c', iris='#6a97bd', iris2='#1f3a52',
-	mouth='w', brow_raise=True, ears=(108, 92, 30),
-	outfit=nibs_outfit, neck=nibs_neck, hat=nibs_hat,
-	fx_sparkle=[(80, 160, 14), (400, 176, 12), (96, 214, 8)])
+def nibs_hair(d, c, e):
+	# fluffy grey mutton-chop sideburns + a pedantic furrow between the brows
+	col = '#d8d0c4'
+	s = fur_locks([(352, 206, 386, 230, 26, -4), (356, 232, 392, 262, 26, -2), (348, 258, 380, 292, 22, 2)], col)
+	s += fur_locks([(128, 206, 94, 230, 26, 4), (124, 232, 88, 262, 26, 2), (132, 258, 100, 292, 22, -2)], col)
+	if e in ('normal', 'angry'):
+		s += P('M232,150 L236,166 M248,150 L244,166', st=OUT, sw=3, op=0.5)
+	return s
+
+
+NIBS = dict(fur='#958170', shade='#745f4e', muzzle='#b8a490', inner='#5e4a3c', iris='#8c8a3a', iris2='#2e2c0c',
+	# long rectangular head with a long snout and fluffy mutton chops, small close-set eyes in a pedantic squint
+	# (one eye narrowed, the other brow hiked up), roman nose, prim mouth with big buck teeth
+	head=[(240, 72), (294, 74), (334, 84), (352, 112), (356, 170), (360, 236), (362, 294), (336, 334), (240, 346)],
+	eye='white', eye_shape='almond', eye_rx=17, eye_ry=17, eye_dx=54, eye_y=180, iris_s=0.58,
+	eye_side={1: dict(lid=0.52, lid_slant=4)},
+	brow='line', brow_len=17, brow_w=7, brow_gap=12, brow_side={-1: (-8, -17, -11), 1: (5, 3, 8)}, brow_col='#3e3026',
+	muz_w=100, muz_top=216, nose='roman', nose_w=40, nose_h=23, nose_y=234,
+	mouth='buck', mouth_y=272, mouth_sx=0.9, teeth='big', whisk=0.7,
+	ears=(108, 92, 30),
+	outfit=nibs_outfit, neck=nibs_neck, hat=nibs_hat, hair=nibs_hair,
+	fx_sparkle=[(78, 160, 14), (402, 176, 12), (94, 214, 8)])
 
 
 # ---------------------------------------------------------------------------- ZUZU BYTE (hacker)
@@ -1696,14 +2258,34 @@ def zuzu_hat(d, c, e):
 
 def zuzu_face(d, c, e):
 	# little plaster on the cheek
+	bdx, by = blush_pos(c)
 	pl = R(-16, -7, 32, 14, rx=5, fill='#f6dcc0', st=OUT, sw=3) + R(-5, -6, 10, 12, fill='#e6c39e', st=None)
 	pl += C(-10, -2, 1.3, fill='#b8916c', st=None) + C(10, 2, 1.3, fill='#b8916c', st=None)
-	return '<g transform="translate(144 232) rotate(-24)">%s</g>' % pl
+	return '<g transform="translate(%s %s) rotate(-24)">%s</g>' % (n(240 - bdx + 4), n(by), pl)
+
+
+def zuzu_hair(d, c, e):
+	# spiky fringe poking out under the headphone band, one lock dyed cyan
+	col = darker(c['fur'], 0.25)
+	pts = [(164, 84), (180, 132), (196, 104), (212, 140), (228, 106), (246, 136), (262, 102), (280, 134), (294, 100), (310, 124), (318, 84)]
+	fr = poly(pts)
+	s = P(fr, fill=col, st=None)
+	s += P(line(pts), st=OUT, sw=4.5)
+	s += P(poly([(262, 102), (280, 134), (294, 100), (286, 90)]), fill=CYAN, st=OUT, sw=3)
+	return s
 
 
 ZUZU = dict(fur='#716c6d', shade='#544f50', muzzle='#908a8a', inner='#3f3b3c', iris='#35e3f2', iris2='#0a4a55',
-	lid=0.46, mouth='flat', ears=False, blush_op=0.18,
-	outfit=zuzu_outfit, neck=zuzu_neck, hat=zuzu_hat, face=zuzu_face,
+	# angular flat-topped head with a spiky fringe, flat deadpan half-closed eyes with screen-glow irises and tired bags,
+	# short flat dash brows, tiny flat mouth with a fang
+	head=[(240, 72), (304, 72), (350, 80), (368, 104), (372, 168), (372, 236), (354, 290), (306, 328), (240, 338)], head_k=0.7,
+	eye='white', eye_shape='almond', eye_rx=21, eye_ry=16, eye_tilt=1, eye_dx=64, eye_y=186, iris_s=0.92, iris_w=0.86,
+	hl='sharp', lid=0.5, bags=True,
+	brow='line', brow_len=11, brow_w=7, brow_gap=8, brow_side={-1: (1, 0, 1), 1: (1, 0, 1)}, brow_col='#2e2a2b',
+	muz_w=104, muz_top=212, nose='tri', nose_w=32, nose_h=21, nose_y=232,
+	mouth='flat', mouth_y=266, mouth_sx=0.8, teeth='fang', happy_mouth='cat3',
+	ears=False, blush_op=0.0, hy=4, tilt=2,
+	outfit=zuzu_outfit, neck=zuzu_neck, hat=zuzu_hat, face=zuzu_face, hair=zuzu_hair,
 	fx_sweat=(350, 120), fx_lines=(124, 90), fx_anger=(336, 120),
 	fx_sparkle=[(70, 120, 14), (410, 120, 12), (80, 260, 8)])
 
@@ -1758,16 +2340,24 @@ def reginald_hat(d, c, e):
 
 
 def reginald_face(d, c, e):
-	# dashing curled handlebar moustache
-	dy = {'happy': -3, 'shock': -4, 'angry': 1, 'sad': 5}.get(e, 0)
-	lift = {'happy': -6, 'shock': 4, 'angry': -2, 'sad': 8}.get(e, 0)
+	# dashing waxed handlebar moustache with curled-up tips + a pointed imperial
+	dy = {'happy': -3, 'shock': -4, 'angry': 1, 'sad': 6}.get(e, 0)
+	lift = {'happy': -6, 'shock': 2, 'angry': -2, 'sad': 14}.get(e, 0)
+	y0 = fp(c, 'nose_y') + fp(c, 'nose_h') + 2 + dy
+	col = '#3a2410'
 	s = ''
 	for side in (-1, 1):
-		m = smooth([(240, 246 + dy), (240 + side * 22, 244 + dy), (240 + side * 46, 250 + dy), (240 + side * 66, 240 + dy + lift),
-			(240 + side * 70, 226 + dy + lift), (240 + side * 62, 222 + dy + lift), (240 + side * 58, 232 + dy + lift),
-			(240 + side * 46, 260 + dy), (240 + side * 22, 262 + dy), (240, 256 + dy)])
-		s += P(m, fill='#3a2410', st=OUT, sw=3.5)
-		s += P('M%s Q%s %s' % (pt((240 + side * 12, 250 + dy)), pt((240 + side * 30, 248 + dy)), pt((240 + side * 44, 252 + dy))), st=WHITE, sw=2.2, op=0.35)
+		X = lambda x: 240 + side * x
+		po, pm, pi = (X(70), y0 - 4 + lift), (X(36), y0 + 9), (240 - side * 2, y0 + 5)
+		s += P(taper_d(po, pm, pi, 4.5, 13, 16), fill=col, st=OUT, sw=3.5)
+		curl = 'M%s Q%s %s Q%s %s Q%s %s' % (pt(po), pt((X(86), y0 - 12 + lift)), pt((X(82), y0 - 26 + lift)),
+			pt((X(76), y0 - 38 + lift)), pt((X(65), y0 - 32 + lift)), pt((X(58), y0 - 23 + lift)), pt((X(67), y0 - 19 + lift)))
+		s += P(curl, st=OUT, sw=10) + P(curl, st=col, sw=4.8)
+		s += P('M%s Q%s %s' % (pt((X(8), y0 + 4)), pt((X(26), y0 + 2)), pt((X(46), y0 + 5))), st=WHITE, sw=2.2, op=0.35)
+	if e != 'shock':
+		my = fp(c, 'mouth_y')
+		cd, ed = lock_d(240, my + 16, 240, my + 46 + (6 if e == 'sad' else 0), 15, 0)
+		s += P(cd, fill=col, st=None) + P(ed, st=OUT, sw=3.5)
 	return s
 
 
@@ -1783,8 +2373,28 @@ def reginald_front(d, c, e):
 	return G(s, tf=rot(tilt, 392, 430))
 
 
-REGINALD = dict(fur='#cf9447', shade='#a8722f', muzzle='#e6b676', inner='#8a5a28', iris='#d29420', iris2='#5a3404',
-	lid=0.22, mouth='w', ears=(116, 102, 36), tilt=-2, brow='#3a2410',
+def reginald_marks(d, c, e):
+	# dark sideburns down the sides of the face
+	col = darker(c['fur'], 0.45)
+	k = d.clip(head_d(c))
+	s = ''
+	for side in (-1, 1):
+		s += P(smooth([(240 + side * 108, 96), (240 + side * 150, 96), (240 + side * 150, 250), (240 + side * 128, 240), (240 + side * 112, 196), (240 + side * 108, 140)], k=0.6),
+			fill=col, st=None, op=0.92)
+	return G(s, clip=k)
+
+
+REGINALD = dict(fur='#cf9447', shade='#a8722f', muzzle='#e6b676', inner='#8a5a28', iris='#4f7fb0', iris2='#12304e',
+	# proud oval face with a strong chin held high, dark sideburns, haughty lidded eyes under high arched brows,
+	# long roman nose, twirly waxed handlebar moustache and a pointed imperial
+	head=[(240, 70), (296, 72), (338, 84), (358, 114), (364, 170), (364, 234), (350, 292), (312, 334), (240, 350)],
+	eye='white', eye_shape='almond', eye_rx=19, eye_ry=16, eye_tilt=4, eye_dx=60, eye_y=180, iris_s=0.8, look=(0.06, 0.12),
+	lid=0.32, lid_slant=2, crease=True,
+	brow='thin', brow_len=20, brow_w=6, brow_gap=19, brow_arch=-6, brow_col='#3a2410',
+	muz_w=106, muz_top=208, nose='roman', nose_w=42, nose_h=26, nose_y=224,
+	mouth='w', mouth_y=272, mouth_sx=0.8, whisk=0,
+	ears=(116, 102, 36), tilt=-2,
+	fur_face=reginald_marks,
 	outfit=reginald_outfit, neck=reginald_neck, hat=reginald_hat, face=reginald_face, front=reginald_front,
 	fx_sweat=(370, 150), fx_lines=(96, 130),
 	fx_sparkle=[(80, 160, 14), (98, 222, 8), (360, 230, 9)])
@@ -1842,9 +2452,31 @@ def grub_front(d, c, e):
 	return G(s, tf=rot(tilt, 110, 430))
 
 
+def grub_face(d, c, e):
+	s = ''
+	# chubby cheeks pushing up under the eyes
+	if e != 'shock':
+		for side in (-1, 1):
+			g = eye_geo(c, side)
+			cx, y = g['cx'], g['cy'] + g['ry'] + 7
+			s += P('M%s Q%s %s' % (pt((cx - 17, y)), pt((cx, y + 9)), pt((cx + 17, y))), st=OUT, sw=3.2, op=0.45)
+	# double chin
+	s += P('M204,340 Q240,356 276,340', st=OUT, sw=3.5, op=0.4)
+	return s
+
+
 GRUB = dict(fur='#b47538', shade='#925b26', muzzle='#d3a063', inner='#7a4a20', iris='#9a5a24', iris2='#2e1708',
-	cheek=14, bw=1.12, mouth='smile', blush_op=0.4, ears=(104, 92, 24), hy=6,
-	hat=grub_hat, outfit=grub_outfit, neck=grub_neck, front=grub_front,
+	# round pear-shaped chubby face with puffed-out cheeks and a double chin, small twinkly eyes set high,
+	# big round button nose, wide toothy smile, big rosy cheeks
+	head=[(240, 84), (296, 86), (336, 98), (358, 128), (372, 180), (396, 238), (398, 290), (366, 334), (300, 354), (240, 356)],
+	bw=1.16, hy=2,
+	eye_rx=14, eye_ry=16, eye_dx=60, eye_y=178, hl='big', happy_sw=8.5,
+	brow='line', brow_len=12, brow_w=8, brow_gap=13, brow_arch=-3, brow_col='#5a3416',
+	muz_w=130, muz_top=208, nose='button', nose_w=40, nose_h=29, nose_y=224, nose_col='#5a2e1a',
+	mouth='toothy', mouth_y=266, mouth_sx=1.2, teeth='big',
+	blush_op=0.45, blush_s=1.35, blush_dx=104, blush_y=238,
+	ears=(104, 96, 24), ear_s=0.8,
+	hat=grub_hat, outfit=grub_outfit, neck=grub_neck, front=grub_front, face=grub_face,
 	fx_sparkle=[(392, 160, 15), (380, 222, 9), (408, 110, 9)])
 
 
@@ -1852,30 +2484,41 @@ GRUB = dict(fur='#b47538', shade='#925b26', muzzle='#d3a063', inner='#7a4a20', i
 
 
 def tumble_outline(d, c, e, hp):
-	s = ''
+	s = P(hp, st=OUT, sw=SIL)
 	fur = lighter(c['fur'], 0.35)
-	tufts = []
+	# grizzled cheek tufts on the droopy jowls
 	for side in (-1, 1):
-		for (y, ln) in ((200, 16), (232, 20), (264, 16)):
-			x0 = 240 + side * 132
-			tufts.append(smooth([(x0 - side * 8, y - 16), (x0 + side * ln * 0.6, y - 10), (x0 + side * ln, y + 2), (x0 + side * ln * 0.4, y + 6),
-				(x0 - side * 6, y + 14)]))
-	for t in tufts:
-		s += P(t, fill=fur, st=OUT, sw=4.5)
-	s += P(hp, st=OUT, sw=SIL)
+		spec = []
+		for (y, ln) in ((214, 18), (246, 24), (280, 20)):
+			x0 = head_edge_x(c, y, side) - side * 8
+			spec.append((x0, y, x0 + side * ln, y + 10, 18, side * 3))
+		s += fur_locks(spec, fur)
 	# fluffy chin beard
-	beard = smooth([(198, 318), (240, 332), (282, 318), (280, 346), (264, 364), (252, 356), (240, 372), (228, 356), (216, 364), (200, 346)])
+	beard = smooth([(198, 324), (240, 336), (282, 324), (280, 352), (264, 370), (252, 362), (240, 378), (228, 362), (216, 370), (200, 352)])
 	s += P(beard, fill='#f3f0ea', st=OUT, sw=4.5)
-	s += P('M224,340 Q232,352 230,360 M256,340 Q248,352 250,360', st='#cfc9bf', sw=2.5)
+	s += P('M224,346 Q232,358 230,366 M256,346 Q248,358 250,366', st='#cfc9bf', sw=2.5)
 	return s
 
 
 def tumble_face(d, c, e):
 	s = ''
+	# forehead wrinkles
 	if e != 'shock':
-		for side in (-1, 1):
-			cx = 240 + side * EYE_DX
-			s += P('M%s Q%s %s' % (pt((cx - 14, EYE_Y + 30)), pt((cx, EYE_Y + 37)), pt((cx + 14, EYE_Y + 30))), st=OUT, sw=3, op=0.45)
+		for (y, w) in ((140, 26), (150, 34)):
+			s += P('M%s Q%s %s' % (pt((240 - w, y + 3)), pt((240, y - 4)), pt((240 + w, y + 3))), st=OUT, sw=3, op=0.4)
+	# droopy white walrus moustache over the mouth + long drooping whiskers
+	ny = fp(c, 'nose_y') + fp(c, 'nose_h')
+	sway = {'happy': -4, 'shock': -8, 'sad': 6}.get(e, 0)
+	for side in (-1, 1):
+		X = lambda x: 240 + side * x
+		wh = 'M%s Q%s %s' % (pt((X(70), ny + 18)), pt((X(112), ny + 22)), pt((X(138), ny + 50 + sway)))
+		s += P(wh, st=OUT, sw=6.5) + P(wh, st='#f4f1ea', sw=3)
+		wh = 'M%s Q%s %s' % (pt((X(74), ny + 30)), pt((X(108), ny + 38)), pt((X(124), ny + 70 + sway)))
+		s += P(wh, st=OUT, sw=6) + P(wh, st='#f4f1ea', sw=2.6)
+		m = smooth([(240, ny - 2), (X(18), ny - 2), (X(36), ny + 6), (X(46), ny + 24 + sway * 0.5), (X(40), ny + 36 + sway), (X(30), ny + 24),
+			(X(16), ny + 18), (240, ny + 14)], k=0.8)
+		s += P(m, fill='#f4f1ea', st=OUT, sw=4)
+		s += P('M%s Q%s %s' % (pt((X(10), ny + 6)), pt((X(26), ny + 10)), pt((X(36), ny + 22))), st='#cfc9bf', sw=2.4)
 	return s
 
 
@@ -1926,7 +2569,16 @@ def tumble_outfit(d, c, e):
 
 
 TUMBLE = dict(fur='#cbc5bd', shade='#a49d94', muzzle='#e2ddd6', inner='#8f8279', iris='#7a7aa8', iris2='#2a2a44',
-	lid=0.56, lid_slant=-3, bushy=True, brow='#f4f1ea', mouth='w', ears=(116, 108, 40), arms=False,
+	# small, hunched and droopy: little head with sagging grizzled jowls, floppy ears, forehead wrinkles,
+	# heavy sleepy lids with bags, bushy white whisker-brows, walrus moustache, long drooping whiskers, beard
+	head=[(240, 82), (292, 84), (332, 96), (350, 124), (356, 180), (366, 244), (374, 298), (346, 336), (240, 342)],
+	hs=0.96, hy=4, bw=0.93, neck_s=0.95,
+	body=[(240, 300), (300, 300), (350, 312), (388, 342), (406, 410), (414, 500), (418, 640), (240, 640)],
+	eye_rx=17, eye_ry=19, eye_dx=58, eye_y=186, lid=0.62, lid_slant=-4, bags=True, bags_col='#7d756c', happy_eye='smile',
+	brow='bushy', brow_hang=True, brow_len=20, brow_gap=7, brow_tilt=4, brow_col='#f4f1ea',
+	muz_w=104, muz_top=214, nose_w=44, nose_h=28, nose_y=228,
+	mouth='o', mouth_y=276, mouth_sx=0.9, whisk=0,
+	ears=(128, 150, 26), ear_style='floppy', arms=False,
 	hat=tumble_hat, outfit=tumble_outfit, outline=tumble_outline, face=tumble_face,
 	fx_sweat=(106, 150), fx_lines=(100, 96), fx_anger=(118, 150),
 	fx_sparkle=[(80, 150, 14), (96, 214, 8), (300, 2, 0.1)])
@@ -1969,8 +2621,29 @@ def marigold_hat(d, c, e):
 	return G(s, tf=hat_pose(e, -5, 240, 100, 12))
 
 
+def marigold_marks(d, c, e):
+	# pale blaze running from the forehead down the nose bridge
+	col = lighter(c['fur'], 0.5)
+	return P(smooth(sym([(240, 56), (256, 60), (264, 120), (252, 168), (266, 214), (240, 224)])), fill=col, st=None, op=0.9)
+
+
+def marigold_hair(d, c, e):
+	# one soft comma-shaped kiss-curl of fur on the forehead
+	col = lighter(c['fur'], 0.5)
+	curl = taper_d((246, 104), (214, 116), (232, 142), 10, 9, 2.5)
+	return P(curl, fill=col, st=OUT, sw=3.5)
+
+
 MARIGOLD = dict(fur='#d98b55', shade='#b66d3a', muzzle='#eeb383', inner='#a35a32', iris='#33b98c', iris2='#0e4a36',
-	lashes=2, mouth='smile', ears=(100, 82, 16),
+	# soft oval face with a pale blaze and a kiss-curl, gentle round eyes with lashes, permanently worried brows,
+	# small button nose, small careful smile
+	head=[(240, 78), (292, 80), (332, 92), (352, 122), (358, 178), (356, 236), (342, 288), (304, 328), (240, 344)],
+	eye_rx=20.5, eye_ry=25, eye_dx=58, eye_y=184, lashes=2, lower_lash=True,
+	brow='line', brow_len=16, brow_w=6.5, brow_gap=13, brow_tilt=8, brow_col='#7a3e1c',
+	muz_w=102, muz_top=214, nose='button', nose_w=36, nose_h=24, nose_y=230,
+	mouth='smile', mouth_y=264, mouth_sx=0.62,
+	ears=(100, 84, 16), ear_s=0.95,
+	fur_marks=marigold_marks, hair=marigold_hair,
 	outfit=marigold_outfit, neck=marigold_neck, hat=marigold_hat,
 	fx_sparkle=[(82, 150, 14), (398, 176, 12), (96, 214, 8)])
 
@@ -1995,7 +2668,8 @@ def fennel_back(d, c, e):
 
 def fennel_smudges(d, c, e):
 	s = ''
-	for (x, y, r, col, a) in ((194, 106, 11, '#3a7bd5', 20), (346, 210, 10, '#ffd23c', -30), (300, 312, 7, '#4fbf6a', 0), (128, 250, 9, '#ff6fae', 40)):
+	for (x, y, r, col, a) in ((300, 120, 10, '#3a7bd5', 20), (350, 214, 10, '#ffd23c', -30), (304, 316, 7, '#4fbf6a', 0), (126, 252, 9, '#ff6fae', 40),
+		(258, 222, 5, '#3a7bd5', 0)):
 		blob = smooth([(x - r, y), (x - r * 0.3, y - r * 0.9), (x + r * 0.8, y - r * 0.7), (x + r * 1.1, y + r * 0.2), (x + r * 0.2, y + r * 0.8), (x - r * 0.7, y + r * 0.6)])
 		s += P(blob, fill=col, st=None, op=0.85) + C(x + r * 1.6, y + r * 0.6, r * 0.3, fill=col, st=None, op=0.85)
 	return s
@@ -2045,9 +2719,27 @@ def fennel_neck(d, c, e):
 	return s
 
 
-FENNEL = dict(fur='#c49b6d', shade='#a07a4f', muzzle='#dcbc93', inner='#8a6040', iris='#3f86e0', iris2='#14305e',
-	lid=0.14, mouth='smile', ears=(100, 82, 16),
-	back=fennel_back, fur_face=fennel_smudges, hat=fennel_hat, outfit=fennel_outfit, neck=fennel_neck,
+def fennel_hair(d, c, e):
+	# swoopy artist's forelock falling from under the beret + a little curled goatee
+	col = c['fur']
+	s = fur_locks([(204, 100, 164, 150, 30, -10), (228, 102, 196, 146, 22, -6)], col)
+	my = fp(c, 'mouth_y')
+	cd, ed = lock_d(240, 336, 226, 372, 24, -6)
+	s += P(cd, fill=darker(c['fur'], 0.3), st=None) + P(ed, st=OUT, sw=4.5)
+	return s
+
+
+FENNEL = dict(fur='#c49b6d', shade='#a07a4f', muzzle='#dcbc93', inner='#8a6040', iris='#5a6ae8', iris2='#141e60',
+	# tall face narrowing to a curled goatee, swoopy forelock, big dreamy upward-gazing eyes with a lash flick,
+	# one brow flung up dramatically, paint smudges everywhere, jaunty lopsided open smile
+	head=[(240, 72), (298, 74), (340, 86), (360, 116), (366, 170), (364, 230), (346, 284), (302, 328), (240, 344)],
+	eye='white', eye_shape='almond', eye_rx=21, eye_ry=20, eye_tilt=2, eye_dx=62, eye_y=183, iris_s=0.8, look=(0.18, -0.26),
+	hl='dreamy', lid=0.1, lashes=1, lash_len=12,
+	brow='thin', brow_len=19, brow_w=6, brow_gap=15, brow_side={1: (-10, -21, -11)}, brow_arch=-3, brow_col='#4a2e18',
+	muz_w=106, muz_top=208, nose_w=44, nose_h=27, nose_y=224,
+	mouth='jaunty', mouth_y=264,
+	ears=(100, 82, 16), tilt=4,
+	back=fennel_back, fur_face=fennel_smudges, hat=fennel_hat, outfit=fennel_outfit, neck=fennel_neck, hair=fennel_hair,
 	fx_sparkle=[(84, 160, 14), (400, 170, 12), (96, 214, 8)], fx_sweat=(372, 160))
 
 

@@ -3,7 +3,7 @@ extends "res://scripts/trial/trial_common.gd"
 ## Phase 1: the opponent fires each of data.lines - each line slashes in from his side with diagonal speed
 ##   lines; a timing ring shrinks onto the COUNTER target.
 ##   Space / click while the ring is inside the window -> COUNTER! (hit-stop, a blade slices the line in two;
-##   REWARD_COUNTER, x2 with en_garde), too early / too late / no press -> MISSED! (glitch, PENALTY_COUNTER).
+##   REWARD_COUNTER, x2 with en_garde), too early / too late -> MISSED! (glitch, PENALTY_COUNTER); no press -> MISSED! with no penalty.
 ## Phase 2: data.final.text with its {weak spot}; load a Truth Drop from data.final.drops and shoot it.
 ##   Correct -> freeze, crack, screen shatter, banner (REWARD_REBUTTAL) and finished({});
 ##   wrong -> PENALTY_REBUTTAL, retry.
@@ -366,7 +366,7 @@ func _tick(delta: float) -> void:
 				_auto_pressed = true
 				_press()
 		if _lstate == "incoming" and r < RT - _win_px:
-			_counter_miss(false)
+			_counter_miss(false, true)
 	elif _phase == 2 and _final_view != null and is_instance_valid(_final_view):
 		if _state != "won":
 			_ft += delta
@@ -440,11 +440,12 @@ func _counter_hit() -> void:
 	line_done.emit()
 
 
-func _counter_miss(early: bool) -> void:
+func _counter_miss(early: bool, no_press: bool = false) -> void:
 	_lstate = "resolved"
 	_pip_state[_li] = -1
 	_refresh_pips()
-	Game.mistake(Game.PENALTY_COUNTER)
+	if not no_press:   # a mistimed press costs convince; not pressing at all does not
+		Game.mistake(Game.PENALTY_COUNTER)
 	Audio.sfx("wrong")
 	Audio.sfx("static", 1.0, -8.0)
 	_ring.result = -1

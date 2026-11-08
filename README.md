@@ -1,14 +1,19 @@
-# SPLASH TRIAL: Murder at Yuzu Springs
+# SPLASH TRIAL
 
 An original capybara murder-mystery trial game. Fifteen capybaras are trapped in a luxury hot-spring resort by
 **Warden Snapjaw**. Hang out with your fellow guests, survive the night, investigate a murder,
 and convince everyone of the truth at the **Splash Trial**, or you'll all pay the price.
 
+- **Chapter 1: Murder at Yuzu Springs**
+- **Chapter 2: Murder on the Mudlark** (new in v3; it follows straight on from Chapter 1. After you finish Chapter 1
+  once, the title screen also gets a **Chapter 2** button.)
+
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
 ## How to download and play (Windows)
 1. Go to the [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) and download
-   **`SplashTrial-v2-windows.zip`**. The "Source code" links are not the game.
+   **`SplashTrial-v3-windows.zip`** (the guide picture below shows an older file name; the steps are the same).
+   The "Source code" links are not the game.
 2. Right-click the zip, choose **Extract All…**, then **Extract**.
 3. Double-click **`SplashTrial.exe`**. There's nothing to install. If Windows says *"Windows protected your PC"*, click
    **More info → Run anyway**. It only asks the first time.
@@ -36,9 +41,10 @@ Skills learned during Free Time make the trial easier.
 ## For developers
 - Godot **4.7.2**, GDScript, GL Compatibility renderer. Open the folder in Godot or run
   `Godot --path . ` (add `-- --autotest` to auto-play the whole game).
-- Design bible (spoilers!): `docs/DESIGN.md`. Engine contracts: `docs/ARCHITECTURE.md`.
+- Design bibles (spoilers!): `docs/DESIGN.md` (Chapter 1), `docs/DESIGN2.md` (Chapter 2). Engine contracts and the
+  chapter system: `docs/ARCHITECTURE.md`. Add `--chapter=2` to any debug flag to work on Chapter 2.
 - Art (`art/`) is generated SVG and audio (`audio/`) is generated WAV, both loaded at runtime. Generators live in `tools/`.
 - Export: `python3 tools/prepare_export.py`, then
-  `Godot --headless --path . --export-release "Windows Desktop" build/v2/SplashTrial.exe`, then
-  `Godot --headless --script tools/gen_licenses.gd -- out=build/v2/GODOT_COPYRIGHT.txt` and zip both files together.
+  `Godot --headless --path . --export-release "Windows Desktop" build/v3/SplashTrial.exe`, then
+  `Godot --headless --script tools/gen_licenses.gd -- out=build/v3/GODOT_COPYRIGHT.txt` and zip both files together.
   The credits also show the Godot MIT license and the FreeType / Mbed TLS / ENet notices.

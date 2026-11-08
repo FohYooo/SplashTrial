@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="740" viewBox="0 0 600 740">
+<defs></defs>
+<polygon points="470,400 492,400 486,414 498,428 466,428 476,414" fill="#0c0806"/>
+<line x1="470" y1="400" x2="469.91" y2="377.32" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+<line x1="476" y1="400" x2="480.96" y2="380.15" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+<line x1="482" y1="400" x2="479.14" y2="375.68" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+<line x1="488" y1="400" x2="487.78" y2="379.69" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+<line x1="494" y1="400" x2="492.49" y2="380.04" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+<polygon points="454,456 464,466 474,452 482,462 482,510 472,500 462,514 454,502" fill="#0c0806"/>
+<line x1="458" y1="458" x2="480" y2="456" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<line x1="458" y1="506" x2="480" y2="508" stroke="#d8c8a8" stroke-width="2" stroke-linecap="round" opacity="0.80"/>
+<path d="M480 414 L466.57 423.35 L451.64 427.32 L441.50 433.69 L431.53 445 L418.71 456.47 L405.12 462.05 L393.44 465.53" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M480 414 L466.57 423.35 L451.64 427.32 L441.50 433.69 L431.53 445 L418.71 456.47 L405.12 462.05 L393.44 465.53" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<path d="M520 560 L514.38 570.94 L514.35 588.70 L506.62 597.47 L502.50 608.16 L494.23 616.54 L487.12 628" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M520 560 L514.38 570.94 L514.35 588.70 L506.62 597.47 L502.50 608.16 L494.23 616.54 L487.12 628" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<path d="M548 470 L552.07 480.08 L553.42 495.66 L557.08 508.55 L564 524.18 L577.89 534.82 L585.12 546.76" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M548 470 L552.07 480.08 L553.42 495.66 L557.08 508.55 L564 524.18 L577.89 534.82 L585.12 546.76" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<path d="M440 600 L427.49 588.77 L412.82 583.55 L401.23 583.47 L387.75 582.25 L376.02 584.42" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M440 600 L427.49 588.77 L412.82 583.55 L401.23 583.47 L387.75 582.25 L376.02 584.42" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<path d="M560 640 L556.63 657.33 L545.06 664.17 L535.87 671.54 L528.60 680.44 L525.48 694.02" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M560 640 L556.63 657.33 L545.06 664.17 L535.87 671.54 L528.60 680.44 L525.48 694.02" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<path d="M360 410 L346.52 402.17 L335.72 395.22 L325.08 392.11 L306.55 391.85 L292.16 398.13" fill="none" stroke="#0c0806" stroke-width="3.50" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M360 410 L346.52 402.17 L335.72 395.22 L325.08 392.11 L306.55 391.85 L292.16 398.13" fill="none" stroke="#c8b898" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.35"/>
+<line x1="470" y1="590" x2="560" y2="580" stroke="#0c0806" stroke-width="3" stroke-linecap="round" opacity="0.80"/>
+<line x1="478" y1="606" x2="560" y2="596" stroke="#0c0806" stroke-width="3" stroke-linecap="round" opacity="0.80"/>
+<line x1="486" y1="622" x2="560" y2="612" stroke="#0c0806" stroke-width="3" stroke-linecap="round" opacity="0.80"/>
+<line x1="494" y1="638" x2="560" y2="628" stroke="#0c0806" stroke-width="3" stroke-linecap="round" opacity="0.80"/>
+</svg>

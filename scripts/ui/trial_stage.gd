@@ -15,6 +15,7 @@ extends Control
 
 const Assets := preload("res://scripts/core/assets.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 const Style := preload("res://scripts/ui/style.gd")
 
 const CENTER := Vector2(640, 360)
@@ -217,6 +218,7 @@ void fragment() {
 }
 """
 
+var _dead: Array = []        # ids shown as memorial portraits (Chapters.dead())
 var _player: Control = null
 var _game: Node = null
 
@@ -347,12 +349,15 @@ func _load_art() -> void:
 	_memorial_tex = Assets.prop("stage_memorial", 1.5)
 	_mochi_back = Assets.prop("stage_mochi_back")
 	_steam_tex = Assets.prop("stage_steam")
+	_dead = Chapters.dead()
 	for id in Cast.ORDER:
-		_expr[id] = "normal"
-		if id != "coco":
+		if _dead.has(id):
+			# memorial portraits (framed, smiling) for everyone who has died so far
+			_expr[id] = "happy"
+			_por[id] = Assets.portrait(id, "happy")
+		else:
+			_expr[id] = "normal"
 			_por[id] = Assets.portrait(id, "normal")
-	_expr["coco"] = "happy"
-	_por["coco"] = Assets.portrait("coco", "happy")
 	_expr["snapjaw"] = "happy"
 	_por["snapjaw"] = Assets.portrait("snapjaw", "happy")
 
@@ -908,8 +913,8 @@ func _draw_podium(ci: Node2D, i: int, s: Vector3) -> void:
 	ci.draw_set_transform(Vector2(s.x, s.y), 0.0, Vector2(POD_W * 0.62 * sc, POD_W * 0.11 * sc))
 	ci.draw_circle(Vector2.ZERO, 1.0, Color(0, 0, 0, 0.5 * lit.a))
 	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
-	if id == "coco":
-		_draw_memorial(ci, s, lit)
+	if _dead.has(id):
+		_draw_memorial(ci, i, id, s, lit)
 	else:
 		var front_a := 1.0
 		if id == "mochi":
@@ -941,9 +946,9 @@ func _draw_podium(ci: Node2D, i: int, s: Vector3) -> void:
 		ci.draw_texture_rect(_mochi_back, r2, false, Color(lit.r * 0.8, lit.g * 0.72, lit.b * 0.8, _ots_k * lit.a))
 
 
-func _draw_memorial(ci: Node2D, s: Vector3, lit: Color) -> void:
-	# Coco's podium: a framed portrait on a little easel with a dark ribbon
-	var pos := _u_pos[1]
+func _draw_memorial(ci: Node2D, i: int, id: String, s: Vector3, lit: Color) -> void:
+	# a dead guest's podium: a framed portrait on a little easel with a dark ribbon
+	var pos := _u_pos[i]
 	var sc := _focal / s.z
 	var fs := 0.8
 	var base_y := 206.0
@@ -954,7 +959,7 @@ func _draw_memorial(ci: Node2D, s: Vector3, lit: Color) -> void:
 	var kx := fr.size.x / 200.0
 	var win := Rect2(fr.position + Vector2(24.0 * kx, 24.0 * ky), Vector2(152.0 * kx, 172.0 * ky))
 	ci.draw_rect(win, Color(0.12, 0.2, 0.26) * lit)
-	var tex: Texture2D = _por.get("coco")
+	var tex: Texture2D = _por.get(id)
 	if tex != null:
 		ci.draw_texture_rect_region(tex, win, Rect2(50, 10, 380, 430), Color(lit.r * 0.78, lit.g * 0.82, lit.b * 0.92, lit.a))
 	if _memorial_tex != null:

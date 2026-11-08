@@ -7,6 +7,7 @@ extends Node
 const Skills := preload("res://scripts/data/skills.gd")
 const Clues := preload("res://scripts/data/clues.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 
 signal convince_changed(value: float, delta: float)
 signal clue_added(clue_id: String)
@@ -21,7 +22,7 @@ const BASE_CONVINCE := 15.0
 # --- Convince economy (all minigames use these) ---
 const REWARD_DEBATE := 9.0      # correct shot in a Splash Debate
 const PENALTY_DEBATE := 8.0     # wrong shot (wrong drop or wrong weak spot)
-const PENALTY_TIMEOUT := 4.0    # a timer ran out / a full debate loop passed without solving
+# (running out of time never costs convince: only wrong answers do)
 const REWARD_CHOICE := 7.0      # Pick-the-Answer correct (choice / present / character)
 const PENALTY_CHOICE := 9.0     # Pick-the-Answer wrong
 const REWARD_BUBBLES := 7.0     # Bubble Letters solved
@@ -55,6 +56,13 @@ var sfx_volume := 0.8
 var fullscreen := false
 
 # --- Progress state ---
+## Current chapter (1 or 2). Mirrors Chapters.current, which the data scripts read.
+var chapter := 1:
+	set(v):
+		chapter = clampi(v, 1, Chapters.LAST)
+		Chapters.current = chapter
+## Highest chapter the player may start from the title screen (saved with the settings).
+var chapter_unlocked := 1
 var flags := {}
 var clues: Array[String] = []
 var skills: Array[String] = []
@@ -85,6 +93,8 @@ func _parse_args() -> void:
 			autotest_slow = true
 		elif a == "--no-rewards":
 			no_rewards = true
+		elif a.begins_with("--chapter="):
+			chapter = int(a.get_slice("=", 1))
 		elif a.begins_with("--start="):
 			debug_start = a.get_slice("=", 1)
 		elif a.begins_with("--minigame="):
@@ -131,7 +141,7 @@ func has_clue(id: String) -> bool:
 
 
 func has_all_required_clues() -> bool:
-	for c in Clues.REQUIRED:
+	for c in Clues.required():
 		if not clues.has(c):
 			return false
 	return true
@@ -216,7 +226,7 @@ func is_convinced() -> bool:
 # ------------------------------------------------------------------ save / settings
 func save_checkpoint(step: String) -> void:
 	var data := {
-		"step": step, "flags": flags, "clues": clues, "skills": skills,
+		"step": step, "chapter": chapter, "flags": flags, "clues": clues, "skills": skills,
 		"hangouts_done": hangouts_done,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -237,6 +247,7 @@ func load_checkpoint() -> String:
 	if typeof(data) != TYPE_DICTIONARY:
 		return ""
 	new_game()
+	chapter = int(data.get("chapter", 1))
 	flags = data.get("flags", {})
 	for c in data.get("clues", []):
 		clues.append(str(c))
@@ -254,6 +265,7 @@ func save_settings() -> void:
 		f.store_string(JSON.stringify({
 			"text_speed": text_speed, "music_volume": music_volume,
 			"sfx_volume": sfx_volume, "fullscreen": fullscreen,
+			"chapter_unlocked": chapter_unlocked,
 		}))
 
 
@@ -267,7 +279,15 @@ func load_settings() -> void:
 	music_volume = float(data.get("music_volume", 0.7))
 	sfx_volume = float(data.get("sfx_volume", 0.8))
 	fullscreen = bool(data.get("fullscreen", false))
+	chapter_unlocked = clampi(int(data.get("chapter_unlocked", 1)), 1, Chapters.LAST)
 	apply_fullscreen()
+
+
+## Called when a chapter's credits finish: unlocks the next chapter on the title screen.
+func unlock_chapter(ch: int) -> void:
+	if ch > chapter_unlocked and ch <= Chapters.LAST:
+		chapter_unlocked = ch
+		save_settings()
 
 
 func apply_fullscreen() -> void:

@@ -13,6 +13,7 @@ const ScriptPlayer := preload("res://scripts/core/script_player.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Style := preload("res://scripts/ui/style.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 const Skills := preload("res://scripts/data/skills.gd")
 const Story := preload("res://scripts/data/story.gd")
 
@@ -20,6 +21,7 @@ const W := 1280.0
 const H := 720.0
 const MED_R := 58.0
 const COLS := 7
+var _cols := COLS
 const COL_STEP := 160.0
 const ROW_Y := [238.0, 420.0]
 const ROW_X0 := [120.0, 200.0]
@@ -166,7 +168,7 @@ func _auto_pick() -> void:
 	if not _active or not is_inside_tree():
 		return
 	var target: Control = null
-	for id in AUTO_PICKS:
+	for id in Chapters.get_value("auto_picks", AUTO_PICKS):
 		for m in _medals:
 			if m.char_id == id and not m.done:
 				target = m
@@ -377,16 +379,19 @@ func _build_chooser() -> void:
 	_header.add_child(_slots_label)
 	# medallions
 	var ids: Array = []
-	for id in Cast.ORDER:
+	for id in Cast.roster_alive():
 		if id != "mochi":
 			ids.append(id)
+	# 14 guests = two rows of 7; 12 (chapter 2) = two rows of 6, nudged right to stay centred
+	_cols = COLS if ids.size() > 12 else 6
+	var x_off := 0.0 if _cols == COLS else COL_STEP * 0.5
 	for i in ids.size():
-		var row := i / COLS
-		var col := i % COLS
+		var row := i / _cols
+		var col := i % _cols
 		var m := Medallion.new()
 		m.char_id = ids[i]
 		m.tex = Assets.portrait(ids[i], "normal")
-		m.home = Vector2(float(ROW_X0[mini(row, 1)]) + col * COL_STEP, float(ROW_Y[mini(row, 1)]) + maxi(row - 1, 0) * 182.0)
+		m.home = Vector2(float(ROW_X0[mini(row, 1)]) + x_off + col * COL_STEP, float(ROW_Y[mini(row, 1)]) + maxi(row - 1, 0) * 182.0)
 		m.hovered.connect(_on_hover)
 		m.unhovered.connect(_on_unhover)
 		m.picked.connect(_pick)
@@ -572,9 +577,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		KEY_RIGHT, KEY_D:
 			idx = (idx + 1) % n if idx >= 0 else 0
 		KEY_UP, KEY_W:
-			idx = idx - COLS if idx >= COLS else (idx if idx >= 0 else 0)
+			idx = idx - _cols if idx >= _cols else (idx if idx >= 0 else 0)
 		KEY_DOWN, KEY_S:
-			idx = mini(idx + COLS, n - 1) if idx >= 0 else 0
+			idx = mini(idx + _cols, n - 1) if idx >= 0 else 0
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_Z:
 			if k.echo:
 				return

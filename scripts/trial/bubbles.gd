@@ -1,7 +1,7 @@
 extends Control
 ## BUBBLE LETTERS - letter bubbles rise through a steamy pool; pop them in order to spell the answer.
 ## data: prompt, answer (word), decoys (extra letters), time (seconds x Game.timer_scale()).
-## Wrong letter -> PENALTY_BUBBLES. Time out -> PENALTY_TIMEOUT and progress resets. Solved -> REWARD_BUBBLES.
+## Wrong letter -> PENALTY_BUBBLES. Time out -> no penalty, progress resets. Solved -> REWARD_BUBBLES.
 ## Skill "autocomplete": the next correct letter's bubble shimmers. Contract: docs/ARCHITECTURE.md section 5.
 ## Look: angular "sharp kit" (see the SHARP KIT section at the end of this file).
 
@@ -503,7 +503,7 @@ func _timeout() -> void:
 	Audio.sfx("wrong")
 	Audio.sfx("static", 1.0, -8.0)
 	_kit_error(Vector2(W * 0.5, 230))
-	Game.mistake(Game.PENALTY_TIMEOUT)
+	# running out of time costs no convince (only wrong picks do); progress still resets
 	_kit_stamp("TIME'S UP!", Style.DANGER, Vector2(W * 0.5, 430), 100, 1.1)
 	# letters drop out of the slots
 	for i in _slot_labels.size():

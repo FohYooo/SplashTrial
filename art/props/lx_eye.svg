@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="150" viewBox="0 0 240 150">
+<defs><radialGradient id="lens" cx="0.50" cy="0.50" r="0.50"><stop offset="0" stop-color="#ff6a4a" stop-opacity="1"/><stop offset="0.30" stop-color="#e0102a" stop-opacity="1"/><stop offset="0.75" stop-color="#b3001b" stop-opacity="1"/><stop offset="1" stop-color="#3a0008" stop-opacity="1"/></radialGradient><linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa4a8" stop-opacity="1"/><stop offset="0.50" stop-color="#2a3034" stop-opacity="1"/><stop offset="1" stop-color="#5a6468" stop-opacity="1"/></linearGradient></defs>
+<ellipse cx="120" cy="75" rx="116" ry="70" fill="#050505"/>
+<ellipse cx="120" cy="75" rx="94" ry="58" fill="none" stroke="url(#chrome)" stroke-width="8" opacity="0.80"/>
+<circle cx="120" cy="75" r="52" fill="url(#lens)"/>
+<polygon points="139.05,86 171.21,84.03 137.79,123.86 120,97" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="120,97 137.79,123.86 86.58,114.83 100.95,86" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="100.95,86 86.58,114.83 68.79,65.97 100.95,64" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="100.95,64 68.79,65.97 102.21,26.14 120,53" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="120,53 102.21,26.14 153.42,35.17 139.05,64" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="139.05,64 153.42,35.17 171.21,84.03 139.05,86" fill="#5a0008" stroke="#2a0004" stroke-width="1.20" stroke-linejoin="round" opacity="0.55"/>
+<polygon points="139.05,86 120,97 100.95,86 100.95,64 120,53 139.05,64" fill="#120000"/>
+<ellipse cx="100" cy="56" rx="13" ry="7" fill="#ffffff" opacity="0.75"/>
+<ellipse cx="146" cy="96" rx="5" ry="3" fill="#ffffff" opacity="0.35"/>
+</svg>

@@ -1,4 +1,6 @@
 extends RefCounted
+
+const Chapters := preload("res://scripts/data/chapters.gd")
 ## Static character data. Portrait art lives at res://art/chars/<id>_<expr>.svg
 ## Expressions available for every character: normal, happy, shock, angry, sad
 
@@ -8,6 +10,13 @@ const EXPRESSIONS := ["normal", "happy", "shock", "angry", "sad"]
 const ORDER := [
 	"mochi", "coco", "wisp", "bruno", "lulu", "pepper", "duchess", "bramble",
 	"nibs", "zuzu", "reginald", "grub", "tumble", "marigold", "fennel",
+]
+
+## Spoiler-safe display order (Mochi first, then alphabetical by full name). Use this for anything the
+## player sees as a list outside the trial (credits roll, free-time picker) so the order gives nothing away.
+const ROSTER := [
+	"mochi", "bramble", "bruno", "coco", "duchess", "fennel", "grub", "lulu",
+	"marigold", "tumble", "pepper", "nibs", "reginald", "wisp", "zuzu",
 ]
 
 ## color = name-tag color, pitch = text-blip pitch multiplier
@@ -48,10 +57,31 @@ static func color(id: String) -> Color:
 static func pitch(id: String) -> float:
 	return CHARS[id]["pitch"] if CHARS.has(id) else 1.0
 
-## Living guests at trial time (everyone except the victim).
+## Living guests at trial time in the current chapter (everyone except the dead).
 static func survivors() -> Array:
+	var dead := Chapters.dead()
 	var out := []
 	for id in ORDER:
-		if id != "coco":
+		if not dead.has(id):
+			out.append(id)
+	return out
+
+
+## Guests alive when the current chapter starts (free time, title peeks...). Includes the victim.
+static func alive_at_start() -> Array:
+	var gone := Chapters.gone()
+	var out := []
+	for id in ORDER:
+		if not gone.has(id):
+			out.append(id)
+	return out
+
+
+## Spoiler-safe display order (see ROSTER), limited to guests alive when the chapter starts.
+static func roster_alive() -> Array:
+	var gone := Chapters.gone()
+	var out := []
+	for id in ROSTER:
+		if not gone.has(id):
 			out.append(id)
 	return out

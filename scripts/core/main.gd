@@ -4,6 +4,7 @@ extends Node
 
 const Style := preload("res://scripts/ui/style.gd")
 const Clues := preload("res://scripts/data/clues.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 const PauseMenu := preload("res://scripts/ui/pause_menu.gd")
 const Fx := preload("res://scripts/ui/fx.gd")
 
@@ -16,16 +17,13 @@ const SCREENS := {
 	"execution": "res://scripts/screens/execution_screen.gd",
 	"gameover": "res://scripts/screens/gameover_screen.gd",
 	"credits": "res://scripts/screens/credits_screen.gd",
+	"drain": "res://scripts/screens/drain_screen.gd",
 }
 
-## Story steps are played by the story screen using the script with the same id.
-const STORY_STEPS := ["prologue", "motive", "evening", "night", "discovery", "investigation_end", "epilogue"]
-const NEXT := {
-	"prologue": "freetime", "freetime": "motive", "motive": "evening", "evening": "night",
-	"night": "discovery", "discovery": "investigation", "investigation": "investigation_end",
-	"investigation_end": "trial", "execution": "epilogue", "epilogue": "credits",
-}
-const CHECKPOINTS := ["freetime", "motive", "investigation", "trial"]
+## Story steps are played by the story screen using the script with the same id (current chapter).
+## The step order per chapter lives in scripts/data/chapters.gd ("next").
+const STORY_STEPS := ["aftermath", "prologue", "motive", "evening", "night", "discovery", "investigation_end", "epilogue"]
+const CHECKPOINTS := ["prologue", "freetime", "motive", "investigation", "trial"]
 ## Steps after which all clues are needed (debug --start gives them).
 const LATE_STEPS := ["investigation_end", "trial", "execution", "epilogue", "gameover"]
 
@@ -84,16 +82,16 @@ func _boot() -> void:
 		if Game.debug_start in LATE_STEPS:
 			_give_all_clues()
 		elif Game.debug_start == "investigation":
-			Game.add_clue("rules")
-			Game.add_clue("snapjaw_file")
+			for c in Chapters.get_value("inv_start_clues", []):
+				Game.add_clue(str(c))
 		goto(Game.debug_start)
 	else:
 		goto("title")
 
 
 func _give_all_clues() -> void:
-	for c in Clues.REQUIRED:
-		Game.add_clue(c)
+	for c in Clues.required():
+		Game.add_clue(str(c))
 
 
 ## Go to a flow step (see NEXT). Public: screens may call Game.main.goto("title").
@@ -110,13 +108,22 @@ func goto(step: String) -> void:
 		"trial":
 			Game.start_trial()
 			_show("trial", {}, step)
-		"execution", "gameover", "credits":
+		"execution":
+			_show("execution", {"path": str(Chapters.get_value("execution", ""))}, step)
+		"drain", "gameover", "credits":
 			_show(step, {}, step)
 		_:
 			if step in STORY_STEPS:
 				_show("story", {"script": step}, step)
 			else:
 				push_error("Main: unknown step " + step)
+
+
+## Fresh state for a chapter, then its first step (chapter 1: prologue, chapter 2: aftermath).
+func start_chapter(ch: int) -> void:
+	Game.chapter = ch
+	Game.new_game()
+	goto(str(Chapters.get_value("first_step", "prologue")))
 
 
 func open_notebook(tab: String = "clues") -> void:
@@ -150,6 +157,8 @@ func _show(kind: String, params: Dictionary, step: String) -> void:
 		_screen.queue_free()
 		_screen = null
 	var path: String = SCREENS.get(kind, "")
+	if kind == "execution" and str(params.get("path", "")) != "" and ResourceLoader.exists(str(params["path"])):
+		path = str(params["path"])   # chapter-specific execution screen
 	if path == "" or not ResourceLoader.exists(path):
 		push_error("Main: missing screen script " + path)
 		_on_finished({}, step)
@@ -211,9 +220,10 @@ func _on_finished(result: Variant, step: String) -> void:
 					_show("credits", {"from_title": true}, "credits_from_title")
 				"quit":
 					get_tree().quit()
+				"chapter2":
+					start_chapter(2)
 				_:
-					Game.new_game()
-					goto("prologue")
+					start_chapter(1)
 		"credits_from_title":
 			goto("title")
 		"trial":
@@ -228,14 +238,21 @@ func _on_finished(result: Variant, step: String) -> void:
 			else:
 				goto("title")
 		"credits":
+			var finished_ch := Game.chapter
+			Game.unlock_chapter(finished_ch + 1)
 			if Game.autotest:
-				print("[autotest] COMPLETE convince=", Game.convince, " clues=", Game.clues.size(), " skills=", Game.skills)
+				print("[autotest] COMPLETE chapter=", finished_ch, " convince=", Game.convince, " clues=", Game.clues.size(), " skills=", Game.skills)
 				get_tree().quit(0)
 				return
-			goto("title")
+			# Chapter 1 flows straight on into Chapter 2; the last chapter returns to the title.
+			if finished_ch < Chapters.LAST:
+				start_chapter(finished_ch + 1)
+			else:
+				goto("title")
 		_:
-			if NEXT.has(step):
-				goto(NEXT[step])
+			var nx := Chapters.next_step(step)
+			if nx != "":
+				goto(nx)
 			else:
 				goto("title")
 

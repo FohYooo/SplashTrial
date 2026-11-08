@@ -16,6 +16,7 @@ signal _clicked
 const Style := preload("res://scripts/ui/style.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Cast := preload("res://scripts/data/cast.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -457,7 +458,7 @@ func _build_grid() -> void:
 	var tag := _kit_tag(Cast.display_name("snapjaw"), Cast.color("snapjaw"), 22)
 	tag.position = Vector2(136, 12)
 	pp.add_child(tag)
-	var q := Style.label("Snap-snap-snap! Voting time! Point out the capybara who checked Captain Coco out of this world!", 24, Style.TEXT)
+	var q := Style.label("Snap-snap-snap! Voting time! Point out the capybara who checked %s out of this world!" % str(Chapters.get_value("victim_name", "the victim")), 24, Style.TEXT)
 	q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	q.position = Vector2(136, 48)

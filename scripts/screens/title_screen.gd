@@ -1,7 +1,7 @@
 extends Control
 ## Title screen: purple-to-teal sky + key art (slow parallax), steam wisps, rising bubbles,
 ## the SPLASH TRIAL logo drawn in code, capybaras peeking from the bottom edge, and the menu.
-## Emits finished({"action": "new"|"continue"|"credits"|"quit"}). Autotest -> "new".
+## Emits finished({"action": "new"|"continue"|"chapter2"|"credits"|"quit"}). Autotest -> "new".
 
 signal finished(result: Dictionary)
 
@@ -18,7 +18,7 @@ const PEEK_SLOTS := [
 	{"x": 1184.0, "k": 0.5, "rot": -0.13, "vis": 205.0},
 ]
 const PEEK_START := ["mochi", "lulu", "bruno", "coco"]
-const MOODS := {"new": "happy", "continue": "happy", "credits": "normal", "quit": "sad"}
+const MOODS := {"new": "happy", "continue": "happy", "chapter2": "shock", "credits": "normal", "quit": "sad"}
 
 ## Fill shader for the logo letters: white fill pixels get a yuzu-gold gradient with a gloss band,
 ## the dark outline is left alone.
@@ -318,10 +318,15 @@ func _build_menu() -> void:
 	var items := [["New Game", "new"]]
 	if Game.has_save():
 		items.append(["Continue", "continue"])
+	if Game.chapter_unlocked >= 2:
+		items.append(["Chapter 2", "chapter2"])   # unlocked by finishing Chapter 1
 	items.append(["Credits", "credits"])
 	items.append(["Quit", "quit"])
+	var tight := items.size() > 4
+	if tight:
+		_menu.add_theme_constant_override("separation", 10)
 	for it in items:
-		var b := Style.button(str(it[0]), Vector2(330, 56), 27)
+		var b := Style.button(str(it[0]), Vector2(330, 50 if tight else 56), 26 if tight else 27)
 		b.add_theme_font_override("font", Style.display_font())
 		b.add_theme_stylebox_override("normal", Style.box(Color(0.10, 0.06, 0.22, 0.82), 14, Style.AQUA_DEEP, 3))
 		b.add_theme_stylebox_override("hover", Style.box(Color(0.20, 0.12, 0.40, 0.92), 14, Style.GOLD, 3))

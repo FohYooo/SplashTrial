@@ -65,6 +65,18 @@ Look at PNGs with the Read tool. Fix every `SCRIPT ERROR` / `Parse Error` you se
   shatter, capture, vignette, flash, shake, ripple, splash, silhouette_material, skip_heavy) — signatures in its header.
 - Blood (execution only): stylized dark red, never pink.
 
+## 1c. Chapters (v3)
+- `scripts/data/chapters.gd` holds per-chapter data (victim, culprit, dead-before list, first step, step order "next",
+  execution screen, investigation data file, free-time auto picks). `Game.chapter` (1|2) writes `Chapters.current`, which the
+  data scripts read: `Story` (story_daily/story_case vs story_daily2/story_case2), `Clues.order()/required()` (ORDER vs ORDER2),
+  `trial_data_index.gd` (trial_data vs trial_data2), investigation_data vs investigation_data2, `Cast.survivors()` /
+  `alive_at_start()` / `roster_alive()`.
+- Chapter 2 spoilers + content: docs/DESIGN2.md. Flow: aftermath → drain (cutscene screen) → prologue → ... like chapter 1.
+- Chapter 1's credits unlock chapter 2 (`Game.chapter_unlocked`, saved in settings) and lead straight into it. The title shows
+  "Chapter 2" once unlocked. Saves store the chapter.
+- Debug: `--chapter=2` with any of `--start=`, `--script=`, `--minigame=` (e.g. `-- --chapter=2 --start=drain --autotest`).
+  `python3 tools/check_content.py` checks both chapters.
+
 ## 2. Flow (scripts/core/main.gd)
 title → prologue → freetime(3 slots) → motive → evening → night → discovery → investigation → investigation_end →
 trial → (flag vote_correct ? execution → epilogue → credits : gameover → retry trial | title).
@@ -158,15 +170,15 @@ func setup(data: Dictionary) -> void     # data = trial_data entry + {"id": id};
   Gameplay ("Splash Debate"): statements float across the screen one at a time (≈3.2 s each × timer_scale), looping. Weak-spot phrases glow
   orange and are clickable targets. The player picks a Truth Drop (ammo cylinder/list, keys 1–4 or click) and clicks a weak spot to
   fire a water shot. Correct pair → break. Wrong drop/spot → mistake. Shooting non-weak text does nothing. After each full loop without
-  success: `Game.mistake(Game.PENALTY_TIMEOUT)` then restart the loop; after 2 loops show `hint`.
+  success: no penalty (timeouts never cost convince), restart the loop; after 2 loops show `hint`.
 - **choice**: `prompt`, `options` [text], `answer` (index), `speaker`, `wrong` {speaker, expr, text}.
 - **present**: pick any owned Truth Drop (`Game.clues`) — `answer` = clue id.
 - **character**: pick a capybara portrait from `Cast.survivors()` minus `exclude` — `answer` = char id.
 - **bubbles** ("Bubble Letters"): `prompt`, `answer` (word), `decoys` (extra letters), `time` (sec × timer_scale). Letter bubbles drift/bob
-  upward; pop letters in order to spell the word; wrong letter → `PENALTY_BUBBLES`; time out → `PENALTY_TIMEOUT` and restart; solved → `REWARD_BUBBLES`.
+  upward; pop letters in order to spell the word; wrong letter → `PENALTY_BUBBLES`; time out → no penalty, restart; solved → `REWARD_BUBBLES`.
 - **rebuttal** ("Rebuttal Showdown"): `opponent`, `intro`, `lines` [text], `final` {text with {weak}, drops, answer}, `time_per_line`.
   Phase 1: opponent fires each line; a timing ring shrinks onto a target — press Space/click when it overlaps to COUNTER
-  (`REWARD_COUNTER`, ×2 with en_garde) else miss (`PENALTY_COUNTER`). Phase 2: final line with weak spot — choose a drop and fire at it
+  (`REWARD_COUNTER`, ×2 with en_garde) else miss (`PENALTY_COUNTER` for a mistimed press, nothing if no press). Phase 2: final line with weak spot — choose a drop and fire at it
   (`REWARD_REBUTTAL` / `PENALTY_REBUTTAL`, retry until correct).
 - **rewind** ("Case Rewind"): `panels` [{caption with ___, options, answer, bg}], `culprit`, `finale`. Comic-panel sequence: each panel
   shows a dimmed mini background + caption; choose the option to fill the blank (`REWARD_REWIND_PANEL` / `PENALTY_REWIND`). After all

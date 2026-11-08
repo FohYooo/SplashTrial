@@ -7,6 +7,7 @@ extends Control
 
 signal finished(result: Dictionary)
 
+const Chapters := preload("res://scripts/data/chapters.gd")
 const Style := preload("res://scripts/ui/style.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 
@@ -297,7 +298,7 @@ func _ev_snap_in() -> void:
 	Audio.sfx("wrong")
 	var tw := _tw()
 	tw.tween_property(_snap, "position:x", 190.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_say("WRONG! The real culprit\nwas Wisp! Snap-snap-snap!", 2.0)
+	_say("WRONG! The real culprit\nwas %s! Snap-snap-snap!" % _cast_name(str(Chapters.get_value("culprit", "wisp"))), 2.0)
 
 
 func _ev_card() -> void:
@@ -667,3 +668,7 @@ func _draw_steam() -> void:
 		var pos: Vector2 = d["p"]
 		pos += _world.position
 		_steam_layer.draw_texture_rect(_glow_tex, Rect2(pos - Vector2(r, r), Vector2(r, r) * 2.0), false, Color(1, 1, 1, a))
+
+
+func _cast_name(id: String) -> String:
+	return preload("res://scripts/data/cast.gd").display_name(id)

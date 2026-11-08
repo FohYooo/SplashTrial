@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="110" viewBox="0 0 140 110">
+<defs><radialGradient id="r1" gradientUnits="userSpaceOnUse" cx="62" cy="64" r="40"><stop offset="0" stop-color="#8b8aa0" stop-opacity="1.0"/><stop offset="0.6" stop-color="#4e4c60" stop-opacity="1.0"/><stop offset="1" stop-color="#25232f" stop-opacity="1.0"/></radialGradient></defs>
+<rect x="61" y="0" width="18" height="48" fill="#2a2836" stroke="#2a1a10" stroke-width="2"/>
+<path d="M24 40 L116 40 L100 60 L40 60 Z" fill="#3a3848" stroke="#2a1a10" stroke-width="2.5"/>
+<circle cx="73" cy="78" r="34" fill="#000000" opacity="0.4"/>
+<circle cx="70" cy="74" r="34" fill="url(#r1)" stroke="#2a1a10" stroke-width="3"/>
+<line x1="70" y1="74" x2="98" y2="74" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<line x1="70" y1="74" x2="84" y2="98.2" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<line x1="70" y1="74" x2="56" y2="98.2" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<line x1="70" y1="74" x2="42" y2="74" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<line x1="70" y1="74" x2="56" y2="49.8" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<line x1="70" y1="74" x2="84" y2="49.8" stroke="#2a2836" stroke-width="4" stroke-linecap="round"/>
+<circle cx="70" cy="74" r="26" fill="none" stroke="#6e6c84" stroke-width="3"/>
+<circle cx="70" cy="74" r="8" fill="#d9a845" stroke="#2a1a10" stroke-width="2"/>
+<circle cx="70" cy="74" r="34" fill="none" stroke="#3ee0d0" stroke-width="1.5" opacity="0.3"/>
+</svg>

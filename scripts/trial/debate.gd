@@ -6,7 +6,7 @@ extends "res://scripts/trial/trial_common.gd"
 ## {Weak spots} glow yuzu-orange; the player loads a Truth Drop (click / keys 1-4 / wheel) and clicks a
 ## weak spot to fire a water shot. Correct spot + drop -> freeze-frame, crack, SCREEN SHATTER, banner.
 ## Wrong -> glitch + coral flash + shake + mistake + the data's "wrong" line.
-## Each full loop without success -> PENALTY_TIMEOUT; after 2 loops the hint thought-bubble appears.
+## Each full loop without success -> no penalty (only wrong shots cost convince); after 2 loops the hint thought-bubble appears.
 ## Skills: scoop_sense (answer sparkles after the first loop), power_nap (durations x Game.timer_scale()).
 
 const FLY_IN := 0.36
@@ -355,7 +355,7 @@ func _loop_end() -> void:
 		_view.queue_free()
 	_view = null
 	Audio.sfx("wrong", 0.8, -6.0)
-	Game.mistake(Game.PENALTY_TIMEOUT)
+	# letting the loop run out costs no convince (only wrong shots do)
 	_shake(6.0, 0.25)
 	await _toast("TIME'S UP!", "The debate loops around... listen closely for the lie!", Style.DANGER, _fxd(1.1))
 	if _gone():

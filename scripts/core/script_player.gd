@@ -23,7 +23,7 @@ signal minigame_finished(data_id: String)
 signal bg_requested(bg_id: String)
 
 const Story := preload("res://scripts/data/story.gd")
-const TrialData := preload("res://scripts/data/trial_data.gd")
+const TrialData := preload("res://scripts/data/trial_data_index.gd")
 const Cast := preload("res://scripts/data/cast.gd")
 const Clues := preload("res://scripts/data/clues.gd")
 const Skills := preload("res://scripts/data/skills.gd")
@@ -1270,7 +1270,7 @@ func _run_minigame(data_id: String) -> void:
 	_state = "minigame"
 	_show_textbox(false)
 	_choice_box.visible = false
-	var data: Dictionary = TrialData.DATA.get(data_id, {})
+	var data: Dictionary = TrialData.get_data(data_id)
 	var type: String = data.get("type", "")
 	var path: String = MINIGAMES.get(type, "")
 	if data.is_empty() or path == "" or not ResourceLoader.exists(path):

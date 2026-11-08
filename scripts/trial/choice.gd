@@ -343,7 +343,7 @@ func _option_button(text: String, num: int, sz: Vector2) -> Button:
 func _build_present() -> void:
 	_build_prompt(Rect2(40, 84, 1200, 124), true)
 	var ids: Array[String] = []
-	for c in Clues.ORDER:
+	for c in Clues.order():
 		if Game.clues.has(c):
 			ids.append(c)
 	for c in Game.clues:
