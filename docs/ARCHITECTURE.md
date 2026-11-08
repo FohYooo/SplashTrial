@@ -96,12 +96,24 @@ cutscenes are exactly the 2D ones. Only two screens are 3D (main.gd `SCREENS_3D`
   heads, hats and props of `tools/gen_chars.py` so a standee matches its dialogue portrait). Feet stand on the line y = 916; relative heights
   are baked into the art. `k.standee` falls back to the floating bust if a file is missing. After changing a character's height, update
   `Kit.FULL_TOP` (canvas y of the top of the art).
+- **Walkable world (release v3-3d-2):** besides the rooms of investigation_data*.gd there are connecting spaces, listed in `SPACES` of
+  rooms1.gd / rooms2.gd (name + map pin position; `FREE_SPACES` / `FREE_START` for Free Time). The investigation screen merges them into a
+  stand-in for `Inv` (`WorldData`): they have no hotspots or people, `ROOM_ORDER` still lists only the real rooms, so the map, the progress
+  rules and the autotest are unchanged. A space is one continuous walkable area, possibly over several floors; `k.door(to, ...)` joins spaces
+  (each door needs a matching door back, used as the arrival spot). Kit additions: `plan` (any right-angled floor shape), `wall_run` (openings),
+  `slab`, `stairs` (visible steps + ramp collider), `rail`, `lift` (two stops, same or another space, see lift_ride.gd), `note` (flavour only,
+  never a clue). The map only travels to rooms already reached on foot (their enter script has been seen).
+  In Free Time, `k.mode == "freetime"` adds the guests (`k.person`) and sets the lighting; doors outside FREE_SPACES stay closed.
+  **Tests:** `Godot --headless --path . -s tools/walktest.gd` (every door has a way back; on foot you can reach and see every door, lift, hotspot,
+  person and note; every staircase carries a walking player to the top; every guest has a Free Time spot). `-- --chapter=N --start=freetime
+  --autotest --tour3d` really uses every door, lift and note in the running game. Keep waist-high blockers (pools) below 0.5 m, or they stop the
+  crosshair reaching things behind them.
 - Still no imports: the 3D look is built from primitives + inline shader code, the portraits/backgrounds are the same
   runtime-loaded SVGs. Renderer: Forward+ (`rendering_device/fallback_to_opengl3=true`).
 - Saves: the project name is "Splash Trial 3D", so its user folder (saves/settings) is separate from the 2D game;
   `Game._inherit_unlock()` reads the 2D settings to offer Chapter 2 if it was unlocked there.
-- Debug: `--room3d=<room>` (start the investigation in that room, intros skipped), `--door3d=<room>` (walk through that
-  door on arrival), `--cam=x,y,z,tx,ty,tz` (camera), `--skip-intro` (free time). Combine with `--start=investigation` /
+- Debug: `--room3d=<room or space>` (start the investigation there, intros skipped), `--door3d=<room>` (walk through that
+  door on arrival), `--map3d` (open the map on arrival), `--cam=x,y,z,tx,ty,tz` (camera; y = eye height), `--skip-intro`, `--space3d=<id>` (free time). Combine with `--start=investigation` /
   `--start=freetime`, `--chapter=2` and `--shot=`.
 
 ## 2. Flow (scripts/core/main.gd)

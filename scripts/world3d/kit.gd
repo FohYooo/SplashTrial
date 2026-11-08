@@ -30,6 +30,10 @@ var look := Vector3(0, 1.3, -3)
 var bounds := Vector2(8, 8)   # w, d (used by fallbacks)
 var names := {}               # room id -> display name (door signs)
 var flickers: Array = []      # lights that flicker (fires, furnaces)
+var mode := "investigate"     # "investigate" or "freetime": some spaces are lit / furnished differently
+var lifts := {}               # lift id -> {node, body, pos, rot, to, to_space, label, door_l, door_r, sign}
+var notes: Array = []         # small things to look at: {node, body, top, label, text}
+var stairs_list: Array = []   # {bottom, top, width}: used by the walk test
 
 # shared materials (made in _init)
 var wood_dark: StandardMaterial3D
@@ -874,7 +878,7 @@ func person(char_id: String, pos: Vector3) -> void:
 	people[char_id] = pos
 
 
-## A door to another room (travel). Builds a door with a destination sign above it.
+## A door to another space (travel). Builds a door with a destination sign above it; it swings open when used.
 func door(to_rid: String, title: String, pos: Vector3, rot_y: float, style: Dictionary = {}) -> Node3D:
 	if title == "":
 		title = str(names.get(to_rid, to_rid.capitalize()))
@@ -887,24 +891,29 @@ func door(to_rid: String, title: String, pos: Vector3, rot_y: float, style: Dict
 	var dm: Material = style.get("mat", wood_mid)
 	var fm: Material = style.get("frame", wood_dark)
 	box(Vector3(dw + 0.22, dh + 0.12, 0.08), Vector3(0, (dh + 0.12) / 2.0, 0.02), fm, false, g)
-	var slab := box(Vector3(dw, dh, 0.06), Vector3(0, dh / 2.0, 0.07), dm, false, g)
+	quad(Vector2(dw, dh), Vector3(0, dh / 2.0, 0.065), mat(Color(0.02, 0.015, 0.03), 1.0), g)
+	var hinge := Node3D.new()
+	hinge.position = Vector3(-dw / 2.0, 0, 0.07)
+	g.add_child(hinge)
+	var slab := box(Vector3(dw, dh, 0.06), Vector3(dw / 2.0, dh / 2.0, 0.0), dm, false, hinge)
 	if bool(style.get("panels", true)):
 		for yy in [dh * 0.27, dh * 0.7]:
-			box(Vector3(dw * 0.72, dh * 0.3, 0.02), Vector3(0, yy, 0.11), fm, false, g)
+			box(Vector3(dw * 0.72, dh * 0.3, 0.02), Vector3(dw / 2.0, yy, 0.04), fm, false, hinge)
 	if bool(style.get("porthole", false)):
-		torus(0.13, 0.17, Vector3(0, dh * 0.72, 0.12), brass, g, Vector3(PI / 2.0, 0, 0))
-		cyl(0.13, 0.13, 0.01, Vector3(0, dh * 0.72, 0.11), glow(Color(1.0, 0.85, 0.6), 0.8), g).rotation.x = PI / 2.0
-	sphere(0.045, Vector3(dw * 0.38, dh * 0.47, 0.13), brass, g)
+		torus(0.13, 0.17, Vector3(dw / 2.0, dh * 0.72, 0.05), brass, hinge, Vector3(PI / 2.0, 0, 0))
+		cyl(0.13, 0.13, 0.01, Vector3(dw / 2.0, dh * 0.72, 0.04), glow(Color(1.0, 0.85, 0.6), 0.8), hinge).rotation.x = PI / 2.0
+	sphere(0.045, Vector3(dw * 0.88, dh * 0.47, 0.06), brass, hinge)
 	# destination sign
-	var sign_y := dh + 0.38
-	box(Vector3(maxf(1.3, title.length() * 0.105 + 0.3), 0.3, 0.04), Vector3(0, sign_y, 0.04), mat(Style.BG_DARK.lightened(0.05), 0.6), false, g)
-	box(Vector3(maxf(1.3, title.length() * 0.105 + 0.3) + 0.06, 0.34, 0.02), Vector3(0, sign_y, 0.025), glow(Style.AQUA_DEEP, 1.2), false, g)
+	var sign_y := dh + 0.3
+	var sw := maxf(1.3, title.length() * 0.105 + 0.3)
+	box(Vector3(sw, 0.3, 0.04), Vector3(0, sign_y, 0.04), mat(Style.BG_DARK.lightened(0.05), 0.6), false, g)
+	box(Vector3(sw + 0.06, 0.34, 0.02), Vector3(0, sign_y, 0.025), glow(Style.AQUA_DEEP, 1.2), false, g)
 	label(title.to_upper(), Vector3(0, sign_y, 0.07), 0.0, 40, Style.GOLD, g, 0.0035, 8)
 	# glowing threshold strip so exits read from across the room
 	box(Vector3(dw, 0.02, 0.12), Vector3(0, 0.01, 0.2), glow(Style.AQUA, 1.6), false, g)
 	var body := _interact_body(g, Vector3(dw + 0.4, dh + 0.3, 0.7), Vector3(0, (dh + 0.3) / 2.0, 0.3))
 	_collider(g, Vector3(dw + 0.3, dh, 0.3), Vector3(0, dh / 2.0, 0.05))
-	doors[to_rid] = {"node": g, "body": body, "pos": pos, "rot": rot_y, "slab": slab,
+	doors[to_rid] = {"node": g, "body": body, "pos": pos, "rot": rot_y, "slab": slab, "hinge": hinge,
 		"top": pos + Vector3(0, dh + 0.7, 0)}
 	return g
 
@@ -916,6 +925,271 @@ func link_door(hot_id: String, to_rid: String) -> void:
 		return
 	var g: Node3D = a["node"]
 	doors[to_rid] = {"node": g, "body": null, "pos": g.position, "rot": g.rotation.y, "top": a["top"], "link": hot_id}
+
+
+# =================================================================== floor plans, levels, stairs, lifts
+## Flat slab whose top surface is at height y (floors, landings, catwalks).
+func slab(x0: float, z0: float, x1: float, z1: float, y: float, m: Material, thick: float = 0.2, collide: bool = true) -> MeshInstance3D:
+	return box(Vector3(x1 - x0, thick, z1 - z0), Vector3((x0 + x1) / 2.0, y - thick / 2.0, (z0 + z1) / 2.0), m, collide)
+
+
+## A straight wall from a to b (x, z). Going a -> b the room is on the side that makes walls run clockwise seen from
+## above with north (-z) up: north wall west->east, east wall north->south, and so on.
+## gaps: [[t0, t1, y0, y1], ...] openings, t = metres from a, y relative to the wall's base.
+func wall_run(a: Vector2, b: Vector2, y: float, h: float, opts: Dictionary = {}, gaps: Array = []) -> void:
+	var d := b - a
+	var length := d.length()
+	if length < 0.01:
+		return
+	var dir := d / length
+	var rot := atan2(-dir.y, dir.x)
+	var cuts := [0.0, length]
+	for g in gaps:
+		cuts.append(clampf(float(g[0]), 0.0, length))
+		cuts.append(clampf(float(g[1]), 0.0, length))
+	cuts.sort()
+	var plain := opts.duplicate()
+	plain["wain"] = null
+	plain["top_trim"] = false
+	for i in cuts.size() - 1:
+		var t0: float = cuts[i]
+		var t1: float = cuts[i + 1]
+		if t1 - t0 < 0.005:
+			continue
+		var c := a + dir * (t0 + t1) / 2.0
+		var here: Array = []
+		for g in gaps:
+			if float(g[0]) <= t0 + 0.001 and float(g[1]) >= t1 - 0.001:
+				here.append(g)
+		here.sort_custom(func(p: Array, q: Array) -> bool: return float(p[2]) < float(q[2]))
+		var cursor := 0.0
+		for g in here:
+			if float(g[2]) > cursor + 0.01:
+				wall(Vector3(c.x, y + cursor, c.y), rot, t1 - t0, float(g[2]) - cursor, opts if cursor == 0.0 else plain)
+			cursor = float(g[3])
+		if h > cursor + 0.01:
+			wall(Vector3(c.x, y + cursor, c.y), rot, t1 - t0, h - cursor, opts if cursor == 0.0 else plain)
+
+
+## Room of any right-angled shape: cells = [[x0, z0, x1, z1], [x0, z0, x1, z1, height], ...] (L, T, U...).
+## Builds floor, ceiling and walls around the outline (no walls between touching cells). A lower cell gets a
+## drop wall towards a taller neighbour. opts as for shell(), plus "open": any of ["n","s","e","w"] to leave
+## that side of the outline without walls (it joins another part of the same space).
+func plan(cells: Array, y: float, h: float, opts: Dictionary = {}) -> void:
+	var xs: Array = []
+	var zs: Array = []
+	for c in cells:
+		for v in [float(c[0]), float(c[2])]:
+			if not xs.has(v):
+				xs.append(v)
+		for v in [float(c[1]), float(c[3])]:
+			if not zs.has(v):
+				zs.append(v)
+	xs.sort()
+	zs.sort()
+	var nx := xs.size() - 1
+	var nz := zs.size() - 1
+	var grid := {}
+	for i in nx:
+		for j in nz:
+			var cx: float = (float(xs[i]) + float(xs[i + 1])) / 2.0
+			var cz: float = (float(zs[j]) + float(zs[j + 1])) / 2.0
+			for c in cells:
+				if cx > float(c[0]) and cx < float(c[2]) and cz > float(c[1]) and cz < float(c[3]):
+					grid[Vector2i(i, j)] = float(c[4]) if c.size() > 4 else h
+					break
+	var floor_m: Material = opts.get("floor", wood_floor())
+	var ceil_m: Variant = opts.get("ceiling", wood_mid)
+	for c in cells:
+		slab(float(c[0]), float(c[1]), float(c[2]), float(c[3]), y, floor_m)
+		if ceil_m != null:
+			var ch: float = float(c[4]) if c.size() > 4 else h
+			slab(float(c[0]), float(c[1]), float(c[2]), float(c[3]), y + ch + 0.12, ceil_m, 0.12, false)
+	var open: Array = opts.get("open", [])
+	var walled := func(i: int, j: int, oi: int, oj: int) -> float:
+		# height of the wall on this cell's side facing (oi, oj), or -1 if there is none
+		if not grid.has(Vector2i(i, j)) or grid.has(Vector2i(oi, oj)):
+			return -1.0
+		return float(grid[Vector2i(i, j)])
+	if not "n" in open or not "s" in open:
+		for j in nz:
+			for side in ["n", "s"]:
+				if side in open:
+					continue
+				var start := -1
+				var cur := -1.0
+				for i in nx + 1:
+					var v: float = walled.call(i, j, i, j - 1 if side == "n" else j + 1) if i < nx else -1.0
+					if start >= 0 and v != cur:
+						var zl: float = zs[j] if side == "n" else zs[j + 1]
+						if side == "n":
+							wall_run(Vector2(xs[start], zl), Vector2(xs[i], zl), y, cur, opts)
+						else:
+							wall_run(Vector2(xs[i], zl), Vector2(xs[start], zl), y, cur, opts)
+						start = -1
+					if start < 0 and v > 0.0:
+						start = i
+						cur = v
+	for i in nx:
+		for side in ["e", "w"]:
+			if side in open:
+				continue
+			var start := -1
+			var cur := -1.0
+			for j in nz + 1:
+				var v: float = walled.call(i, j, i + 1 if side == "e" else i - 1, j) if j < nz else -1.0
+				if start >= 0 and v != cur:
+					var xl: float = xs[i + 1] if side == "e" else xs[i]
+					if side == "e":
+						wall_run(Vector2(xl, zs[start]), Vector2(xl, zs[j]), y, cur, opts)
+					else:
+						wall_run(Vector2(xl, zs[j]), Vector2(xl, zs[start]), y, cur, opts)
+					start = -1
+				if start < 0 and v > 0.0:
+					start = j
+					cur = v
+	# drop walls between cells of different height
+	var drop: Material = opts.get("wall", plaster)
+	for key in grid.keys():
+		var c0: Vector2i = key
+		var h0: float = grid[key]
+		for off in [Vector2i(1, 0), Vector2i(0, 1)]:
+			var ok: Vector2i = c0 + off
+			if not grid.has(ok) or absf(float(grid[ok]) - h0) < 0.01:
+				continue
+			var lo: float = minf(h0, float(grid[ok]))
+			var hi: float = maxf(h0, float(grid[ok]))
+			if off.x == 1:
+				box(Vector3(0.2, hi - lo, float(zs[c0.y + 1]) - float(zs[c0.y])), Vector3(xs[c0.x + 1], y + (lo + hi) / 2.0, (float(zs[c0.y]) + float(zs[c0.y + 1])) / 2.0), drop)
+			else:
+				box(Vector3(float(xs[c0.x + 1]) - float(xs[c0.x]), hi - lo, 0.2), Vector3((float(xs[c0.x]) + float(xs[c0.x + 1])) / 2.0, y + (lo + hi) / 2.0, zs[c0.y + 1]), drop)
+	bounds = Vector2(float(xs[nx]) - float(xs[0]), float(zs[nz]) - float(zs[0]))
+	spawn = Vector3((float(xs[0]) + float(xs[nx])) / 2.0, y, float(zs[nz]) - 1.2)
+	look = Vector3(spawn.x, y + 1.25, float(zs[0]))
+
+
+## Thin beam between two points (handrails, cords, pipes).
+func beam(a: Vector3, b: Vector3, r: float, m: Material, parent: Node = null) -> MeshInstance3D:
+	var d := b - a
+	var mi := cyl(r, r, d.length(), Vector3.ZERO, m, parent, false, 8)
+	var up := Vector3.UP if absf(d.normalized().y) < 0.99 else Vector3.FORWARD
+	mi.transform = Transform3D(Basis.looking_at(d.normalized(), up) * Basis(Vector3.RIGHT, PI / 2.0), (a + b) / 2.0)
+	return mi
+
+
+## Railing from a to b (points on the floor); also stops you walking through it.
+func rail(a: Vector3, b: Vector3, m: Material = null, h: float = 1.0) -> void:
+	var mm: Material = m if m != null else brass
+	var d := b - a
+	var n := maxi(1, int(d.length() / 1.1))
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / n)
+		cyl(0.022, 0.022, h, p + Vector3(0, h / 2.0, 0), mm, null, false, 8)
+	beam(a + Vector3(0, h, 0), b + Vector3(0, h, 0), 0.03, mm)
+	_oriented_blocker(a, b, 0.1, h + 1.2)
+
+
+## Invisible wall along a (possibly sloped) line; height measured up from the line.
+func _oriented_blocker(a: Vector3, b: Vector3, thick: float, h: float) -> void:
+	var d := b - a
+	var n := Node3D.new()
+	var up := Vector3.UP
+	n.transform = Transform3D(Basis.looking_at(d.normalized(), up), (a + b) / 2.0)
+	root.add_child(n)
+	_collider(n, Vector3(thick, h, d.length()), Vector3(0, h / 2.0, 0))
+
+
+## Staircase you really walk up: `bottom` and `top` are the middle of the first and last edge, on floor level.
+## Visible steps, smooth ramp collider. opts: mat, solid (steps go down to the ground, default true),
+## rail: "both" / "left" / "right" / "none", rail_mat.
+func stairs(bottom: Vector3, top: Vector3, width: float, opts: Dictionary = {}) -> void:
+	var rise := top.y - bottom.y
+	var hd := Vector3(top.x - bottom.x, 0, top.z - bottom.z)
+	var run := hd.length()
+	var dir := hd / run
+	var rot := atan2(dir.x, dir.z)
+	var count: int = opts.get("count", maxi(2, roundi(absf(rise) / 0.18)))
+	var tread := run / count
+	var step_h := rise / count
+	var g := Node3D.new()
+	g.position = bottom
+	g.rotation.y = rot
+	root.add_child(g)
+	var m: Material = opts.get("mat", wood_mid)
+	var solid: bool = opts.get("solid", true)
+	for i in count:
+		var top_y := step_h * (i + 1)
+		if solid:
+			box(Vector3(width, top_y, tread), Vector3(0, top_y / 2.0, (i + 0.5) * tread), m, false, g)
+		else:
+			box(Vector3(width, 0.06, tread + 0.03), Vector3(0, top_y - 0.03, (i + 0.5) * tread), m, false, g)
+			box(Vector3(width, step_h, 0.03), Vector3(0, top_y - step_h / 2.0, i * tread), wood_dark, false, g)
+	var slope := atan2(rise, run)
+	var ramp := Node3D.new()
+	ramp.position = Vector3(0, rise / 2.0, run / 2.0)
+	ramp.rotation.x = -slope
+	g.add_child(ramp)
+	var ln := sqrt(rise * rise + run * run) + 0.1
+	_collider(ramp, Vector3(width, 0.2, ln), Vector3(0, -0.1, 0))
+	if not solid:
+		box(Vector3(0.1, 0.32, ln), Vector3(width / 2.0 - 0.05, -0.1, 0), wood_dark, false, ramp)
+		box(Vector3(0.1, 0.32, ln), Vector3(-width / 2.0 + 0.05, -0.1, 0), wood_dark, false, ramp)
+	var side := Basis(Vector3.UP, rot) * Vector3(width / 2.0 - 0.04, 0, 0)
+	var rail_kind: String = opts.get("rail", "both")
+	var rm: Material = opts.get("rail_mat", brass)
+	if rail_kind == "both" or rail_kind == "right":
+		rail(bottom + side, top + side, rm)
+	if rail_kind == "both" or rail_kind == "left":
+		rail(bottom - side, top - side, rm)
+	stairs_list.append({"bottom": bottom, "top": top, "width": width})
+
+
+## One stop of a two-stop lift. The door plane is at `pos`; the cab extends behind it (local -z), facing local +z.
+## Press the panel inside to ride to lift `to_id` (in `to_space`; "" = same space). style: wall, floor_m, sign (text).
+func lift(id: String, pos: Vector3, rot_y: float, to_id: String, to_space: String, dest_label: String, style: Dictionary = {}) -> Node3D:
+	var g := Node3D.new()
+	g.position = pos
+	g.rotation.y = rot_y
+	root.add_child(g)
+	var w := 2.0
+	var d := 2.2
+	var h := 2.45
+	var wm: Material = style.get("wall", brass)
+	var fm: Material = style.get("floor_m", wood_mid)
+	box(Vector3(w, 0.06, d), Vector3(0, -0.03, -d / 2.0), fm, true, g)
+	box(Vector3(w, 0.08, d), Vector3(0, h + 0.04, -d / 2.0), wood_dark, false, g)
+	box(Vector3(0.08, h, d), Vector3(-w / 2.0, h / 2.0, -d / 2.0), wm, true, g)
+	box(Vector3(0.08, h, d), Vector3(w / 2.0, h / 2.0, -d / 2.0), wm, true, g)
+	box(Vector3(w, h, 0.08), Vector3(0, h / 2.0, -d), wm, true, g)
+	box(Vector3(0.14, h, 0.1), Vector3(-w / 2.0 + 0.02, h / 2.0, 0.0), wood_dark, false, g)
+	box(Vector3(0.14, h, 0.1), Vector3(w / 2.0 - 0.02, h / 2.0, 0.0), wood_dark, false, g)
+	box(Vector3(w + 0.2, 0.5, 0.1), Vector3(0, h + 0.25, 0.0), wood_dark, false, g)
+	var sign_l := label(str(style.get("sign", "LIFT")), Vector3(0, h + 0.25, 0.06), 0.0, 44, Style.GOLD, g, 0.0035, 6)
+	var inside := label(str(style.get("sign", "LIFT")), Vector3(0, h - 0.28, -0.14), PI, 44, Style.GOLD, g, 0.0035, 6)
+	var door_m: Material = style.get("door_m", mat(Color(0.3, 0.32, 0.36), 0.35, 0.75))
+	var dl := box(Vector3(0.92, h - 0.1, 0.04), Vector3(-1.42, (h - 0.1) / 2.0, -0.08), door_m, false, g)
+	var dr := box(Vector3(0.92, h - 0.1, 0.04), Vector3(1.42, (h - 0.1) / 2.0, -0.08), door_m, false, g)
+	omni(g.position + g.basis * Vector3(0, h - 0.2, -d / 2.0), Color(1.0, 0.86, 0.66), 0.9, 4.0)
+	box(Vector3(0.5, 0.05, 0.5), Vector3(0, h - 0.02, -d / 2.0), glow(Color(1.0, 0.88, 0.66), 3.0), false, g)
+	# button panel on the right-hand wall inside
+	var px := w / 2.0 - 0.06
+	box(Vector3(0.03, 0.5, 0.3), Vector3(px, 1.2, -0.7), brass, false, g)
+	sphere(0.05, Vector3(px - 0.03, 1.32, -0.7), glow(Color(1.0, 0.75, 0.25), 2.5), g)
+	sphere(0.05, Vector3(px - 0.03, 1.1, -0.7), glow(Style.AQUA, 2.0), g)
+	var body := _interact_body(g, Vector3(0.7, 0.9, 0.8), Vector3(px - 0.28, 1.25, -0.7))
+	lifts[id] = {"node": g, "body": body, "pos": pos, "rot": rot_y, "to": to_id, "to_space": to_space, "label": dest_label,
+		"door_l": dl, "door_r": dr, "sign": sign_l, "inside": inside, "floor": str(style.get("sign", "LIFT")), "top": pos + g.basis * Vector3(px - 0.2, 1.75, -0.7)}
+	return g
+
+
+## Something small to look at (flavour only: a thought from Mochi; never a clue).
+func note(lbl: String, text: String, pos: Vector3, size: Vector3, offset: Vector3 = Vector3.ZERO) -> Node3D:
+	var g := Node3D.new()
+	g.position = pos
+	root.add_child(g)
+	var body := _interact_body(g, size, offset)
+	notes.append({"node": g, "body": body, "label": lbl, "text": text, "top": pos + offset + Vector3(0, size.y / 2.0 + 0.2, 0)})
+	return g
 
 
 # =================================================================== characters

@@ -18,6 +18,7 @@ const Hud3D := preload("res://scripts/world3d/hud3d.gd")
 const MouseGuard := preload("res://scripts/world3d/mouse_guard.gd")
 const Rooms1 := preload("res://scripts/world3d/rooms1.gd")
 const Rooms2 := preload("res://scripts/world3d/rooms2.gd")
+const LiftRide := preload("res://scripts/world3d/lift_ride.gd")
 
 var _holder: Node3D
 var _room3d: Node3D
@@ -31,10 +32,35 @@ var _rim: ShaderMaterial
 var _talk_dim := false
 var _t3 := 0.0
 var _debug_room := ""
+var _spaces: Dictionary = {}    # connecting spaces of this chapter (id -> {name, map_at})
 var _flickers: Array = []
 
 
+## Stands in for the investigation data script: the real rooms plus the walkable connecting spaces, which have no
+## hotspots or people. ROOM_ORDER keeps only the real rooms, so the 2D map and the autotest stay the same.
+class WorldData extends RefCounted:
+	var ROOMS: Dictionary = {}
+	var ROOM_ORDER: Array = []
+	var START_ROOM := ""
+	var SLOT_X: Dictionary = {}
+	var PERSON_SCALE := 0.62
+
+
+func _make_world_data() -> void:
+	_spaces = Rooms2.SPACES if Chapters.current == 2 else Rooms1.SPACES
+	var w := WorldData.new()
+	w.ROOMS = (Inv.ROOMS as Dictionary).duplicate()
+	for id in _spaces.keys():
+		w.ROOMS[id] = {"name": str((_spaces[id] as Dictionary)["name"]), "bg": "", "enter_script": "", "hotspots": [], "people": []}
+	w.ROOM_ORDER = Inv.ROOM_ORDER
+	w.START_ROOM = Inv.START_ROOM
+	w.SLOT_X = Inv.SLOT_X
+	w.PERSON_SCALE = Inv.PERSON_SCALE
+	Inv = w
+
+
 func _ready() -> void:
+	_make_world_data()
 	_debug_room = MouseGuard.arg("room3d")
 	if _debug_room != "":
 		for rid in Inv.ROOMS.keys():
@@ -44,6 +70,8 @@ func _ready() -> void:
 	_fx.show_marks = false
 	_hud.set_hints([["WASD", "Move"], ["Mouse", "Look"], ["E / Click", "Examine / Talk"], ["Shift", "Hurry"],
 		["M", "Map"], ["N", "Notebook"], ["Esc", "Pause"]])
+	for id in _spaces.keys():
+		_cleared[id] = true
 	var guard := MouseGuard.new()
 	guard.want = _wants_mouse
 	add_child(guard)
@@ -128,6 +156,19 @@ func _build_room(rid: String) -> void:
 		(sd["body"] as Node3D).set_meta("target", t)
 		t["marker"] = Hud3D.make_marker(_room3d, sd["top"])
 		_targets.append(t)
+	# small things to look at, and lifts
+	for nt in k.notes:
+		var nd: Dictionary = nt
+		var t := {"kind": "note", "verb": "Look at", "label": str(nd["label"]), "text": str(nd["text"]), "script": "",
+			"node": nd["node"], "body": nd["body"], "seen": false}
+		(nd["body"] as Node3D).set_meta("target", t)
+		_doors.append(t)
+	for lid in k.lifts.keys():
+		var ld: Dictionary = k.lifts[lid]
+		var t := {"kind": "lift", "verb": "Ride to", "label": str(ld["label"]), "lift_id": str(lid), "script": "",
+			"node": ld["node"], "body": ld["body"], "seen": false}
+		(ld["body"] as Node3D).set_meta("target", t)
+		_doors.append(t)
 	# exits (a "link" door is an examinable door that becomes an exit once examined)
 	for to in k.doors.keys():
 		var d: Dictionary = k.doors[to]
@@ -138,7 +179,7 @@ func _build_room(rid: String) -> void:
 					ht["door_label"] = str(names.get(to, to))
 			continue
 		var t := {"kind": "door", "verb": "Go to", "label": str(names.get(to, to)), "to": str(to), "script": "",
-			"node": d["node"], "body": d["body"], "seen": false}
+			"node": d["node"], "body": d["body"], "hinge": d.get("hinge"), "seen": false}
 		(d["body"] as Node3D).set_meta("target", t)
 		_doors.append(t)
 	_refresh_status()
@@ -152,12 +193,12 @@ func _place_player() -> void:
 	var k = _kit
 	var cam := MouseGuard.cam_arg()
 	if not cam.is_empty():
-		_player.place(Vector3(cam[0].x, 0.0, cam[0].z), cam[1])
+		_player.place(Vector3(cam[0].x, cam[0].y - 1.5, cam[0].z), cam[1])
 	elif _arrive_from != "" and k.doors.has(_arrive_from):
 		var d: Dictionary = k.doors[_arrive_from]
 		var b := Basis(Vector3.UP, float(d["rot"]))
 		var p: Vector3 = (d["pos"] as Vector3) + b * Vector3(0, 0, 1.15)
-		_player.place(Vector3(p.x, 0.0, p.z), p + b * Vector3(0, 0, 3.0) + Vector3(0, 1.3, 0))
+		_player.place(p, p + b * Vector3(0, 0, 3.0) + Vector3(0, 1.3, 0))
 	else:
 		_player.place(k.spawn, k.look)
 	_arrive_from = ""
@@ -252,6 +293,8 @@ func _hover_under_mouse() -> void:
 
 
 func _highlight(t: Dictionary, on: bool) -> void:
+	if str(t.get("kind", "")) in ["note", "lift"]:
+		return
 	if str(t.get("kind", "")) == "person":
 		var sd: Dictionary = t["standee"]
 		var m: ShaderMaterial = sd["mat"]
@@ -278,9 +321,9 @@ func _show_tag(t: Dictionary) -> void:
 		kind = "door"
 		_tag_verb.text = "Go to:"
 		_tag_name.text = str(t["door_label"])
-	_tag_check.visible = bool(t["seen"]) and kind != "door"
+	_tag_check.visible = bool(t["seen"]) and kind in ["hotspot", "person"]
 	var st: StyleBoxFlat = _tag.get_theme_stylebox("panel")
-	st.border_color = Style.GOOD if _tag_check.visible else (Style.YUZU if kind == "door" else Style.AQUA)
+	st.border_color = Style.GOOD if _tag_check.visible else (Style.YUZU if kind in ["door", "lift"] else Style.AQUA)
 	_tag.reset_size()
 	var sz := _tag.get_combined_minimum_size()
 	_tag.size = sz
@@ -325,9 +368,19 @@ func _acts_as_door(t: Dictionary) -> bool:
 func _activate(t: Dictionary) -> void:
 	if _done:
 		return
-	if str(t.get("kind", "")) == "door" or _acts_as_door(t):
+	var use := str(t.get("kind", ""))
+	if use == "note":
+		await _read_note(t)
+		return
+	if use == "lift":
+		await _ride(t)
+		return
+	if use == "door" or _acts_as_door(t):
+		_busy = true
+		_set_hover({})
 		_arrive_from = _room_id
 		Audio.sfx("confirm")
+		await _swing(t)
 		await _travel(str(t["door_to"]) if t.has("door_to") else str(t["to"]))
 		return
 	_busy = true
@@ -353,6 +406,65 @@ func _activate(t: Dictionary) -> void:
 	_unlock()
 
 
+## Swings a door open before stepping through it (examinable doors that act as exits have no hinge).
+func _swing(t: Dictionary) -> void:
+	var hinge: Variant = t.get("hinge")
+	if hinge == null or not is_instance_valid(hinge):
+		return
+	var tw := create_tween()
+	tw.tween_property(hinge, "rotation:y", -1.45, _dur(0.22)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tw.finished
+
+
+func _read_note(t: Dictionary) -> void:
+	_busy = true
+	_set_hover({})
+	Audio.sfx("select")
+	_set_dialogue_mode(true)
+	_sp.play_text("think: %s\n@end" % str(t["text"]))
+	if _sp.is_running():
+		await _sp.finished
+	if not is_inside_tree():
+		return
+	_set_dialogue_mode(false)
+	_unlock()
+
+
+## Rides the lift: doors shut, hum, the world swaps behind the doors, doors open on the other floor.
+func _ride(t: Dictionary) -> void:
+	_busy = true
+	_set_hover({})
+	Audio.sfx("confirm")
+	var from: Dictionary = _kit.lifts[str(t["lift_id"])]
+	await LiftRide.move_doors(self, from, false)
+	await LiftRide.rumble(self, _player.cam, from)
+	if not is_inside_tree():
+		return
+	var offset: Vector3 = Basis(Vector3.UP, float(from["rot"])).inverse() * (_player.global_position - (from["pos"] as Vector3))
+	var from_rot := float(from["rot"])
+	var to_space := str(from["to_space"])
+	var changed := to_space != "" and to_space != _room_id
+	if changed:
+		_build_room(to_space)
+	var dest: Dictionary = _kit.lifts[str(from["to"])]
+	LiftRide.set_doors(dest, false)
+	_player.global_position = (dest["pos"] as Vector3) + Basis(Vector3.UP, float(dest["rot"])) * offset
+	_player.rotation.y += float(dest["rot"]) - from_rot
+	_player.velocity = Vector3.ZERO
+	(dest["inside"] as Label3D).text = str(dest["floor"])
+	await get_tree().process_frame
+	await LiftRide.move_doors(self, dest, true)
+	if not is_inside_tree():
+		return
+	if not changed:
+		LiftRide.set_doors(from, true)
+	if changed:
+		_show_banner()
+	if await _enter_script():
+		return
+	_unlock()
+
+
 ## Little squash-and-stretch on the thing you just used.
 func _pop(t: Dictionary) -> void:
 	var n: Node3D = t.get("node")
@@ -367,17 +479,110 @@ func _pop(t: Dictionary) -> void:
 ## Debug (--door3d=<room id>): walks through that door once the room is ready (tests door travel + arrival spot).
 func _unlock() -> void:
 	super()
+	if OS.get_cmdline_user_args().has("--map3d") and not has_meta("map_tested"):
+		set_meta("map_tested", true)
+		_open_map()
 	var d := MouseGuard.arg("door3d")
 	if d != "" and not has_meta("door_tested"):
 		for t in _doors:
-			if str(t["to"]) == d:
+			if str(t.get("to", "")) == d:
 				set_meta("door_tested", true)
 				_activate.call_deferred(t)
 
 
+## The map only takes you to rooms you've already found on foot.
+## Debug (--autotest --tour3d): really uses every door, lift and note of every space first, then the normal autotest.
+func _autotest() -> void:
+	if OS.get_cmdline_user_args().has("--tour3d"):
+		await _tour()
+	await super()
+
+
+func _tour() -> void:
+	var used := 0
+	var bad := 0
+	for rid in Inv.ROOMS.keys():
+		await _travel(str(rid))
+		var count := _doors.size()
+		for i in count:
+			var t: Dictionary = _doors[i]
+			var kind := str(t["kind"])
+			var want := str(t.get("to", ""))
+			if kind == "lift":
+				var lift_to := str((_kit.lifts[str(t["lift_id"])] as Dictionary)["to_space"])
+				want = lift_to if lift_to != "" else str(rid)
+			elif kind == "note":
+				want = str(rid)
+			await _activate(t)
+			await get_tree().process_frame
+			used += 1
+			if _room_id != want or _player.global_position.y < -8.0:
+				bad += 1
+				print("[tour] FAIL %s %s: ended in %s, wanted %s" % [rid, kind, _room_id, want])
+			if _busy:
+				bad += 1
+				print("[tour] FAIL %s %s: still locked afterwards" % [rid, kind])
+			await _travel(str(rid))
+	print("[tour] investigation: used %d doors/lifts/notes, %d failures" % [used, bad])
+
+
 func _on_map_pick(rid: String) -> void:
+	var enter := str((Inv.ROOMS.get(rid, {}) as Dictionary).get("enter_script", ""))
+	if rid != _room_id and not Game.autotest and enter != "" and not _seen(enter):
+		Audio.sfx("cancel")
+		_close_map()
+		_toast("Find your way there on foot first!", Style.YUZU)
+		return
 	_arrive_from = ""
 	super(rid)
+
+
+func _refresh_status() -> void:
+	super()
+	if _spaces.has(_room_id):
+		_room_prog.text = "Exploring"
+		_room_prog.add_theme_color_override("font_color", Style.TEXT_DIM)
+
+
+## Adds a "you are here" pin when you're in a connecting space (rooms already highlight their own card).
+func _build_map() -> Control:
+	var root: Control = super()
+	var sp: Dictionary = _spaces.get(_room_id, {})
+	if sp.is_empty():
+		return root
+	var board: Control = root.get_meta("board")
+	var pin := MapPin.new()
+	pin.at = sp["map_at"]
+	pin.title = str(sp["name"])
+	pin.size = board.size
+	board.add_child(pin)
+	return root
+
+
+class MapPin extends Control:
+	var at := Vector2.ZERO
+	var title := ""
+	var t := 0.0
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(delta: float) -> void:
+		t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := 11.0 + sin(t * 5.0) * 2.0
+		draw_circle(at, r + 7.0, Color(Style.GOLD, 0.25))
+		draw_circle(at, r + 2.0, Style.INK)
+		draw_circle(at, r, Style.GOLD)
+		var f := Style.display_font()
+		var label_text := "YOU ARE HERE: " + title.to_upper()
+		var w := f.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+		var p := at + Vector2(-w * 0.5, -24.0)
+		p.x = clampf(p.x, 8.0, size.x - w - 8.0)
+		draw_string_outline(f, p, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, 6, Style.BG_DARK)
+		draw_string(f, p, label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Style.GOLD)
 
 
 func _play(id: String) -> void:

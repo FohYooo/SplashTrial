@@ -2,7 +2,8 @@
 
 > **This branch is the 3D walk-around version** (release `v3-3d`). It's the same game, with the same story,
 > Splash Trial, effects and executions, but you explore the investigation rooms and spend Free Time by
-> **walking around in 3D**. The classic 2D version (release **v3**, branch `main`) is still there and unchanged.
+> **walking around in 3D**, through lobbies, hallways, staircases, gardens and lifts. The classic 2D version
+> (release **v3**, branch `main`) is still there and unchanged.
 
 An original capybara murder-mystery trial game. Fifteen capybaras are trapped in a luxury hot-spring resort by
 **Warden Snapjaw**. Hang out with your fellow guests, survive the night, investigate a murder,
@@ -15,7 +16,7 @@ and convince everyone of the truth at the **Splash Trial**, or you'll all pay th
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
 ## How to download and play (Windows)
-1. Go to the [3D release](https://github.com/FohYooo/SplashTrial/releases/tag/v3-3d) and download
+1. Go to the [3D release](https://github.com/FohYooo/SplashTrial/releases/tag/v3-3d-2) and download
    **`SplashTrial-3D-windows.zip`** (for the classic 2D game, use the
    [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) instead; the guide picture below shows
    an older file name, but the steps are the same). The "Source code" links are not the game.
@@ -35,7 +36,7 @@ The zip also holds `GODOT_COPYRIGHT.txt`, the engine's open-source license notic
 |---|---|
 | Walk (investigation rooms, Free Time) | WASD or the arrow keys (Shift to hurry) |
 | Look around | Mouse |
-| Examine / talk / go through a door / hang out | Look at it (the crosshair lights up) and press E, Space or left click |
+| Examine / talk / open a door / press a lift button / hang out | Look at it (the crosshair lights up) and press E, Space or left click |
 | Advance dialogue | Left click / Space / Enter |
 | Fast-forward dialogue | Hold Ctrl |
 | Pause menu (Truth Drops, Skills, Settings) | Esc |
@@ -55,6 +56,7 @@ Skills learned during Free Time make the trial easier.
   `Godot --path . ` (add `-- --autotest` to auto-play the whole game).
 - 3D version: `scripts/world3d/` (building kit, player, HUD, the rooms of both chapters) and the two 3D screens
   `scripts/screens/investigation3d_screen.gd` / `freetime3d_screen.gd`. See `docs/ARCHITECTURE.md` §1d.
+  Check the walkable spaces with `Godot --headless --path . -s tools/walktest.gd`.
   Add `-- --2d` to get the classic 2D investigation / Free Time screens back.
 - Design bibles (spoilers!): `docs/DESIGN.md` (Chapter 1), `docs/DESIGN2.md` (Chapter 2). Engine contracts and the
   chapter system: `docs/ARCHITECTURE.md`. Add `--chapter=2` to any debug flag to work on Chapter 2.

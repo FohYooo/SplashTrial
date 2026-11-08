@@ -3,10 +3,10 @@ extends Control
 ## Same flow and rules as freetime_screen.gd: "freetime_intro" -> spend the visits (3 slots) on the guests ->
 ## each visit plays "hangout_<id>" full screen (the script sets its own bg and grants the skill), appends to
 ## Game.hangouts_done and uses a slot -> "freetime_outro" -> finished({}).
-## What changes: instead of a portrait chooser you walk around a 3D hub (chapter 1: the resort courtyard,
-## chapter 2: the Mudlark's promenade deck; built in rooms1.gd / rooms2.gd "hub"), find a capybara,
-## look at them and press E / click to hang out. Autotest picks the same guests as the 2D screen.
-## Debug: --skip-intro skips "freetime_intro"; --cam=x,y,z,tx,ty,tz places the camera.
+## What changes: instead of a portrait chooser you walk around in 3D (chapter 1: courtyard, lobby + guest wing,
+## shop arcade; chapter 2: promenade deck, main stairs + lower passage, saloon; rooms1.gd / rooms2.gd FREE_SPACES),
+## find a capybara, look at them and press E / click to hang out. Autotest picks the same guests as the 2D screen.
+## Debug: --skip-intro skips "freetime_intro"; --space3d=<id> starts in that space; --cam=x,y,z,tx,ty,tz places the camera.
 
 signal finished(result: Dictionary)
 
@@ -23,6 +23,7 @@ const Hud3D := preload("res://scripts/world3d/hud3d.gd")
 const MouseGuard := preload("res://scripts/world3d/mouse_guard.gd")
 const Rooms1 := preload("res://scripts/world3d/rooms1.gd")
 const Rooms2 := preload("res://scripts/world3d/rooms2.gd")
+const LiftRide := preload("res://scripts/world3d/lift_ride.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -46,7 +47,19 @@ var _info_tag: Label
 var _info_skill: Label
 var _info_desc: Label
 var _toast_layer: Control
-var _guests: Array = []     # target dicts: {id, standee, body, marker, top, spark}
+var _guests: Array = []     # target dicts: {kind, id, spark} + {standee, body, marker, top} while their space is built
+var _here: Array = []       # guests standing in the current space
+var _useable: Array = []    # doors, lifts and notes in the current space
+var _room3d: Node3D
+var _kit: Kit
+var _space := ""
+var _free: Array = []       # spaces you may walk through during Free Time
+var _names := {}
+var _arrive_from := ""
+var _touring := false
+var _toured := false
+var _tag: PanelContainer
+var _tag_label: Label
 var _focus: Dictionary = {}
 var _active := false
 var _lock_ms := 0
@@ -62,24 +75,20 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_holder = Node3D.new()
 	add_child(_holder)
-	var k := Kit.new(_holder)
-	if Chapters.current == 2:
-		Rooms2.build("hub", k, {})
-	else:
-		Rooms1.build("hub", k, {})
 	_player = Player3D.new()
 	_holder.add_child(_player)
-	var cam := MouseGuard.cam_arg()
-	if cam.is_empty():
-		_player.place(k.spawn, k.look)
-	else:
-		_player.place(Vector3(cam[0].x, 0.0, cam[0].z), cam[1])
-	_build_guests(k)
+	_make_names()
+	for id in Cast.roster_alive():
+		if id != "mochi":
+			_guests.append({"kind": "guest", "id": id, "spark": randf_range(0.0, 6.0)})
 	_hud = Hud3D.new()
 	add_child(_hud)
-	_hud.set_hints([["WASD", "Move"], ["Mouse", "Look"], ["E / Click", "Hang out"], ["Shift", "Hurry"], ["Esc", "Pause"]])
+	_hud.set_hints([["WASD", "Move"], ["Mouse", "Look"], ["E / Click", "Use"], ["Shift", "Hurry"], ["Esc", "Pause"]])
 	_build_header()
 	_build_panel()
+	_build_tag()
+	var start := MouseGuard.arg("space3d")
+	_enter_space(start if start != "" else _free_start())
 	_toast_layer = Control.new()
 	_toast_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_toast_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -102,29 +111,85 @@ func _wants_mouse() -> bool:
 		and get_window().has_focus()
 
 
-func _build_guests(k) -> void:
-	var ids: Array = []
-	for id in Cast.roster_alive():
-		if id != "mochi":
-			ids.append(id)
-	var free: Array = k.spots.duplicate()
-	var i := 0
-	for id in ids:
-		var pos: Vector3
-		if k.people.has(id):
-			pos = k.people[id]
-		elif not free.is_empty():
-			pos = free.pop_front()
-		else:
-			pos = Vector3(-4.0 + (i % 6) * 1.6, 0, -2.0 + (i / 6) * 1.6)
-		i += 1
-		var sd: Dictionary = k.standee(id, "normal", pos)
-		var t := {"id": id, "standee": sd, "body": sd["body"], "top": sd["top"], "spark": randf_range(0.0, 6.0)}
-		(sd["body"] as Node3D).set_meta("target", t)
-		t["marker"] = Hud3D.make_marker(_holder, sd["top"])
-		_guests.append(t)
-		if Game.hangouts_done.has(id):
-			_set_done(t)
+func _free_start() -> String:
+	return Rooms2.FREE_START if Chapters.current == 2 else Rooms1.FREE_START
+
+
+func _make_names() -> void:
+	_free = Rooms2.FREE_SPACES if Chapters.current == 2 else Rooms1.FREE_SPACES
+	var spaces: Dictionary = Rooms2.SPACES if Chapters.current == 2 else Rooms1.SPACES
+	for id in spaces.keys():
+		_names[id] = str((spaces[id] as Dictionary)["name"])
+	var path := str(Chapters.get_value("investigation", ""))
+	if path != "" and ResourceLoader.exists(path):
+		var script: Script = load(path)
+		var rooms: Dictionary = script.get_script_constant_map().get("ROOMS", {})
+		for id in rooms.keys():
+			_names[id] = str((rooms[id] as Dictionary).get("name", id))
+
+
+## Builds one walkable space with the guests who are there, and puts the player at the door they came through.
+func _enter_space(id: String) -> void:
+	if _room3d:
+		_holder.remove_child(_room3d)
+		_room3d.queue_free()
+	_room3d = Node3D.new()
+	_holder.add_child(_room3d)
+	var k := Kit.new(_room3d)
+	k.mode = "freetime"
+	if Chapters.current == 2:
+		Rooms2.build(id, k, _names)
+	else:
+		Rooms1.build(id, k, _names)
+	_kit = k
+	_space = id
+	_focus = {}
+	_tag.visible = false
+	_panel.visible = false
+	_here.clear()
+	_useable.clear()
+	for g in _guests:
+		for key in ["standee", "body", "marker", "top"]:
+			g.erase(key)
+		var gid := str(g["id"])
+		if not k.people.has(gid):
+			continue
+		var sd: Dictionary = k.standee(gid, "normal", k.people[gid])
+		g["standee"] = sd
+		g["body"] = sd["body"]
+		g["top"] = sd["top"]
+		g["marker"] = Hud3D.make_marker(_room3d, sd["top"])
+		(sd["body"] as Node3D).set_meta("target", g)
+		_here.append(g)
+		if Game.hangouts_done.has(gid):
+			_set_done(g)
+	for to in k.doors.keys():
+		var d: Dictionary = k.doors[to]
+		if d.has("link"):
+			continue
+		var t := {"kind": "door", "to": str(to), "label": str(_names.get(to, to)), "hinge": d.get("hinge")}
+		(d["body"] as Node3D).set_meta("target", t)
+		_useable.append(t)
+	for lid in k.lifts.keys():
+		var ld: Dictionary = k.lifts[lid]
+		var t := {"kind": "lift", "lift_id": str(lid), "label": str(ld["label"])}
+		(ld["body"] as Node3D).set_meta("target", t)
+		_useable.append(t)
+	for nt in k.notes:
+		var t := {"kind": "note", "label": str(nt["label"]), "text": str(nt["text"])}
+		(nt["body"] as Node3D).set_meta("target", t)
+		_useable.append(t)
+	var cam := MouseGuard.cam_arg()
+	if not cam.is_empty():
+		_player.place(Vector3(cam[0].x, cam[0].y - 1.5, cam[0].z), cam[1])
+	elif _arrive_from != "" and k.doors.has(_arrive_from):
+		var d: Dictionary = k.doors[_arrive_from]
+		var b := Basis(Vector3.UP, float(d["rot"]))
+		var p: Vector3 = (d["pos"] as Vector3) + b * Vector3(0, 0, 1.15)
+		_player.place(p, p + b * Vector3(0, 0, 3.0) + Vector3(0, 1.3, 0))
+	else:
+		_player.place(k.spawn, k.look)
+	_arrive_from = ""
 
 
 # =================================================================== flow
@@ -146,15 +211,50 @@ func _run() -> void:
 		return
 	var tw := create_tween()
 	tw.tween_property(_header, "modulate:a", 1.0, _dur(0.35))
-	_toast("Find someone to spend the afternoon with!", Style.AQUA)
+	_toast("Everyone's scattered around. Go and find someone!", Style.AQUA)
 	_enable()
 
 
 func _enable() -> void:
 	_active = true
 	_lock_ms = Time.get_ticks_msec() + 250
+	if _touring:
+		return
 	if Game.autotest:
+		if OS.get_cmdline_user_args().has("--tour3d") and not _toured:
+			_toured = true
+			await _tour()
 		_auto_pick()
+
+
+## Debug (--autotest --tour3d): really uses every door, lift and note of every Free Time space first.
+func _tour() -> void:
+	_touring = true
+	var used := 0
+	var bad := 0
+	for id in _free:
+		_enter_space(str(id))
+		var count := _useable.size()
+		for i in count:
+			var t: Dictionary = _useable[i]
+			var kind := str(t["kind"])
+			var want := str(id)
+			if kind == "door" and _free.has(str(t["to"])):
+				want = str(t["to"])
+			elif kind == "lift":
+				var lift_to := str((_kit.lifts[str(t["lift_id"])] as Dictionary)["to_space"])
+				want = lift_to if lift_to != "" and _free.has(lift_to) else str(id)
+			await _use(t)
+			await get_tree().process_frame
+			used += 1
+			if _space != want:
+				bad += 1
+				print("[tour] FAIL %s %s: ended in %s, wanted %s" % [id, kind, _space, want])
+			_enter_space(str(id))
+	print("[tour] free time: used %d doors/lifts/notes, %d failures" % [used, bad])
+	_touring = false
+	_active = true
+	_enter_space(_free_start())
 
 
 func _available_count() -> int:
@@ -199,8 +299,8 @@ func _pick(t: Dictionary) -> void:
 	_active = false
 	_set_focus({})
 	Audio.sfx("confirm")
-	var holder: Node3D = (t["standee"] as Dictionary)["holder"]
-	if not Game.autotest:
+	if not Game.autotest and t.has("standee"):
+		var holder: Node3D = (t["standee"] as Dictionary)["holder"]
 		_player.turn_to(holder.global_position + Vector3(0, 1.25, 0), 0.3)
 		_pop(holder)
 	await _wait(0.35)
@@ -312,7 +412,7 @@ func _process(delta: float) -> void:
 			_set_focus(t)
 	elif not _focus.is_empty():
 		_set_focus({})
-	for g in _guests:
+	for g in _here:
 		var m: Sprite3D = g["marker"]
 		var done := Game.hangouts_done.has(str(g["id"]))
 		m.visible = walk and not is_same(g, _focus)
@@ -336,14 +436,19 @@ func _process(delta: float) -> void:
 func _set_focus(t: Dictionary) -> void:
 	if is_same(t, _focus):
 		return
-	if not _focus.is_empty():
+	if str(_focus.get("kind", "")) == "guest" and _focus.has("standee"):
 		var om: ShaderMaterial = (_focus["standee"] as Dictionary)["mat"]
 		om.set_shader_parameter("outline", 0.0)
 		om.set_shader_parameter("brightness", 1.0)
 	_focus = t
 	_hud.set_focus(not t.is_empty())
+	_tag.visible = false
+	_panel.visible = false
 	if t.is_empty():
-		_panel.visible = false
+		return
+	if str(t["kind"]) != "guest":
+		_show_tag(t)
+		Audio.sfx("select", 1.0 + randf_range(-0.05, 0.05), -6.0)
 		return
 	var m: ShaderMaterial = (t["standee"] as Dictionary)["mat"]
 	m.set_shader_parameter("outline", 1.0)
@@ -376,7 +481,128 @@ func _show_info(id: String) -> void:
 	tw.tween_property(_panel, "modulate:a", 1.0, 0.12)
 
 
+func _show_tag(t: Dictionary) -> void:
+	var kind := str(t["kind"])
+	var txt := "Look at:  " + str(t["label"])
+	var col := Style.AQUA
+	if kind == "door":
+		txt = ("Go to:  " if _free.has(str(t["to"])) else "Closed for now:  ") + str(t["label"])
+		col = Style.YUZU if _free.has(str(t["to"])) else Style.TEXT_DIM
+	elif kind == "lift":
+		txt = "Ride to:  " + str(t["label"])
+		col = Style.YUZU
+	_tag_label.text = txt
+	var st: StyleBoxFlat = _tag.get_theme_stylebox("panel")
+	st.border_color = col
+	_tag.reset_size()
+	var sz := _tag.get_combined_minimum_size()
+	_tag.size = sz
+	_tag.position = Vector2((W - sz.x) * 0.5, H * 0.5 + 38.0)
+	_tag.visible = true
+
+
+func _build_tag() -> void:
+	_tag = PanelContainer.new()
+	var st := Style.box(Color(0.06, 0.035, 0.13, 0.95), 10, Style.AQUA, 2)
+	st.content_margin_left = 12
+	st.content_margin_right = 12
+	st.content_margin_top = 5
+	st.content_margin_bottom = 5
+	_tag.add_theme_stylebox_override("panel", st)
+	_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag.visible = false
+	_tag_label = Style.label("", 20, Style.TEXT)
+	_tag.add_child(_tag_label)
+	add_child(_tag)
+
+
+## Doors, lifts and small things to look at.
+func _use(t: Dictionary) -> void:
+	match str(t["kind"]):
+		"door":
+			await _go_door(t)
+		"lift":
+			await _ride(t)
+		"note":
+			await _read_note(t)
+
+
+func _go_door(t: Dictionary) -> void:
+	var to := str(t["to"])
+	if not _free.has(to):
+		Audio.sfx("cancel")
+		_toast("Not now. It's Free Time: go and find someone!", Style.TEXT_DIM)
+		return
+	_active = false
+	_set_focus({})
+	Audio.sfx("confirm")
+	var hinge: Variant = t.get("hinge")
+	if hinge != null and is_instance_valid(hinge):
+		var tw := create_tween()
+		tw.tween_property(hinge, "rotation:y", -1.45, _dur(0.22)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		await tw.finished
+	Audio.sfx("door")
+	await _fade_to(1.0, 0.2)
+	_arrive_from = _space
+	_enter_space(to)
+	await _fade_to(0.0, 0.25)
+	_toast(str(_names.get(to, to)), Style.GOLD)
+	_enable()
+
+
+func _ride(t: Dictionary) -> void:
+	_active = false
+	_set_focus({})
+	Audio.sfx("confirm")
+	var from: Dictionary = _kit.lifts[str(t["lift_id"])]
+	await LiftRide.move_doors(self, from, false)
+	await LiftRide.rumble(self, _player.cam, from)
+	if not is_inside_tree():
+		return
+	var from_rot := float(from["rot"])
+	var offset: Vector3 = Basis(Vector3.UP, from_rot).inverse() * (_player.global_position - (from["pos"] as Vector3))
+	var to_space := str(from["to_space"])
+	var changed := to_space != "" and to_space != _space
+	if changed:
+		_enter_space(to_space)
+	var dest: Dictionary = _kit.lifts[str(from["to"])]
+	LiftRide.set_doors(dest, false)
+	_player.global_position = (dest["pos"] as Vector3) + Basis(Vector3.UP, float(dest["rot"])) * offset
+	_player.rotation.y += float(dest["rot"]) - from_rot
+	_player.velocity = Vector3.ZERO
+	(dest["inside"] as Label3D).text = str(dest["floor"])
+	await get_tree().process_frame
+	await LiftRide.move_doors(self, dest, true)
+	if not is_inside_tree():
+		return
+	if not changed:
+		LiftRide.set_doors(from, true)
+		(from["inside"] as Label3D).text = str(from["floor"])
+	_enable()
+
+
+func _read_note(t: Dictionary) -> void:
+	_active = false
+	_set_focus({})
+	Audio.sfx("select")
+	_free_player()
+	_sp = ScriptPlayer.new()
+	_sp.transparent = true
+	_sp.auto_portrait = true
+	add_child(_sp)
+	move_child(_sp, _fade.get_index())
+	_sp.play_text("think: %s\n@end" % str(t["text"]))
+	if _sp.is_running():
+		await _sp.finished
+	if not is_inside_tree():
+		return
+	_free_player()
+	_enable()
+
+
 func _set_done(t: Dictionary) -> void:
+	if not t.has("standee"):
+		return
 	var m: ShaderMaterial = (t["standee"] as Dictionary)["mat"]
 	m.set_shader_parameter("gray", 0.55)
 
@@ -391,7 +617,10 @@ func _pop(n: Node3D) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if MouseGuard.is_interact(e) and _active and _sp == null and not _focus.is_empty() and Time.get_ticks_msec() >= _lock_ms:
 		get_viewport().set_input_as_handled()
-		_pick(_focus)
+		if str(_focus["kind"]) == "guest":
+			_pick(_focus)
+		else:
+			_use(_focus)
 
 
 # =================================================================== HUD
