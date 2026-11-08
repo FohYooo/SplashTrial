@@ -63,6 +63,15 @@ static func portrait(char_id: String, expr: String = "normal") -> Texture2D:
 	return t
 
 
+## Full-body character art for the 3D standees (640x920 logical, feet on a shared baseline).
+## Falls back to the "normal" expression; null if the character has no full-body art.
+static func portrait_full(char_id: String, expr: String = "normal") -> Texture2D:
+	var t := svg("res://art/chars_full/%s_%s.svg" % [char_id, expr])
+	if t == null and expr != "normal":
+		t = svg("res://art/chars_full/%s_normal.svg" % char_id)
+	return t
+
+
 ## Background (1280x720 logical). Placeholder if missing.
 static func bg(bg_id: String) -> Texture2D:
 	var t := svg("res://art/bg/%s.svg" % bg_id)

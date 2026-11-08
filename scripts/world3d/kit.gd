@@ -236,7 +236,7 @@ void fragment() {
 
 const SH_STANDEE := """shader_type spatial;
 // Character standee: Y-locked billboard of the 2D portrait, unshaded so the art keeps its colours.
-// The bust art fades out softly at the bottom; `outline` draws a gold glow when you look at them.
+// Bust fallback art fades out softly at the bottom (full-body art uses fade ~ 0); `outline` draws a gold glow when you look at them.
 render_mode unshaded, cull_disabled, depth_prepass_alpha, shadows_disabled;
 uniform sampler2D portrait : source_color, filter_linear_mipmap, repeat_disable;
 uniform vec3 tint : source_color = vec3(1.0, 0.97, 0.92);
@@ -919,34 +919,64 @@ func link_door(hot_id: String, to_rid: String) -> void:
 
 
 # =================================================================== characters
-## Billboard standee for a character portrait. Returns {holder, mesh, mat, body}.
+## Full-body art (art/chars_full, tools/gen_chars_full.py): 640x920 canvas, feet on the line y = FULL_BASE.
+## One art pixel is the same world size as in the bust standee (1.4 m / 600 px), so faces keep their size.
+const FULL_SIZE := Vector2(640.0, 920.0)
+const FULL_BASE := 916.0
+const FULL_M_PER_PX := 1.4 / 600.0
+## Canvas y of the top of each character (hat included): sets the marker height and the blob shadow.
+const FULL_TOP := {
+	"bramble": 221, "bruno": 114, "coco": 145, "duchess": 149, "fennel": 159, "grub": 155, "lulu": 274, "marigold": 253,
+	"mochi": 210, "nibs": 194, "pepper": 245, "reginald": 139, "snapjaw": 24, "tumble": 371, "wisp": 131, "zuzu": 251,
+}
+
+
+## Billboard standee for a character. Uses the full-body art standing on the floor; a character without
+## full-body art falls back to the floating bust portrait. Returns {holder, mesh, mat, body, top, base}.
 func standee(char_id: String, expr: String, pos: Vector3, height: float = 1.4, base_y: float = 0.36) -> Dictionary:
 	var holder := Node3D.new()
 	holder.position = Vector3(pos.x, pos.y, pos.z)
 	root.add_child(holder)
-	var w := height * 0.8
+	var full: Texture2D = Assets.portrait_full(char_id, expr)
 	var q := QuadMesh.new()
-	q.size = Vector2(w, height)
-	var m := smat(SH_STANDEE, {"portrait": Assets.portrait(char_id, expr)})
+	var m: ShaderMaterial
+	var w: float
+	var top_h: float
+	var blob_w: float
 	var mi := MeshInstance3D.new()
+	if full != null:
+		q.size = FULL_SIZE * FULL_M_PER_PX
+		q.center_offset = Vector3(0.0, q.size.y / 2.0, 0.0)     # pivot at the feet, so breathing keeps them planted
+		m = smat(SH_STANDEE, {"portrait": full, "fade": 0.001, "outline_w": 0.0078})
+		mi.position.y = -(FULL_SIZE.y - FULL_BASE) * FULL_M_PER_PX
+		top_h = (FULL_BASE - float(FULL_TOP.get(char_id, 150))) * FULL_M_PER_PX
+		blob_w = maxf(0.75, top_h * 0.58)
+		w = q.size.x
+	else:
+		w = height * 0.8
+		q.size = Vector2(w, height)
+		m = smat(SH_STANDEE, {"portrait": Assets.portrait(char_id, expr)})
+		mi.position.y = base_y + height / 2.0
+		top_h = base_y + height
+		blob_w = w * 0.95
 	mi.mesh = q
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.extra_cull_margin = 1.0
-	mi.position.y = base_y + height / 2.0
 	holder.add_child(mi)
 	var blob := MeshInstance3D.new()
 	var bq := QuadMesh.new()
-	bq.size = Vector2(w * 0.95, w * 0.7)
+	bq.size = Vector2(blob_w, blob_w * 0.74)
 	blob.mesh = bq
 	blob.material_override = smat(SH_BLOB, {"strength": 0.55})
 	blob.rotation.x = -PI / 2.0
 	blob.position.y = 0.02
 	holder.add_child(blob)
-	var body := _interact_body(holder, Vector3(0.75, 1.9, 0.75), Vector3(0, 0.95, 0))
+	var hit_h := maxf(1.2, top_h)
+	var body := _interact_body(holder, Vector3(0.75, hit_h, 0.75), Vector3(0, hit_h / 2.0, 0))
 	_collider(holder, Vector3(0.5, 1.6, 0.5), Vector3(0, 0.8, 0))
 	return {"holder": holder, "mesh": mi, "mat": m, "body": body,
-		"top": holder.position + Vector3(0, base_y + height + 0.18, 0), "base": mi.position.y}
+		"top": holder.position + Vector3(0, top_h + 0.18, 0), "base": mi.position.y}
 
 
 # =================================================================== stock props

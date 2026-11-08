@@ -92,6 +92,10 @@ cutscenes are exactly the 2D ones. Only two screens are 3D (main.gd `SCREENS_3D`
   `mouse_guard.gd` (captures the mouse while walking, frees it for dialogue/menus/pause), `rooms1.gd` / `rooms2.gd`
   (one builder per room id + `hub`). Every hotspot id of a room must get an object via `k.hotspot(id, ...)` (a missing
   one gets a fallback pedestal and a warning); people stand at `k.person(char, pos)`.
+- Standees use **full-body art** `art/chars_full/<id>_<normal|sad|angry>.svg` (640x920, made by `tools/gen_chars_full.py`, which reuses the
+  heads, hats and props of `tools/gen_chars.py` so a standee matches its dialogue portrait). Feet stand on the line y = 916; relative heights
+  are baked into the art. `k.standee` falls back to the floating bust if a file is missing. After changing a character's height, update
+  `Kit.FULL_TOP` (canvas y of the top of the art).
 - Still no imports: the 3D look is built from primitives + inline shader code, the portraits/backgrounds are the same
   runtime-loaded SVGs. Renderer: Forward+ (`rendering_device/fallback_to_opengl3=true`).
 - Saves: the project name is "Splash Trial 3D", so its user folder (saves/settings) is separate from the 2D game;
