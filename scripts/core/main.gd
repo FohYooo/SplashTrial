@@ -19,6 +19,12 @@ const SCREENS := {
 	"credits": "res://scripts/screens/credits_screen.gd",
 	"drain": "res://scripts/screens/drain_screen.gd",
 }
+## 3D walk-around version: investigation and free time are played in 3D rooms (scripts/world3d/).
+## Pass `--2d` on the command line to get the classic 2D screens back (debug / comparison).
+const SCREENS_3D := {
+	"freetime": "res://scripts/screens/freetime3d_screen.gd",
+	"investigation": "res://scripts/screens/investigation3d_screen.gd",
+}
 
 ## Story steps are played by the story screen using the script with the same id (current chapter).
 ## The step order per chapter lives in scripts/data/chapters.gd ("next").
@@ -157,6 +163,8 @@ func _show(kind: String, params: Dictionary, step: String) -> void:
 		_screen.queue_free()
 		_screen = null
 	var path: String = SCREENS.get(kind, "")
+	if SCREENS_3D.has(kind) and not OS.get_cmdline_user_args().has("--2d"):
+		path = str(SCREENS_3D[kind])
 	if kind == "execution" and str(params.get("path", "")) != "" and ResourceLoader.exists(str(params["path"])):
 		path = str(params["path"])   # chapter-specific execution screen
 	if path == "" or not ResourceLoader.exists(path):

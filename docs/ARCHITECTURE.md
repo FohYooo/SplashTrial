@@ -77,6 +77,29 @@ Look at PNGs with the Read tool. Fix every `SCRIPT ERROR` / `Parse Error` you se
 - Debug: `--chapter=2` with any of `--start=`, `--script=`, `--minigame=` (e.g. `-- --chapter=2 --start=drain --autotest`).
   `python3 tools/check_content.py` checks both chapters.
 
+## 1d. 3D walk-around version (branch `3d-version`, release `v3-3d`)
+An additional version of the game; `main` (2D, v3) is untouched. Story scenes, the trial, minigames, executions and
+cutscenes are exactly the 2D ones. Only two screens are 3D (main.gd `SCREENS_3D`; `--2d` restores the 2D screens):
+- `scripts/screens/investigation3d_screen.gd` **extends** the 2D investigation screen and only replaces the room view:
+  same data (investigation_data*.gd), same story ids, `seen_<id>` flags, clue rewards, completion rule, map/notebook,
+  banners and autotest path (autotest activates every hotspot/person through the 3D `_activate`).
+  Exits are doors (`k.door`), following the map links; `k.link_door(hotspot, room)` turns an examinable door into an
+  exit once it has been examined (ship corridor, cabin 2). Arriving through a door spawns you in front of the door back.
+- `scripts/screens/freetime3d_screen.gd`: same flow as freetime_screen.gd (intro, 3 visits, `hangout_<id>` full screen,
+  `hangouts_done`, outro, same autotest picks) in a walkable hub.
+- `scripts/world3d/`: `kit.gd` (primitive meshes, inline shaders, lights, stock props, standees from the portraits,
+  anchors), `player3d.gd` (first-person WASD + mouse), `hud3d.gd` (crosshair, controls strip, markers),
+  `mouse_guard.gd` (captures the mouse while walking, frees it for dialogue/menus/pause), `rooms1.gd` / `rooms2.gd`
+  (one builder per room id + `hub`). Every hotspot id of a room must get an object via `k.hotspot(id, ...)` (a missing
+  one gets a fallback pedestal and a warning); people stand at `k.person(char, pos)`.
+- Still no imports: the 3D look is built from primitives + inline shader code, the portraits/backgrounds are the same
+  runtime-loaded SVGs. Renderer: Forward+ (`rendering_device/fallback_to_opengl3=true`).
+- Saves: the project name is "Splash Trial 3D", so its user folder (saves/settings) is separate from the 2D game;
+  `Game._inherit_unlock()` reads the 2D settings to offer Chapter 2 if it was unlocked there.
+- Debug: `--room3d=<room>` (start the investigation in that room, intros skipped), `--door3d=<room>` (walk through that
+  door on arrival), `--cam=x,y,z,tx,ty,tz` (camera), `--skip-intro` (free time). Combine with `--start=investigation` /
+  `--start=freetime`, `--chapter=2` and `--shot=`.
+
 ## 2. Flow (scripts/core/main.gd)
 title → prologue → freetime(3 slots) → motive → evening → night → discovery → investigation → investigation_end →
 trial → (flag vote_correct ? execution → epilogue → credits : gameover → retry trial | title).

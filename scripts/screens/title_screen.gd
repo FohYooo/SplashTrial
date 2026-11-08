@@ -297,6 +297,20 @@ func _build_logo() -> void:
 	_subtitle.position = Vector2(640 - _subtitle.size.x * 0.5, LOGO_Y + 86)
 	_subtitle.pivot_offset = _subtitle.size * 0.5
 	_subtitle.modulate.a = 0.0
+	# 3D walk-around version badge (a child of the subtitle, so it shares its fade-in)
+	var badge := PanelContainer.new()
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bst := Style.box(Color(0.05, 0.03, 0.11, 0.9), 12, Style.AQUA, 2)
+	bst.content_margin_left = 16
+	bst.content_margin_right = 16
+	bst.content_margin_top = 1
+	bst.content_margin_bottom = 1
+	badge.add_theme_stylebox_override("panel", bst)
+	badge.add_child(Style.title_label("3D WALK-AROUND EDITION", 19, Style.AQUA, Style.BG_DARK, 6))
+	_subtitle.add_child(badge)
+	var bsz := badge.get_combined_minimum_size()
+	badge.size = bsz
+	badge.position = Vector2((_subtitle.size.x - bsz.x) * 0.5, _subtitle.size.y + 2)
 	if _yuzu_tex:
 		for side in [-1.0, 1.0]:
 			var y := Sprite2D.new()

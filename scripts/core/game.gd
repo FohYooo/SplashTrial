@@ -77,6 +77,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_parse_args()
 	load_settings()
+	_inherit_unlock()
 	if skills_all:
 		for s in Skills.SKILLS.keys():
 			skills.append(s)
@@ -281,6 +282,17 @@ func load_settings() -> void:
 	fullscreen = bool(data.get("fullscreen", false))
 	chapter_unlocked = clampi(int(data.get("chapter_unlocked", 1)), 1, Chapters.LAST)
 	apply_fullscreen()
+
+
+## The 3D walk-around version keeps its own saves (its own user folder), but if the classic version already
+## unlocked Chapter 2 on this computer, the title screen offers it here too. Read-only.
+func _inherit_unlock() -> void:
+	var p := OS.get_user_data_dir().get_base_dir().path_join("Splash Trial").path_join("splash_trial_settings.json")
+	if not FileAccess.file_exists(p):
+		return
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(p))
+	if typeof(data) == TYPE_DICTIONARY:
+		chapter_unlocked = maxi(chapter_unlocked, clampi(int(data.get("chapter_unlocked", 1)), 1, Chapters.LAST))
 
 
 ## Called when a chapter's credits finish: unlocks the next chapter on the title screen.
