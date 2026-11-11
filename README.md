@@ -1,9 +1,8 @@
-# SPLASH TRIAL (3D walk-around version)
+# SPLASH TRIAL (3D version)
 
-> **This branch is the 3D walk-around version** (release `v3-3d`). It's the same game, with the same story,
-> Splash Trial, effects and executions, but you explore the investigation rooms and spend Free Time by
-> **walking around in 3D**, through lobbies, hallways, staircases, gardens and lifts. The classic 2D version
-> (release **v3**, branch `main`) is still there and unchanged.
+> **This branch is the 3D version** (release `v4`), where the game continues. You explore the investigation rooms
+> and spend Free Time by **walking around in 3D**, through lobbies, hallways, staircases, gardens and lifts.
+> The classic 2D version (release **v3**, branch `main`) is still there and unchanged, but it has Cases 1 and 2 only.
 
 An original capybara murder-mystery trial game. Fifteen capybaras are trapped in a luxury hot-spring resort by
 **Warden Snapjaw**. Hang out with your fellow guests, survive the night, investigate a murder,
@@ -11,16 +10,19 @@ and convince everyone of the truth at the **Splash Trial**, or you'll all pay th
 
 - **Chapter 1: Murder at Yuzu Springs**
 - **Chapter 2: Murder on the Mudlark** (new in v3; it follows straight on from Chapter 1.)
+- **Chapter 3: Murder at Warden's Rest** (new in v4; a new location and the longest case yet, about 4 hours.
+  It has a Logbook you can open at any time with **L**, an Alibi Board and new kinds of trial challenge.
+  Its executions are more graphic than in Cases 1 and 2.)
 
-**Choose Case** on the title screen lets you start at either case. Case 2 opens with the ending of Case 1, so play
-Case 1 first if you want to solve it yourself.
+**Choose Case** on the title screen lets you start at any case. Each case opens with the ending of the one before,
+so play them in order if you want to solve them yourself.
 
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
 ## How to download and play (Windows)
-1. Go to the [3D release](https://github.com/FohYooo/SplashTrial/releases/tag/v3-3d-2) and download
+1. Go to the [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) and download
    **`SplashTrial-3D-windows.zip`** (for the classic 2D game, use the
-   [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) instead; the guide picture below shows
+   [v3 release](https://github.com/FohYooo/SplashTrial/releases/tag/v3) instead; the guide picture below shows
    an older file name, but the steps are the same). The "Source code" links are not the game.
 2. Right-click the zip, choose **Extract All…**, then **Extract**.
 3. Double-click **`SplashTrial3D.exe`**. There's nothing to install. If Windows says *"Windows protected your PC"*, click
@@ -59,7 +61,7 @@ Skills learned during Free Time make the trial easier.
   `scripts/screens/investigation3d_screen.gd` / `freetime3d_screen.gd`. See `docs/ARCHITECTURE.md` §1d.
   Check the walkable spaces with `Godot --headless --path . -s tools/walktest.gd`.
   Add `-- --2d` to get the classic 2D investigation / Free Time screens back.
-- Design bibles (spoilers!): `docs/DESIGN.md` (Chapter 1), `docs/DESIGN2.md` (Chapter 2). Engine contracts and the
+- Design bibles (spoilers!): `docs/DESIGN.md` (Chapter 1), `docs/DESIGN2.md` (Chapter 2), `docs/DESIGN3.md` (Chapter 3). Engine contracts and the
   chapter system: `docs/ARCHITECTURE.md`. Add `--chapter=2` to any debug flag to work on Chapter 2.
 - Art (`art/`) is generated SVG and audio (`audio/`) is generated WAV, both loaded at runtime. Generators live in `tools/`.
 - Export: `python3 tools/prepare_export.py`, then

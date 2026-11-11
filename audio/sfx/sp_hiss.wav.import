@@ -1,24 +1,3 @@
 [remap]
 
-importer="wav"
-type="AudioStreamWAV"
-uid="uid://wkj6p04k511t"
-path="res://.godot/imported/sp_hiss.wav-7978894fa40503abd729f9a219d93988.sample"
-
-[deps]
-
-source_file="res://audio/sfx/sp_hiss.wav"
-dest_files=["res://.godot/imported/sp_hiss.wav-7978894fa40503abd729f9a219d93988.sample"]
-
-[params]
-
-force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
-edit/trim=false
-edit/normalize=false
-edit/loop_mode=0
-edit/loop_begin=0
-edit/loop_end=-1
-compress/mode=2
+importer="keep"

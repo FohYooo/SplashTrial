@@ -1,24 +1,3 @@
 [remap]
 
-importer="wav"
-type="AudioStreamWAV"
-uid="uid://dgw7yb6jswmg"
-path="res://.godot/imported/qk_snap.wav-a4a5176f381914a487d749e5eb415530.sample"
-
-[deps]
-
-source_file="res://audio/sfx/qk_snap.wav"
-dest_files=["res://.godot/imported/qk_snap.wav-a4a5176f381914a487d749e5eb415530.sample"]
-
-[params]
-
-force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
-edit/trim=false
-edit/normalize=false
-edit/loop_mode=0
-edit/loop_begin=0
-edit/loop_end=-1
-compress/mode=2
+importer="keep"

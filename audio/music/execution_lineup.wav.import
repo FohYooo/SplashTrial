@@ -1,24 +1,3 @@
 [remap]
 
-importer="wav"
-type="AudioStreamWAV"
-uid="uid://ds6fhp7w1bl7r"
-path="res://.godot/imported/execution_lineup.wav-94883d03a9ae9dcdddea5d2e40978931.sample"
-
-[deps]
-
-source_file="res://audio/music/execution_lineup.wav"
-dest_files=["res://.godot/imported/execution_lineup.wav-94883d03a9ae9dcdddea5d2e40978931.sample"]
-
-[params]
-
-force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
-edit/trim=false
-edit/normalize=false
-edit/loop_mode=0
-edit/loop_begin=0
-edit/loop_end=-1
-compress/mode=2
+importer="keep"

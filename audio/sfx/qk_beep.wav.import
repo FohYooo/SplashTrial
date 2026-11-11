@@ -1,24 +1,3 @@
 [remap]
 
-importer="wav"
-type="AudioStreamWAV"
-uid="uid://df2rcncp8fig5"
-path="res://.godot/imported/qk_beep.wav-2f9d9f002fda17754e2d05a7ad75b59f.sample"
-
-[deps]
-
-source_file="res://audio/sfx/qk_beep.wav"
-dest_files=["res://.godot/imported/qk_beep.wav-2f9d9f002fda17754e2d05a7ad75b59f.sample"]
-
-[params]
-
-force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
-edit/trim=false
-edit/normalize=false
-edit/loop_mode=0
-edit/loop_begin=0
-edit/loop_end=-1
-compress/mode=2
+importer="keep"

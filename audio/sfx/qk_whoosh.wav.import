@@ -1,24 +1,3 @@
 [remap]
 
-importer="wav"
-type="AudioStreamWAV"
-uid="uid://brjhb3xak4a0a"
-path="res://.godot/imported/qk_whoosh.wav-36ad1840e1c8721c7bb5cfb50c06f0df.sample"
-
-[deps]
-
-source_file="res://audio/sfx/qk_whoosh.wav"
-dest_files=["res://.godot/imported/qk_whoosh.wav-36ad1840e1c8721c7bb5cfb50c06f0df.sample"]
-
-[params]
-
-force/8_bit=false
-force/mono=false
-force/max_rate=false
-force/max_rate_hz=44100
-edit/trim=false
-edit/normalize=false
-edit/loop_mode=0
-edit/loop_begin=0
-edit/loop_end=-1
-compress/mode=2
+importer="keep"
