@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs></defs>
+<ellipse cx="100" cy="186" rx="70" ry="8" fill="#000000" opacity="0.2"/>
+<g transform="rotate(-4 98 101)">
+<rect x="42" y="28" width="124" height="158" fill="#173a3a" rx="4"/>
+<rect x="156" y="26" width="8" height="154" fill="#f4efe0" stroke="#2a1a10" stroke-width="2"/>
+<rect x="36" y="22" width="124" height="158" fill="#2a6a6a" stroke="#2a1a10" stroke-width="4.5" rx="4"/>
+<rect x="36" y="22" width="12" height="158" fill="#205050" rx="3"/>
+<g transform="translate(102 101) scale(0.8)">
+<path d="M0 6 Q-20 -10 -52 -4 Q-42 4 -46 14 Q-30 8 -24 18 Q-12 10 0 16 Q12 10 24 18 Q30 8 46 14 Q42 4 52 -4 Q20 -10 0 6 Z" fill="#f4efe0" stroke="#2a1a10" stroke-width="3"/>
+</g>
+<path d="M102 123 q-8 10 0 20 q8 -10 0 -20 Z" fill="#9fd8f0" stroke="#2a1a10" stroke-width="2"/>
+<line x1="88" y1="119" x2="116" y2="147" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/>
+</g>
+<path d="M150 24 L162 24 L162 38 Z" fill="#fbf6ea" stroke="#2a1a10" stroke-width="2.5" transform="rotate(-4 100 100)"/>
+<path d="M70 30 L82 30 L82 50 L76 44 L70 50 Z" fill="#c0392b" transform="rotate(-4 100 100)"/>
+</svg>

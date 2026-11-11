@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="340" viewBox="0 0 260 340">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="-20" x2="0" y2="20"><stop offset="0" stop-color="#ffe39a" stop-opacity="1.0"/><stop offset="0.5" stop-color="#d9a845" stop-opacity="1.0"/><stop offset="1" stop-color="#8a6420" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="-26" x2="0" y2="26"><stop offset="0" stop-color="#ffe39a" stop-opacity="1.0"/><stop offset="0.5" stop-color="#d9a845" stop-opacity="1.0"/><stop offset="1" stop-color="#8a6420" stop-opacity="1.0"/></linearGradient></defs>
+<line x1="130" y1="170" x2="50" y2="330" stroke="#3a2414" stroke-width="13" stroke-linecap="round"/>
+<line x1="130" y1="170" x2="50" y2="330" stroke="#7a4a2c" stroke-width="8" stroke-linecap="round"/>
+<line x1="130" y1="170" x2="130" y2="330" stroke="#3a2414" stroke-width="13" stroke-linecap="round"/>
+<line x1="130" y1="170" x2="130" y2="330" stroke="#7a4a2c" stroke-width="8" stroke-linecap="round"/>
+<line x1="130" y1="170" x2="210" y2="330" stroke="#3a2414" stroke-width="13" stroke-linecap="round"/>
+<line x1="130" y1="170" x2="210" y2="330" stroke="#7a4a2c" stroke-width="8" stroke-linecap="round"/>
+<circle cx="130" cy="170" r="14" fill="#d9a845" stroke="#2a1a10" stroke-width="3"/>
+<g transform="translate(130 160) rotate(-28)">
+<rect x="-110" y="-20" width="120" height="40" fill="url(#l1)" stroke="#2a1a10" stroke-width="4" rx="6"/>
+<rect x="6" y="-26" width="96" height="52" fill="url(#l2)" stroke="#2a1a10" stroke-width="4" rx="6"/>
+<rect x="98" y="-32" width="24" height="64" fill="#8a6420" stroke="#2a1a10" stroke-width="4" rx="5"/>
+<ellipse cx="122" cy="0" rx="6" ry="28" fill="#a8d8f0" stroke="#2a1a10" stroke-width="3"/>
+<rect x="-126" y="-12" width="18" height="24" fill="#2a1a10" stroke="#2a1a10" stroke-width="3" rx="3"/>
+<rect x="-60" y="-22" width="8" height="44" fill="#8a6420" opacity="0.6"/>
+<rect x="40" y="-22" width="8" height="44" fill="#8a6420" opacity="0.6"/>
+</g>
+<path d="M214 52 Q216.6 61.4 226 64 Q216.6 66.6 214 76 Q211.4 66.6 202 64 Q211.4 61.4 214 52 Z" fill="#fffbe0" opacity="1"/>
+</svg>

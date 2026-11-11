@@ -1,19 +1,19 @@
 extends SceneTree
 ## Walk test for the 3D spaces (no rendering needed):
 ##   Godot --headless --path . -s tools/walktest.gd
-## For every space of both chapters it checks that
+## For every space of every chapter it checks that
 ##  - every door has a matching door back, and leads to a space that exists,
 ##  - from the arrival spot of each door you can reach, on foot, every door, lift, hotspot, person and note,
 ##    close enough and with a clear line of sight to use it,
-##  - every staircase really carries a walking player to the top.
+##  - every staircase really carries a walking player to the top,
+##  - in a chapter with days, every room and space has a valid "opens_day", and on every day before the last each guest
+##    stands in exactly one Free Time space that is open that day (spaces are walked as the investigation sees them on
+##    the last day, and as Free Time sees them on each earlier day).
+##  - the investigation's people have somewhere to stand: a named spot, or one of the room's spare k.spots.
 ## Exit code 1 if anything fails.
 
 const Kit := preload("res://scripts/world3d/kit.gd")
-const Rooms1 := preload("res://scripts/world3d/rooms1.gd")
-const Rooms2 := preload("res://scripts/world3d/rooms2.gd")
 const Player3D := preload("res://scripts/world3d/player3d.gd")
-const Inv1 := preload("res://scripts/data/investigation_data.gd")
-const Inv2 := preload("res://scripts/data/investigation_data2.gd")
 const Cast := preload("res://scripts/data/cast.gd")
 const Chapters := preload("res://scripts/data/chapters.gd")
 
@@ -35,13 +35,13 @@ func _fail(msg: String) -> void:
 func _run() -> void:
 	holder = Node3D.new()
 	root.add_child(holder)
-	await _chapter(1, Rooms1, Inv1)
-	await _chapter(2, Rooms2, Inv2)
+	for ch in range(1, Chapters.LAST + 1):
+		await _chapter(ch)
 	print("walktest: ", "OK" if fails == 0 else "%d failure(s)" % fails)
 	quit(1 if fails > 0 else 0)
 
 
-func _build(ch_rooms: Script, id: String, mode: String) -> Kit:
+func _build(ch_rooms: Script, id: String, mode: String, day: int = 0) -> Kit:
 	for c in holder.get_children():
 		holder.remove_child(c)
 		c.free()
@@ -49,17 +49,33 @@ func _build(ch_rooms: Script, id: String, mode: String) -> Kit:
 	holder.add_child(r)
 	var k := Kit.new(r)
 	k.mode = mode
+	if day > 0:
+		k.set_meta("day", day)
 	ch_rooms.call("build", id, k, {})
 	return k
 
 
-func _chapter(ch: int, rooms: Script, inv: Script) -> void:
+func _chapter(ch: int) -> void:
+	Chapters.current = ch
+	var rooms: Script = Chapters.rooms3d()
+	var inv: Script = load(str(Chapters.get_value("investigation")))
 	var inv_rooms: Dictionary = inv.get_script_constant_map()["ROOMS"]
 	var spaces: Dictionary = rooms.get_script_constant_map()["SPACES"]
-	var ids: Array = inv_rooms.keys() + spaces.keys()
+	var ids: Array = inv_rooms.keys()
+	for id in spaces.keys():
+		if not ids.has(id):
+			ids.append(id)
+	var day_starts: Dictionary = Chapters.get_value("day_starts", {})
+	var last_day := 0
+	if not day_starts.is_empty():
+		last_day = day_starts.values().max()
+		for id in ids:
+			var opens := int((inv_rooms.get(id, spaces.get(id, {})) as Dictionary).get("opens_day", 0))
+			if opens < 1 or opens > last_day:
+				_fail("ch%d %s: opens_day %d is not a day of the story" % [ch, id, opens])
 	var door_map := {}
 	for id in ids:
-		var k := _build(rooms, id, "investigate")
+		var k := _build(rooms, id, "investigate", last_day)
 		door_map[id] = k.doors.keys()
 	for id in ids:
 		for to in door_map[id]:
@@ -68,34 +84,45 @@ func _chapter(ch: int, rooms: Script, inv: Script) -> void:
 			elif not (door_map[to] as Array).has(id):
 				_fail("ch%d %s: door to %s has no door back" % [ch, id, to])
 	for id in ids:
-		await _check_space(rooms, ch, id, "investigate", inv_rooms.get(id, {}))
+		await _check_space(rooms, ch, id, "investigate", inv_rooms.get(id, {}), last_day)
 	var free: Array = rooms.get_script_constant_map()["FREE_SPACES"]
-	var placed: Array = []
-	for id in free:
-		await _check_space(rooms, ch, id, "freetime", {})
-		var k := _build(rooms, id, "freetime")
-		placed.append_array(k.people.keys())
-	Chapters.current = ch
-	for cid in Cast.roster_alive():
-		if cid != "mochi" and not placed.has(cid):
-			_fail("ch%d: %s has no Free Time spot" % [ch, cid])
+	var days: Array = [Chapters.day_at("freetime")] if last_day == 0 else range(1, last_day)
+	for day in days:
+		var placed := {}
+		for id in free:
+			if not Chapters.room_open(inv_rooms.get(id, spaces.get(id, {})), int(day)):
+				continue
+			await _check_space(rooms, ch, id, "freetime", {}, int(day) if last_day > 0 else 0)
+			var k := _build(rooms, id, "freetime", int(day) if last_day > 0 else 0)
+			for cid in k.people.keys():
+				if placed.has(cid):
+					_fail("ch%d day %d: %s stands in both %s and %s" % [ch, day, cid, placed[cid], id])
+				placed[cid] = id
+		for cid in Cast.roster_alive():
+			if cid != "mochi" and not placed.has(cid):
+				_fail("ch%d day %d: %s has no Free Time spot" % [ch, day, cid])
 	print("ch%d: %d spaces checked" % [ch, ids.size()])
 
 
-func _check_space(rooms: Script, ch: int, id: String, mode: String, data: Dictionary) -> void:
-	var k := _build(rooms, id, mode)
+func _check_space(rooms: Script, ch: int, id: String, mode: String, data: Dictionary, day: int = 0) -> void:
+	var k := _build(rooms, id, mode, day)
 	var standees := {}
 	for cid in k.people.keys():
 		standees[cid] = k.standee(cid, "normal", k.people[cid])
+	for i in k.spots.size():
+		standees["spot %d" % (i + 1)] = k.standee("mochi", "normal", k.spots[i])
 	await physics_frame
 	await physics_frame
-	var name := "ch%d %s (%s)" % [ch, id, mode]
+	var name := "ch%d %s (%s%s)" % [ch, id, mode, " day %d" % day if day > 0 else ""]
 	for h in data.get("hotspots", []):
 		if not k.hot.has(str(h["id"])):
 			_fail("%s: no 3D object for hotspot %s" % [name, h["id"]])
+	var spare := k.spots.size()
 	for p in data.get("people", []):
 		if not k.people.has(str(p["char"])):
-			_fail("%s: no standing spot for %s" % [name, p["char"]])
+			spare -= 1
+			if spare < 0:
+				_fail("%s: no standing spot for %s" % [name, p["char"]])
 	var starts: Array = []
 	for to in k.doors.keys():
 		var d: Dictionary = k.doors[to]

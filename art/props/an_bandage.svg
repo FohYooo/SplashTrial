@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="140" viewBox="0 0 170 140">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="36" y1="0" x2="128" y2="0"><stop offset="0" stop-color="#7a5232" stop-opacity="1.0"/><stop offset="0.4" stop-color="#a5754a" stop-opacity="1.0"/><stop offset="1" stop-color="#7a5232" stop-opacity="1.0"/></linearGradient>
+<clipPath id="c2"><path d="M36 126 L40 70 Q42 46 82 44 Q122 46 124 70 L128 126 Z"/></clipPath></defs>
+<ellipse cx="58" cy="44" rx="14" ry="12" fill="#000000" opacity="0.3"/>
+<ellipse cx="54" cy="40" rx="14" ry="12" fill="#a5754a" stroke="#2a1a10" stroke-width="3.5"/>
+<ellipse cx="51" cy="37" rx="5" ry="3.5" fill="#c09e80" opacity="0.7"/>
+<ellipse cx="86" cy="44" rx="14" ry="12" fill="#000000" opacity="0.3"/>
+<ellipse cx="82" cy="40" rx="14" ry="12" fill="#a5754a" stroke="#2a1a10" stroke-width="3.5"/>
+<ellipse cx="79" cy="37" rx="5" ry="3.5" fill="#c09e80" opacity="0.7"/>
+<ellipse cx="114" cy="44" rx="14" ry="12" fill="#000000" opacity="0.3"/>
+<ellipse cx="110" cy="40" rx="14" ry="12" fill="#a5754a" stroke="#2a1a10" stroke-width="3.5"/>
+<ellipse cx="107" cy="37" rx="5" ry="3.5" fill="#c09e80" opacity="0.7"/>
+<path d="M36 126 L40 70 Q42 46 82 44 Q122 46 124 70 L128 126 Z" fill="#000000" opacity="0.3" transform="translate(6 6)"/>
+<path d="M36 126 L40 70 Q42 46 82 44 Q122 46 124 70 L128 126 Z" fill="url(#l1)" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<g clip-path="url(#c2)">
+<path d="M20 58 L150 48 L150 68 L20 78 Z" fill="#f4f1ea" stroke="#b9b4aa" stroke-width="1.6"/>
+<path d="M20 72 L150 62 L150 68 L20 78 Z" fill="#c9c4ba" opacity="0.5"/>
+<path d="M20 84 L150 62 L150 82 L20 104 Z" fill="#f4f1ea" stroke="#b9b4aa" stroke-width="1.6"/>
+<path d="M20 92 L150 82 L150 82 L20 104 Z" fill="#c9c4ba" opacity="0.5"/>
+<path d="M20 98 L150 88 L150 108 L20 118 Z" fill="#f4f1ea" stroke="#b9b4aa" stroke-width="1.6"/>
+<path d="M20 112 L150 102 L150 108 L20 118 Z" fill="#c9c4ba" opacity="0.5"/>
+<path d="M20 124 L150 102 L150 122 L20 144 Z" fill="#f4f1ea" stroke="#b9b4aa" stroke-width="1.6"/>
+<path d="M20 132 L150 122 L150 122 L20 144 Z" fill="#c9c4ba" opacity="0.5"/>
+<ellipse cx="98" cy="88" rx="8" ry="6" fill="#7a0010" opacity="0.8"/>
+<ellipse cx="97" cy="87" rx="4" ry="3" fill="#b3001b" opacity="0.6"/>
+</g>
+<path d="M36 126 L40 70 Q42 46 82 44 Q122 46 124 70 L128 126 Z" fill="none" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<path d="M128 104 Q146 112 150 128" stroke="#f4f1ea" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M128 104 Q146 112 150 128" stroke="#b9b4aa" stroke-width="1.6" opacity="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

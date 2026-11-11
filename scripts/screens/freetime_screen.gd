@@ -291,6 +291,9 @@ func _free_player() -> void:
 func _first_bg(txt: String) -> String:
 	for line in txt.split("\n"):
 		var l := line.strip_edges()
+		# a script that branches before its first @bg (Case 3's hangouts pick theirs by day) sets its own, from black
+		if l.begins_with("@if ") or l.begins_with("@ifnot ") or l.begins_with("@jump "):
+			return ""
 		if l.begins_with("@bg "):
 			var parts := l.substr(4).strip_edges().split(" ", false)
 			return parts[0] if parts.size() > 0 else ""
@@ -352,7 +355,7 @@ func _build_chooser() -> void:
 	bar.size = Vector2(318, 4)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_header.add_child(bar)
-	var sub := Style.label("Day 1  -  Afternoon. Who will you spend time with?", 20, Style.TEXT, true)
+	var sub := Style.label("Day %d  -  Afternoon. Who will you spend time with?" % maxi(Chapters.day_at(Game.main.current_step()), 1), 20, Style.TEXT, true)
 	sub.position = Vector2(60, 110)
 	sub.add_theme_color_override("font_outline_color", Style.BG_DARK)
 	sub.add_theme_constant_override("outline_size", 6)
@@ -382,9 +385,9 @@ func _build_chooser() -> void:
 	for id in Cast.roster_alive():
 		if id != "mochi":
 			ids.append(id)
-	# 14 guests = two rows of 7; 12 (chapter 2) = two rows of 6, nudged right to stay centred
-	_cols = COLS if ids.size() > 12 else 6
-	var x_off := 0.0 if _cols == COLS else COL_STEP * 0.5
+	# two even rows (14 guests = 7 + 7, 12 = 6 + 6, 10 = 5 + 5), nudged right to stay centred
+	_cols = mini(COLS, ceili(ids.size() / 2.0))
+	var x_off := (COLS - _cols) * COL_STEP * 0.5
 	for i in ids.size():
 		var row := i / _cols
 		var col := i % _cols

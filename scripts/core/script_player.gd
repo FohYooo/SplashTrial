@@ -30,7 +30,10 @@ const Skills := preload("res://scripts/data/skills.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Style := preload("res://scripts/ui/style.gd")
 const Fx := preload("res://scripts/ui/fx.gd")
+const Alibis := preload("res://scripts/data/alibis.gd")
+const LogRules := preload("res://scripts/data/log_rules.gd")
 
+const ANIM_SCRIPT := "res://scripts/ui/story_anim.gd"
 const MINIGAMES := {
 	"debate": "res://scripts/trial/debate.gd",
 	"choice": "res://scripts/trial/choice.gd",
@@ -40,6 +43,9 @@ const MINIGAMES := {
 	"rebuttal": "res://scripts/trial/rebuttal.gd",
 	"rewind": "res://scripts/trial/rewind.gd",
 	"vote": "res://scripts/trial/vote.gd",
+	"roll_call": "res://scripts/trial/rollcall.gd",
+	"time_pick": "res://scripts/trial/timepick.gd",
+	"evidence": "res://scripts/ui/evidence_viewer.gd",
 }
 const POSITIONS := {"farleft": 0.13, "left": 0.29, "center": 0.5, "right": 0.71, "farright": 0.87}
 const SPEAKER_HEADS := ["narr", "think", "voice", "all"]
@@ -77,6 +83,7 @@ var _tb_tween: Tween
 var _name_tween: Tween
 
 var _cmds: Array = []
+var _injected: Array = []   # commands to run before the next scripted one (see _missing_drops)
 var _labels := {}
 var _pc := 0
 var _running := false
@@ -176,6 +183,7 @@ func play_id(script_id: String, start_label: String = "") -> void:
 
 func play_text(text: String, start_label: String = "") -> void:
 	_gen += 1
+	_injected.clear()
 	_parse(text)
 	_pc = int(_labels.get(start_label, 0)) if start_label != "" else 0
 	_running = true
@@ -184,7 +192,22 @@ func play_text(text: String, start_label: String = "") -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	if transparent:
 		clear_portraits()
+	if _pc > 0:
+		_restore_scene(_pc)
 	_step()
+
+
+## Starting part-way in (a mid-trial checkpoint): put back the music and background that the lines before the label
+## would have set, so a Retry after the Game Over doesn't carry on under the Game Over music.
+func _restore_scene(upto: int) -> void:
+	var last := {}
+	for i in mini(upto, _cmds.size()):
+		var op := str((_cmds[i] as Dictionary).get("op", ""))
+		if op == "music" or op == "bg":
+			last[op] = _cmds[i]
+	for op in ["bg", "music"]:
+		if last.has(op):
+			_exec(last[op])
 
 
 func is_running() -> bool:
@@ -261,11 +284,15 @@ func _parse(text: String) -> void:
 # =================================================================== execution
 func _step() -> void:
 	while _running:
-		if _pc >= _cmds.size():
+		var c: Dictionary
+		if not _injected.is_empty():
+			c = _injected.pop_front()
+		elif _pc >= _cmds.size():
 			_finish()
 			return
-		var c: Dictionary = _cmds[_pc]
-		_pc += 1
+		else:
+			c = _cmds[_pc]
+			_pc += 1
 		if _exec(c):
 			return
 
@@ -372,10 +399,35 @@ func _exec(c: Dictionary) -> bool:
 			if args.size() > 1:
 				_shout(args[0], rest.substr(rest.find(" ") + 1))
 				return true
+		"anim":
+			if args.size() > 0:
+				_play_anim(str(args[0]))
+				return true
 		"minigame":
 			if args.size() > 0:
+				if not c.get("checked", false):
+					var before := _missing_drops(str(args[0]), c)
+					if not before.is_empty():
+						_injected = before
+						return false
 				_run_minigame(args[0])
 				return true
+		"missing_cost":
+			Game.pay_missing()
+		"alibi":
+			_alibi(args)
+		"log":
+			Game.log_write(rest)
+		"evening":
+			if not Game.autotest and Game.main:
+				_choice({"prompt": rest if rest != "" else LogRules.EVENING_PROMPT, "options": [
+					{"text": LogRules.EVENING_OPEN, "label": "", "open_marks": true},
+					{"text": LogRules.EVENING_SKIP, "label": ""}]})
+				return true
+		"checkpoint":
+			# @checkpoint <label> [convince floor]
+			if args.size() > 0:
+				Game.set_trial_checkpoint(str(args[0]), float(args[1]) if args.size() > 1 else 0.0)
 		"textbox":
 			_show_textbox(rest != "hide")
 		"emit":
@@ -407,6 +459,7 @@ func _say(c: Dictionary) -> void:
 	var who: String = c["who"]
 	var expr: String = c["expr"]
 	var body := Style.markup(str(c["text"]))
+	Game.log_say(who, str(c["text"]))
 	_choice_box.visible = false
 	_show_textbox(true)
 	_blip_pitch = 1.0
@@ -560,6 +613,8 @@ func _await_click(min_time: float = 0.25, auto_after: float = -1.0) -> bool:
 		await get_tree().process_frame
 		if g != _gen or not is_inside_tree():
 			return false
+		if not can_process():
+			continue   # frames keep coming while the notebook has the game paused; this wait must not
 		t += get_process_delta_time()
 		if t >= min_time and (_click_flag or Game.is_fast_forward() or (Game.autotest and t >= 1.1)):
 			break
@@ -616,7 +671,7 @@ func _choice(c: Dictionary) -> void:
 
 func _auto_choose(o: Dictionary) -> void:
 	var g := _gen
-	await get_tree().create_timer(0.8 if Game.autotest_slow else 0.02).timeout
+	await get_tree().create_timer(0.8 if Game.autotest_slow else 0.02, false).timeout
 	if g == _gen and _state == "choice":
 		_choose(o)
 
@@ -632,6 +687,14 @@ func _choose(o: Dictionary) -> void:
 			Fx.flash(_overlay, Style.GOLD, 0.18, 0.18)
 	_choice_box.visible = false
 	_state = ""
+	if o.get("open_marks", false):
+		_state = "busy"
+		var g := _gen
+		Game.main.open_notebook("log", "notes")
+		await Game.main.notebook_closed
+		if g != _gen or not is_inside_tree():
+			return
+		_state = ""
 	if o["label"] != "":
 		_goto(o["label"])
 	_step()
@@ -743,7 +806,7 @@ func _shake_node(n: Control) -> void:
 func _wait(sec: float) -> void:
 	var g := _gen
 	_state = "busy"
-	await get_tree().create_timer(sec * (0.05 if Game.is_fast_forward() else 1.0)).timeout
+	await get_tree().create_timer(sec * (0.05 if Game.is_fast_forward() else 1.0), false).timeout
 	if g == _gen and is_inside_tree():
 		_state = ""
 		_step()
@@ -1266,6 +1329,106 @@ func _shout_out(root: Control) -> void:
 
 
 # =================================================================== minigames
+## The Truth Drops a segment needs the player to have.
+func _segment_drops(data: Dictionary) -> Array:
+	var out: Array = []
+	match str(data.get("type", "")):
+		"present":
+			var a: Variant = data.get("answer", "")
+			if typeof(a) == TYPE_ARRAY:
+				out.append_array(a)
+			else:
+				out.append(a)
+		"debate":
+			out.append((data.get("answer", {}) as Dictionary).get("drop", ""))
+		"rebuttal":
+			out.append((data.get("final", {}) as Dictionary).get("answer", ""))
+		"evidence":
+			out.append(data.get("clue", ""))
+	return out.filter(func(c: Variant) -> bool: return str(c) != "" and Clues.CLUES.has(str(c)) and not Game.has_clue(str(c)))
+
+
+## If the player reaches a segment without a Truth Drop it needs, another guest brings it up, at a capped convince
+## cost, so the trial can always be finished. Returns the commands to run first, ending with the minigame itself.
+func _missing_drops(data_id: String, c: Dictionary) -> Array:
+	var data: Dictionary = TrialData.get_data(data_id)
+	var missing := _segment_drops(data)
+	if missing.is_empty():
+		return []
+	var out: Array = []
+	var line: Variant = data.get("missing", {})
+	var who := str((line as Dictionary).get("speaker", "")) if typeof(line) == TYPE_DICTIONARY else ""
+	if who == "":
+		var others: Array = Cast.survivors().filter(func(id: Variant) -> bool: return id != "mochi")
+		who = str(others[hash(data_id) % others.size()]) if others.size() > 0 else "narr"
+	for id in missing:
+		var text := str((line as Dictionary).get("text", "")) if typeof(line) == TYPE_DICTIONARY else ""
+		if text == "":
+			text = "Mochi, you never picked this up? I found it myself. Honestly: %s." % Clues.clue_name(str(id))
+		out.append({"op": "say", "who": who, "expr": str((line as Dictionary).get("expr", "normal")) if typeof(line) == TYPE_DICTIONARY else "normal", "text": text})
+		out.append({"op": "missing_cost"})
+		out.append({"op": "clue", "args": [str(id)], "rest": str(id)})
+	var again := c.duplicate()
+	again["checked"] = true
+	out.append(again)
+	return out
+
+
+## `@alibi <guest> motive|all|<when>|<when> proof` fills in the board; `@alibi row <when>` adds a row to it.
+func _alibi(args: Array) -> void:
+	if args.size() < 2:
+		push_warning("ScriptPlayer: @alibi needs a guest and a field")
+		return
+	var who := str(args[0])
+	var field := " ".join(PackedStringArray(args.slice(1)))
+	if who == "row":
+		Game.add_alibi_row(field)
+	elif Alibis.has_field(who, field):
+		for f in Alibis.expand(who, field):
+			Game.reveal_alibi(who, str(f))
+	else:
+		push_warning("ScriptPlayer: @alibi %s has no field '%s'" % [who, field])
+		return
+	_board_note()
+
+
+## A small corner note, so the player learns the board fills up as they listen.
+func _board_note() -> void:
+	if Game.autotest:
+		return
+	var l := Style.title_label("ALIBI BOARD UPDATED", 16, Style.AQUA, Style.INK, 5)
+	l.position = Vector2(1040, 92)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.add_child(l)
+	var tw := l.create_tween()
+	tw.tween_interval(1.4)
+	tw.tween_property(l, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(l.queue_free)
+
+
+## @anim <id>: plays an animated scene from scripts/data/anim_scenes.gd on top of the dialogue and waits for it.
+func _play_anim(id: String) -> void:
+	_state = "busy"
+	_show_textbox(false)
+	_choice_box.visible = false
+	var g := _gen
+	var scr: Script = load(ANIM_SCRIPT)
+	if scr == null or not scr.can_instantiate():
+		push_warning("ScriptPlayer: cannot play @anim %s" % id)
+		_state = ""
+		_step()
+		return
+	var a: Control = scr.new()
+	a.setup({"id": id})
+	_overlay.add_child(a)
+	await a.finished
+	if g != _gen or not is_inside_tree():
+		return
+	a.queue_free()
+	_state = ""
+	_step()
+
+
 func _run_minigame(data_id: String) -> void:
 	_state = "minigame"
 	_show_textbox(false)

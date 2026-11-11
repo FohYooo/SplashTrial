@@ -1,7 +1,8 @@
 extends Control
 ## The Splash Trial: a pseudo-3D courtroom stage (scripts/ui/trial_stage.gd) behind a ScriptPlayer
 ## in stage mode (the player draws only the textbox/overlays; the stage draws chamber + speakers),
-## with the Convince Meter HUD. Plays story script "trial" (or params.script_text for debugging).
+## with the Convince Meter HUD. Plays story script "trial" (params.script picks another id, e.g. "confession";
+## params.script_text is for debugging).
 ## Main decides execution vs game over from Game.get_flag("vote_correct").
 
 signal finished(result: Dictionary)
@@ -40,4 +41,4 @@ func _ready() -> void:
 	if _params.has("script_text"):
 		player.play_text(_params["script_text"])
 	else:
-		player.play_id("trial")
+		player.play_id(str(_params.get("script", "trial")), str(_params.get("start_label", "")))

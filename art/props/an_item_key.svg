@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="330" viewBox="0 0 360 330">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="190" x2="0" y2="310"><stop offset="0" stop-color="#c04a70" stop-opacity="1.0"/><stop offset="0.6" stop-color="#8e2b4a" stop-opacity="1.0"/><stop offset="1" stop-color="#551530" stop-opacity="1.0"/></linearGradient>
+<radialGradient id="q2" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd86b" stop-opacity="0.5"/><stop offset="0.5" stop-color="#ffd86b" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd86b" stop-opacity="0"/></radialGradient>
+<linearGradient id="l3" gradientUnits="userSpaceOnUse" x1="-14" y1="0" x2="14" y2="0"><stop offset="0" stop-color="#8a6420" stop-opacity="1.0"/><stop offset="0.5" stop-color="#ffe39a" stop-opacity="1.0"/><stop offset="1" stop-color="#d9a845" stop-opacity="1.0"/></linearGradient>
+<radialGradient id="q4" cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff08a" stop-opacity="1.0"/><stop offset="0.6" stop-color="#ffc93c" stop-opacity="1.0"/><stop offset="1" stop-color="#e89a1c" stop-opacity="1.0"/></radialGradient></defs>
+<path d="M34 268 Q18 222 62 206 Q180 176 298 206 Q342 222 326 268 Q330 306 290 300 Q180 318 70 300 Q30 306 34 268 Z" fill="url(#l1)" stroke="#2a1a10" stroke-width="4.5" stroke-linejoin="round"/>
+<path d="M70 236 Q180 208 290 236" stroke="#e88aa8" stroke-width="3" opacity="0.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M36 270 q -4 12 -2 26" stroke="#d9a845" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="34" cy="300" r="6" fill="#ffe39a" stroke="#2a1a10" stroke-width="2"/>
+<path d="M324 270 q 4 12 2 26" stroke="#d9a845" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="326" cy="300" r="6" fill="#ffe39a" stroke="#2a1a10" stroke-width="2"/>
+<path d="M66 300 q -4 12 -2 26" stroke="#d9a845" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="64" cy="330" r="6" fill="#ffe39a" stroke="#2a1a10" stroke-width="2"/>
+<path d="M294 300 q 4 12 2 26" stroke="#d9a845" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="296" cy="330" r="6" fill="#ffe39a" stroke="#2a1a10" stroke-width="2"/>
+<circle cx="180" cy="140" r="170" fill="url(#q2)"/>
+<g transform="translate(186 196) rotate(-28) scale(0.8)">
+<rect x="-14" y="-104" width="28" height="214" fill="url(#l3)" stroke="#2a1a10" stroke-width="4" rx="7"/>
+<path d="M14 56 L58 56 L58 74 L38 74 L38 88 L58 88 L58 110 L14 110 Z" fill="#d9a845" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="0" cy="-146" r="62" fill="none" stroke="#2a1a10" stroke-width="26"/>
+<circle cx="0" cy="-146" r="62" fill="none" stroke="#d9a845" stroke-width="18"/>
+<circle cx="0" cy="-146" r="62" fill="none" stroke="#ffe39a" stroke-width="4" opacity="0.8"/>
+<g transform="translate(0 -146) rotate(-20)">
+<circle cx="0" cy="0" r="28" fill="url(#q4)"/>
+<circle cx="-9" cy="-9.8" r="6.2" fill="#ffffff" opacity="0.6"/>
+<path d="M0 -25.2 Q11.2 -44.8 30.8 -36.4 Q19.6 -19.6 0 -25.2 Z" fill="#5f9e3a"/>
+</g>
+</g>
+<path d="M70 66 Q74 80 88 84 Q74 88 70 102 Q66 88 52 84 Q66 80 70 66 Z" fill="#fffbe0" opacity="1"/>
+<path d="M300 36 Q305.3 54.7 324 60 Q305.3 65.3 300 84 Q294.7 65.3 276 60 Q294.7 54.7 300 36 Z" fill="#fffbe0" opacity="1"/>
+<path d="M276 145 Q278.9 155.1 289 158 Q278.9 160.9 276 171 Q273.1 160.9 263 158 Q273.1 155.1 276 145 Z" fill="#fffbe0" opacity="1"/>
+</svg>

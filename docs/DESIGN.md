@@ -4,8 +4,10 @@ An original murder-mystery trial game in the "killing game + class trial" genre,
 starring 15 original capybaras. Everything here (names, mastermind, minigame names,
 UI look) is original. Do NOT reference or imitate any existing franchise's names,
 characters, catchphrases or art (no bears, no "Ultimate", no "Nonstop Debate",
-no "Objection!", no pink blood). Tone: darkly comedic, warm, a little sad. Never gory:
-deaths and executions are implied/slapstick, cartoon-style.
+no "Objection!", no pink blood). Tone: darkly comedic, warm, a little sad. Cases 1 and 2: never gory,
+deaths and executions are implied/slapstick, cartoon-style. **From Case 3 on this is replaced:** punishments are brutal
+and shown on screen (hard silhouette frames, impact cuts, a lot of dark-red blood, never pink), portraits are never
+altered; see `DESIGN3.md`, "Punishments from Case 3 on".
 
 Credits (exact): **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude**.
 

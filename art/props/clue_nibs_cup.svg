@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs></defs>
+<ellipse cx="100" cy="186" rx="76" ry="9" fill="#000000" opacity="0.2"/>
+<path d="M14 150 Q40 120 100 128 Q170 118 188 154 Q150 178 100 172 Q40 178 14 150 Z" fill="#c4a2df" stroke="#2a1a10" stroke-width="4.5"/>
+<path d="M40 150 Q100 136 160 152" stroke="#9474bd" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M64 140 L70 92 L134 92 L140 140 Q100 152 64 140 Z" fill="#fbf8f0" stroke="#2a1a10" stroke-width="4.5"/>
+<ellipse cx="102" cy="92" rx="32" ry="9" fill="#a8784a" stroke="#2a1a10" stroke-width="3"/>
+<path d="M136 104 Q160 104 156 124 Q150 134 136 128" fill="none" stroke="#2a1a10" stroke-width="7"/>
+<path d="M136 104 Q160 104 156 124 Q150 134 136 128" fill="none" stroke="#fbf8f0" stroke-width="3.5"/>
+<path d="M84 78 q-8 -10 0 -22 q8 -10 0 -22" stroke="#c8a8e0" stroke-width="3" opacity="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M100 78 q-8 -10 0 -22 q8 -10 0 -22" stroke="#c8a8e0" stroke-width="3" opacity="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M116 78 q-8 -10 0 -22 q8 -10 0 -22" stroke="#c8a8e0" stroke-width="3" opacity="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="300" viewBox="0 0 430 300">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="286"><stop offset="0" stop-color="#a66a3c" stop-opacity="1.0"/><stop offset="0.2" stop-color="#7a4a2c" stop-opacity="1.0"/><stop offset="1" stop-color="#4a2a18" stop-opacity="1.0"/></linearGradient>
+<clipPath id="c2"><polygon points="8,18 424,18 420.8,60.3 386.6,104.8 402.9,135.9 418,162.6 384.3,201.6 388.4,231.4 396.5,265 413.3,292 8,292"/></clipPath>
+<linearGradient id="l3" gradientUnits="userSpaceOnUse" x1="0" y1="18" x2="0" y2="52"><stop offset="0" stop-color="#ffe39a" stop-opacity="1.0"/><stop offset="1" stop-color="#8a6420" stop-opacity="1.0"/></linearGradient></defs>
+<g transform="translate(430 14) scale(-1 1)">
+<polygon points="16,26 432,26 428.8,68.3 394.6,112.8 410.9,143.9 426,170.6 392.3,209.6 396.4,239.4 404.5,273 421.3,300 16,300" fill="#000000" opacity="0.5"/>
+<polygon points="8,18 424,18 420.8,60.3 386.6,104.8 402.9,135.9 418,162.6 384.3,201.6 388.4,231.4 396.5,265 413.3,292 8,292" fill="url(#l1)" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<g clip-path="url(#c2)">
+<rect x="0" y="18" width="430" height="34" fill="url(#l3)"/>
+<line x1="0" y1="52" x2="430" y2="52" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<rect x="30" y="74" width="62" height="180" fill="#4a2a18" stroke="#2a1a10" stroke-width="2.2" rx="4"/>
+<rect x="37" y="81" width="48" height="166" fill="#7a4a2c" opacity="0.8" rx="3"/>
+<line x1="42" y1="88" x2="42" y2="240" stroke="#a66a3c" stroke-width="1.8" opacity="0.7" stroke-linecap="round"/>
+<rect x="116" y="74" width="62" height="180" fill="#4a2a18" stroke="#2a1a10" stroke-width="2.2" rx="4"/>
+<rect x="123" y="81" width="48" height="166" fill="#7a4a2c" opacity="0.8" rx="3"/>
+<line x1="128" y1="88" x2="128" y2="240" stroke="#a66a3c" stroke-width="1.8" opacity="0.7" stroke-linecap="round"/>
+<rect x="202" y="74" width="62" height="180" fill="#4a2a18" stroke="#2a1a10" stroke-width="2.2" rx="4"/>
+<rect x="209" y="81" width="48" height="166" fill="#7a4a2c" opacity="0.8" rx="3"/>
+<line x1="214" y1="88" x2="214" y2="240" stroke="#a66a3c" stroke-width="1.8" opacity="0.7" stroke-linecap="round"/>
+<rect x="288" y="74" width="62" height="180" fill="#4a2a18" stroke="#2a1a10" stroke-width="2.2" rx="4"/>
+<rect x="295" y="81" width="48" height="166" fill="#7a4a2c" opacity="0.8" rx="3"/>
+<line x1="300" y1="88" x2="300" y2="240" stroke="#a66a3c" stroke-width="1.8" opacity="0.7" stroke-linecap="round"/>
+<rect x="374" y="74" width="62" height="180" fill="#4a2a18" stroke="#2a1a10" stroke-width="2.2" rx="4"/>
+<rect x="381" y="81" width="48" height="166" fill="#7a4a2c" opacity="0.8" rx="3"/>
+<line x1="386" y1="88" x2="386" y2="240" stroke="#a66a3c" stroke-width="1.8" opacity="0.7" stroke-linecap="round"/>
+<rect x="0" y="260" width="430" height="26" fill="#4a2a18"/>
+</g>
+<polyline points="424,18 420.8,60.3 386.6,104.8 402.9,135.9 418,162.6 384.3,201.6 388.4,231.4 396.5,265 413.3,292" stroke="#f3d9b0" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="419,20 415.8,62.3 381.6,106.8 397.9,137.9 413,164.6 379.3,203.6 383.4,233.4 391.5,267 408.3,294" stroke="#5a3218" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

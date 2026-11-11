@@ -1,7 +1,7 @@
 extends Control
 ## Convince Meter HUD (top-center strip: x 400..880, y 10..74). The trial screen adds it to ScriptPlayer.hud.
 ## Listens to Game.convince_changed. Angular look: slanted ink frame, 20 slanted segments, a bold gold
-## VOTE notch at Game.CONVINCE_THRESHOLD (pulses when crossed), pop-up +/- numbers, a white "gain ghost"
+## VOTE notch at Game.convince_threshold() (pulses when crossed), pop-up +/- numbers, a white "gain ghost"
 ## while the bar fills, a coral damage trail + shake on losses.
 
 const Style := preload("res://scripts/ui/style.gd")
@@ -39,7 +39,7 @@ func _ready() -> void:
 func _on_changed(v: float, delta: float) -> void:
 	var old := _value
 	_value = v
-	var th := Game.CONVINCE_THRESHOLD
+	var th := Game.convince_threshold()
 	var txt := ""
 	var col := Style.GOOD
 	if delta > 0.05:
@@ -72,7 +72,7 @@ func _on_changed(v: float, delta: float) -> void:
 
 
 func _notch_x() -> float:
-	return BAR.position.x + BAR.size.x * Game.CONVINCE_THRESHOLD / 100.0
+	return BAR.position.x + BAR.size.x * Game.convince_threshold() / 100.0
 
 
 ## Pop-up label: slams in (scale overshoot), rises a few px and fades. Stays inside the HUD strip.
@@ -129,7 +129,7 @@ func _seg_poly(i: int, frac: float) -> PackedVector2Array:
 
 
 func _draw() -> void:
-	var th := Game.CONVINCE_THRESHOLD
+	var th := Game.convince_threshold()
 	var ok := _shown >= th
 	var font := Style.display_font()
 	# frame: hard shadow, outline, ink fill (+ pulse ring)

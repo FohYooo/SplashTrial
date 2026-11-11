@@ -511,6 +511,7 @@ func _start_final() -> void:
 	_ft = 0.0
 	_opp_expr("angry")
 	var text := str(_final.get("text", ""))
+	Game.log_say(_opp, text, true)
 	_final_view = _new_statement()
 	_final_view.build(text, 660.0, 50 if text.length() < 50 else 44, Style.display_font())
 	_final_view.outline_col = Color("1e0b33")
@@ -525,7 +526,8 @@ func _start_final() -> void:
 	_shake(6.0, 0.2)
 	if _final_view.weak_count() == 0:
 		push_warning("rebuttal: final text has no {weak spot}")
-	_build_drop_panel(_final.get("drops", []))
+	# only Drops in the notebook, topped up like a debate's (see TrialCommon._ammo_list)
+	_build_drop_panel(_ammo_list(_final.get("drops", [])))
 	_show_drop_panel()
 	_aim_enabled = true
 	if Game.autotest:
@@ -571,6 +573,10 @@ func _resolve(drop: String, gp: Vector2) -> void:
 		return
 	if drop == str(_final.get("answer", "")):
 		_final_win(gp)
+	elif (data.get("early", {}) as Dictionary).has(drop):
+		await _early_line(drop, Vector2(40, 430))
+		if not _gone():
+			_state = "aim"
 	else:
 		_final_wrong(gp)
 
@@ -591,6 +597,7 @@ func _final_win(gp: Vector2) -> void:
 	Audio.sfx("break")
 	_shake(20.0, 0.45)
 	Game.reward(Game.REWARD_REBUTTAL)
+	Game.pay_early(str(_final.get("answer", "")))
 	_opp_recoil(70.0)
 	await _wait(_fxd(0.24))
 	if _gone():

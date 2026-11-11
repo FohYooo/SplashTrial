@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="120" viewBox="0 0 150 120">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="0" y1="90" x2="0" y2="112"><stop offset="0" stop-color="#ffffff" stop-opacity="1.0"/><stop offset="1" stop-color="#c9c2b0" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="35" y1="0" x2="115" y2="0"><stop offset="0" stop-color="#e8e2d2" stop-opacity="1.0"/><stop offset="0.3" stop-color="#ffffff" stop-opacity="1.0"/><stop offset="1" stop-color="#bdb6a4" stop-opacity="1.0"/></linearGradient>
+<radialGradient id="q3" cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff08a" stop-opacity="1.0"/><stop offset="0.6" stop-color="#ffc93c" stop-opacity="1.0"/><stop offset="1" stop-color="#e89a1c" stop-opacity="1.0"/></radialGradient>
+<linearGradient id="l4" gradientUnits="userSpaceOnUse" x1="0" y1="33" x2="0" y2="45"><stop offset="0" stop-color="#c47a2a" stop-opacity="1.0"/><stop offset="1" stop-color="#7a3e12" stop-opacity="1.0"/></linearGradient></defs>
+<ellipse cx="75" cy="106" rx="62" ry="12" fill="#000000" opacity="0.2"/>
+<ellipse cx="75" cy="102" rx="60" ry="13" fill="url(#l1)" stroke="#2a1a10" stroke-width="3"/>
+<ellipse cx="75" cy="99" rx="38" ry="7" fill="#d8d0bc" stroke="#8a8270" stroke-width="1.2"/>
+<path d="M19 104 Q75 111 131 104" fill="none" stroke="#ffc93c" stroke-width="2.2"/>
+<path d="M35 38 L115 38 L115 78 Q111 96 75 96 Q39 96 35 78 Z" fill="url(#l2)" stroke="#2a1a10" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="M114 52 Q145 56 111 78" fill="none" stroke="#2a1a10" stroke-width="11"/>
+<path d="M114 52 Q145 56 111 78" fill="none" stroke="#f4f0e6" stroke-width="6"/>
+<path d="M35 54 Q75 60 115 54 L115 64 Q75 70 35 64 Z" fill="#ffc93c" stroke="#2a1a10" stroke-width="1.5"/>
+<g transform="translate(69 84) rotate(-10)">
+<circle cx="0" cy="0" r="9" fill="url(#q3)"/>
+<circle cx="-2.9" cy="-3.1" r="2" fill="#ffffff" opacity="0.6"/>
+<path d="M0 -8.1 Q3.6 -14.4 9.9 -11.7 Q6.3 -6.3 0 -8.1 Z" fill="#5f9e3a"/>
+</g>
+<ellipse cx="75" cy="38" rx="40" ry="9" fill="#f4f0e6" stroke="#2a1a10" stroke-width="3"/>
+<ellipse cx="75" cy="39.5" rx="33" ry="6" fill="url(#l4)"/>
+<ellipse cx="65" cy="38" rx="10" ry="2" fill="#ffe0a0" opacity="0.6"/>
+<line x1="45" y1="50" x2="45" y2="78" stroke="#ffffff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+</svg>

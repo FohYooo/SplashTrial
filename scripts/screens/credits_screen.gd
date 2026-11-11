@@ -71,6 +71,16 @@ func _subtitle() -> String:
 	return str(Chapters.data(1 if _from_title else -1)["title"])
 
 
+## Per-chapter credits options (chapters.gd "credits_*" keys); from the title screen, the first chapter's.
+func _opt(key: String, fallback: Variant) -> Variant:
+	return Chapters.data(1 if _from_title else -1).get(key, fallback)
+
+
+## A sombre chapter's credits: no fireworks, and the Gaol's cell lights across the water instead of the hot spring.
+func _quiet() -> bool:
+	return bool(_opt("credits_quiet", false))
+
+
 func setup(params: Dictionary) -> void:
 	# Opened from the title screen the player may not have played yet: leave out the memorial card.
 	_from_title = bool(params.get("from_title", false))
@@ -78,7 +88,7 @@ func setup(params: Dictionary) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	Audio.play_music("credits")
+	Audio.play_music("sad" if _quiet() else "credits")
 	_glow_tex = _radial_tex()
 	_spark_tex = Assets.prop("title_sparkle")
 	_build_sky()
@@ -325,7 +335,7 @@ func _build_roll() -> void:
 	y += 260
 	# --- cast
 	y += _add_center(_lab("STARRING", 46, Style.AQUA, true, 12), 640, y) + 4
-	y += _add_center(_lab("the guests (and host) of Yuzu Springs Resort", 24, Style.TEXT_DIM, false, 6), 640, y) + 46
+	y += _add_center(_lab(str(_opt("credits_cast", "the guests (and host) of Yuzu Springs Resort")), 24, Style.TEXT_DIM, false, 6), 640, y) + 46
 	var ids: Array = []
 	for id in Cast.ROSTER:
 		ids.append(id)
@@ -349,8 +359,8 @@ func _build_roll() -> void:
 			tal += "  (that's you!)"
 		_add_left(_lab(tal, 23, Style.TEXT, false, 6), cx - 20, ny + nh + 2, 296)
 	y += ceilf(ids.size() / 2.0) * row_h + 200
-	# --- in memoriam (only after actually playing the case)
-	if not _from_title:
+	# --- in memoriam (only after actually playing the case, and only if the case has a victim)
+	if not _from_title and str(Chapters.get_value("victim", "")) != "":
 		_add_glow(Vector2(640, y + 150), Vector2(260, 220), Color(1.0, 0.85, 0.5, 0.35))
 		var halo := Line2D.new()
 		var pts := PackedVector2Array()
@@ -369,6 +379,19 @@ func _build_roll() -> void:
 		y += _add_center(_lab(str(Chapters.get_value("victim_name", "")), 72, Cast.color(victim).lightened(0.3), true, 16), 640, y) + 2
 		y += _add_center(_lab(str(Chapters.get_value("memorial_line", "")), 24, Style.TEXT, false, 6), 640, y)
 		y += 300
+	# anyone else this chapter lost who wasn't the culprit
+	if not _from_title:
+		for m in _opt("credits_mourned", []):
+			var row: Array = m
+			var mid := str(row[0])
+			_add_glow(Vector2(640, y + 120), Vector2(220, 180), Color(0.8, 0.85, 1.0, 0.25))
+			_add_card(Rect2(640 - 120, y + 30, 240, 200), Color(0.75, 0.8, 0.9))
+			_add_sprite(Assets.portrait(mid, "happy"), Vector2(640, y + 98), 0.44)
+			y += 250
+			y += _add_center(_lab("and of", 26, Style.TEXT_DIM, true, 8), 640, y) + 2
+			y += _add_center(_lab(str(row[1]), 56, Cast.color(mid).lightened(0.3), true, 14), 640, y) + 2
+			y += _add_center(_lab(str(row[2]), 24, Style.TEXT, false, 6), 640, y)
+			y += 280
 	# --- thanks
 	var yz := Assets.prop("title_yuzu")
 	var th := _lab("Thanks for playing!", 78, Style.YUZU, true, 18)
@@ -435,7 +458,7 @@ func _process(delta: float) -> void:
 					_celebrate()
 		else:
 			_end_t += delta * (2.5 if fast else 1.0)
-			if fmod(_t, 0.35) < delta:
+			if fmod(_t, 0.35) < delta and not _quiet():
 				var p := Vector2(randf_range(250, 1030), randf_range(230, 500))
 				_burst(p, 8)
 			if _end_t >= END_HOLD:
@@ -489,6 +512,9 @@ func _process(delta: float) -> void:
 
 
 func _celebrate() -> void:
+	if _quiet():
+		_light_out_t = _t
+		return
 	Audio.sfx("chime")
 	for i in 3:
 		_burst(Vector2(randf_range(320, 960), randf_range(250, 470)), 24)
@@ -516,6 +542,9 @@ func _draw_sky() -> void:
 		_sky.draw_line(p, p - v.normalized() * 120.0, Color(1, 1, 1, 0.0), 2.0, true)
 		_sky.draw_line(p, p - v.normalized() * 90.0 * a, Color(0.9, 0.85, 1.0, 0.8 * a), 2.5, true)
 		_sky.draw_circle(p, 2.5, Color(1, 1, 1, a))
+	if _quiet():
+		_draw_gaol()
+		return
 	# hot-spring glow + rocks at the bottom
 	_sky.draw_texture_rect(_glow_tex, Rect2(Vector2(140, 560), Vector2(1000, 320)), false, Color(0.25, 0.9, 0.85, 0.35))
 	for st in _steam:
@@ -529,6 +558,35 @@ func _draw_sky() -> void:
 		Vector2(420, 690), Vector2(560, 682), Vector2(700, 694), Vector2(840, 678), Vector2(980, 664), Vector2(1090, 680),
 		Vector2(1190, 652), Vector2(1280, 664), Vector2(1280, 720)])
 	_sky.draw_colored_polygon(rocks, Color("0b0618"))
+
+
+## The sea and the Gaol along the bottom: rows of small cell lights. When the roll stops, one of them goes out.
+var _light_out_t := -1.0
+
+
+func _draw_gaol() -> void:
+	_sky.draw_rect(Rect2(0, 640, 1280, 80), Color("050a12"))
+	_sky.draw_colored_polygon(PackedVector2Array([Vector2(300, 642), Vector2(380, 616), Vector2(520, 604), Vector2(760, 600), Vector2(900, 612),
+		Vector2(980, 642)]), Color("03060a"))
+	_sky.draw_rect(Rect2(450, 560, 380, 50), Color("04070c"))
+	_sky.draw_rect(Rect2(420, 580, 50, 30), Color("04070c"))
+	var r := RandomNumberGenerator.new()
+	r.seed = 2626
+	var idx := 0
+	for row in 3:
+		for col in 18:
+			var lit := r.randf() < 0.8
+			if not lit:
+				continue
+			idx += 1
+			if idx == 23 and _light_out_t >= 0.0 and _t - _light_out_t > 1.6:
+				continue
+			var p := Vector2(464 + col * 20.0, 568 + row * 13.0)
+			_sky.draw_texture_rect(_glow_tex, Rect2(p - Vector2(8, 8), Vector2(16, 16)), false, Color(1.0, 0.85, 0.5, 0.5))
+			_sky.draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 7)), Color(1.0, 0.86, 0.52))
+	for k in 10:
+		var x := 460.0 + k * 36.0
+		_sky.draw_line(Vector2(x, 652 + (k % 3) * 9), Vector2(x + 14, 652 + (k % 3) * 9), Color(1.0, 0.85, 0.5, 0.18), 2.0)
 
 
 func _draw_fx() -> void:

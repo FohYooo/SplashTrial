@@ -2,9 +2,18 @@ extends Control
 ## Pick-the-Answer minigames. One script, three flavours (branches on data.type):
 ##   "choice"    PICK THE ANSWER       big option buttons (click or keys 1-9)
 ##   "present"   PRESENT A TRUTH DROP  grid of owned clues (Game.clues) + detail pane + PRESENT!
+##               "answer" may be a list of two clue ids, presented together in either order
 ##   "character" POINT OUT A CAPYBARA  grid of portraits (Cast.survivors() minus data.exclude)
+##               "answers": [ids] asks for several guests, picked and then confirmed
+## "present" can list "early": {Truth Drop id: line}: right but too soon, so no cost, and a bonus when that Drop comes up
+## for real (only Truth Drops: see Game.note_early).
+## "choice" extras: "free": true (every option is fine; no reward or penalty; "option_flags": [flag per option] sets that
+## option's flag) and "vote_option": index (that option ends the segment with the flag voted_early; the script branches
+## on it into a vote with "false_vote": true and the wrong-vote ending).
 ## Contract: docs/ARCHITECTURE.md section 5. Wrong picks cost convince and get crossed out; the
-## player retries until correct. Skill "hypothesis" crosses out one wrong option at the start.
+## player retries until correct. Skill "hypothesis" crosses out one wrong option at the start (never in a "free"
+## choice, never the vote_option, never an "early" answer). A two-part question only scores the pair: a double-click
+## on a card puts it in a slot.
 ## Look: angular "sharp kit" (see the SHARP KIT section at the end of this file).
 
 signal finished(result: Dictionary)
@@ -14,6 +23,7 @@ const Style := preload("res://scripts/ui/style.gd")
 const Assets := preload("res://scripts/core/assets.gd")
 const Cast := preload("res://scripts/data/cast.gd")
 const Clues := preload("res://scripts/data/clues.gd")
+const EvidenceViewer := preload("res://scripts/ui/evidence_viewer.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -36,6 +46,15 @@ var _nodes := {}               # key -> Button
 var _crossed := {}             # key -> "wrong" | "hyp"
 var _sel := ""                 # present: currently selected clue
 var _solved := false
+var _pair: Array = []          # two-part present: the two answers
+var _slots: Array[String] = [] # two-part present: what the player has put in so far
+var _slot_nodes: Array = []
+var _tried := {}               # two-part present: pairs already refused
+var _multi: Array = []         # several guests: the answers
+var _chosen: Array[String] = []
+var _confirm: Button
+var _view_btn: Button
+var _result := {}
 
 var _stage: Control
 var _fx: Control
@@ -64,7 +83,15 @@ func setup(data: Dictionary) -> void:
 	if not _type in ["choice", "present", "character"]:
 		_type = "choice"
 	_speaker = str(data.get("speaker", "snapjaw"))
-	_answer = str(data.get("answer", "0"))
+	var ans: Variant = data.get("answer", "0")
+	if typeof(ans) == TYPE_ARRAY and _type == "present":
+		_pair = ans
+		_answer = ""
+	else:
+		_answer = str(ans)
+	if _type == "character" and data.has("answers"):
+		_multi = data["answers"]
+		_answer = ""
 
 
 func _ready() -> void:
@@ -84,11 +111,11 @@ func _ready() -> void:
 		"present":
 			_badge = _kit_badge("PRESENT A TRUTH DROP")
 			_build_present()
-			_build_hint("Select a Truth Drop, then PRESENT!")
+			_build_hint("Pick two Truth Drops, then PRESENT!" if not _pair.is_empty() else "Select a Truth Drop, then PRESENT!")
 		"character":
 			_badge = _kit_badge("POINT OUT A CAPYBARA")
 			_build_character()
-			_build_hint("Click the capybara you suspect!")
+			_build_hint("Click everyone who fits, then confirm!" if not _multi.is_empty() else "Click the capybara you suspect!")
 		_:
 			_badge = _kit_badge("PICK THE ANSWER")
 			_build_choice()
@@ -349,20 +376,36 @@ func _build_present() -> void:
 	for c in Game.clues:
 		if not ids.has(c):
 			ids.append(c)
-	if not ids.has(_answer):
-		ids.append(_answer)   # never make the question unsolvable
+	for needed in ([_answer] if _pair.is_empty() else _pair):
+		if not ids.has(str(needed)):
+			ids.append(str(needed))   # never make the question unsolvable
 	var cols := 5
 	var rows := ceili(ids.size() / float(cols))
 	var gap := 12.0
-	var area := Rect2(44, 224, 660, 476)
+	var area := Rect2(44, 224, 660, 476) if _pair.is_empty() else Rect2(44, 224, 660, 372)
 	var cw := (area.size.x - (cols - 1) * gap) / cols
 	var ch := minf(152.0, (area.size.y - (rows - 1) * gap) / maxf(rows, 1))
+	# a long notebook scrolls rather than squeezing the cards until they can't be read
+	var holder: Control = _stage
+	var origin := area.position
+	if ch < 116.0:
+		ch = 116.0
+		cw = (area.size.x - 16.0 - (cols - 1) * gap) / cols
+		var scroll := ScrollContainer.new()
+		scroll.position = area.position
+		scroll.size = area.size
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		_stage.add_child(scroll)
+		holder = Control.new()
+		holder.custom_minimum_size = Vector2(area.size.x - 16.0, rows * (ch + gap))
+		scroll.add_child(holder)
+		origin = Vector2.ZERO
 	for i in ids.size():
 		var id: String = ids[i]
 		var b := Button.new()
 		b.size = Vector2(cw, ch)
 		b.pivot_offset = b.size * 0.5
-		b.position = area.position + Vector2((i % cols) * (cw + gap), (i / cols) * (ch + gap))
+		b.position = origin + Vector2((i % cols) * (cw + gap), (i / cols) * (ch + gap))
 		b.focus_mode = Control.FOCUS_ALL
 		_style_card(b)
 		var ic := minf(cw - 30.0, ch - 58.0)
@@ -384,7 +427,7 @@ func _build_present() -> void:
 		b.mouse_entered.connect(_hover_fx.bind(b, true))
 		b.mouse_exited.connect(_hover_fx.bind(b, false))
 		b.gui_input.connect(_on_card_input.bind(id))
-		_stage.add_child(b)
+		holder.add_child(b)
 		_keys.append(id)
 		_nodes[id] = b
 	# detail pane
@@ -441,21 +484,125 @@ func _build_present() -> void:
 	_present_btn.add_theme_stylebox_override("hover", _btn_style(Style.GOLD, Color.WHITE, 4, 0.3, 14, Color(Style.AQUA, 0.95)))
 	_present_btn.add_theme_stylebox_override("pressed", _btn_style(Style.AQUA, Color.WHITE, 4, 0.3, 14))
 	_present_btn.add_theme_stylebox_override("disabled", _btn_style(Color(0.30, 0.26, 0.36), Color(0.5, 0.5, 0.55), 2, 0.3, 14))
-	_present_btn.pressed.connect(func() -> void: _pick(_sel))
+	_present_btn.pressed.connect(_present_action)
 	_present_btn.mouse_entered.connect(func() -> void:
 		Audio.sfx("select", 1.3, -10.0)
 		_present_btn.create_tween().tween_property(_present_btn, "scale", Vector2.ONE * 1.06, 0.1).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT))
 	_present_btn.mouse_exited.connect(func() -> void:
 		_present_btn.create_tween().tween_property(_present_btn, "scale", Vector2.ONE, 0.1))
 	_detail.add_child(_present_btn)
+	_view_btn = Style.button("View  [V]", Vector2(92, 62), 15)
+	_view_btn.position = Vector2(412, 396)
+	_view_btn.size = Vector2(92, 62)
+	_view_btn.focus_mode = Control.FOCUS_NONE
+	_view_btn.visible = false
+	_view_btn.pressed.connect(_view_selected)
+	_detail.add_child(_view_btn)
+	if not _pair.is_empty():
+		_build_slots()
 	_select_clue(ids[0], false)
 
 
+## Two-part present: the two empty slots under the grid. Click a filled slot to take the Drop back.
+func _build_slots() -> void:
+	for i in 2:
+		var b := Button.new()
+		b.position = Vector2(44 + i * 336, 608)
+		b.size = Vector2(324, 90)
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(_take_back.bind(i))
+		_stage.add_child(b)
+		_slot_nodes.append(b)
+	_refresh_slots()
+
+
+func _refresh_slots() -> void:
+	for i in _slot_nodes.size():
+		var b: Button = _slot_nodes[i]
+		for c in b.get_children():
+			c.queue_free()
+		var filled := i < _slots.size()
+		var st := _btn_style(Color(0.24, 0.13, 0.36, 0.98) if filled else Color(0.05, 0.03, 0.11, 0.9), Style.YUZU if filled else Style.AQUA_DEEP, 3, 0.08)
+		for k in ["normal", "hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(k, st)
+		if filled:
+			var icon := _clue_icon(_slots[i], Vector2(70, 70), 0.42)
+			icon.position = Vector2(14, 10)
+			b.add_child(icon)
+		var text := Clues.clue_name(_slots[i]) if filled else "Truth Drop %d" % (i + 1)
+		var l := Style.label(text, _fit(Style.body_font(), text, Vector2(220, 70), 19, 13), Style.TEXT if filled else Style.TEXT_DIM)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.position = Vector2(92, 8)
+		l.size = Vector2(220, 74)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(l)
+	_update_present_btn()
+
+
+func _take_back(i: int) -> void:
+	if _busy or _done or i >= _slots.size():
+		return
+	Audio.sfx("cancel", 1.0, -4.0)
+	_slots.remove_at(i)
+	_refresh_slots()
+
+
+func _update_present_btn() -> void:
+	if _present_btn == null or _pair.is_empty():
+		return
+	if _slots.size() >= 2:
+		var tried := _tried.has(_pair_key())
+		_present_btn.text = "ALREADY TRIED" if tried else "PRESENT BOTH!"
+		_present_btn.disabled = tried
+	else:
+		_present_btn.text = "TAKE BACK" if _slots.has(_sel) else "ADD!"
+		_present_btn.disabled = _crossed.has(_sel)
+
+
+func _pair_key() -> String:
+	var both := _slots.duplicate()
+	both.sort()
+	return "|".join(both)
+
+
+## The big button: present the selected Drop, or, in a two-part question, fill the slots and then present both.
+func _present_action() -> void:
+	if _pair.is_empty():
+		_pick(_sel)
+	elif _busy or _done or _reaction != null:
+		return
+	elif _slots.size() >= 2:
+		_pick_pair()
+	elif _slots.has(_sel):
+		_take_back(_slots.find(_sel))
+	elif _sel != "" and not _crossed.has(_sel):
+		Audio.sfx("confirm")
+		_slots.append(_sel)
+		_refresh_slots()
+
+
+func _view_selected() -> void:
+	if _sel == "" or Clues.images(_sel).is_empty():
+		return
+	var v: Control = EvidenceViewer.new()
+	v.setup({"clue": _sel})
+	add_child(v)
+
+
+## Double-click a card: present it, or in a two-part question put it in a slot (or take it back out). A single card
+## is never scored on its own there.
 func _on_card_input(e: InputEvent, id: String) -> void:
 	var mb := e as InputEventMouseButton
 	if mb and mb.pressed and mb.double_click and mb.button_index == MOUSE_BUTTON_LEFT:
 		_select_clue(id, false)
-		_pick(id)
+		if _pair.is_empty():
+			_pick(id)
+		elif _slots.has(id):
+			if not _busy and not _done and _reaction == null:
+				_take_back(_slots.find(id))
+		elif _slots.size() < 2:
+			_present_action()
 		accept_event()
 
 
@@ -487,6 +634,8 @@ func _select_clue(id: String, sound: bool) -> void:
 	_detail_desc.add_theme_font_size_override("font_size", _fit(Style.body_font(), d, _detail_desc.size, 19, 12))
 	var crossed := _crossed.has(id)
 	_present_btn.disabled = crossed
+	_view_btn.visible = not Clues.images(id).is_empty()
+	_update_present_btn()
 	_detail.modulate = Color(0.75, 0.72, 0.8) if crossed else Color.WHITE
 	_detail_icon_holder.scale = Vector2(0.7, 0.7)
 	_detail_icon_holder.rotation = -0.12
@@ -547,19 +696,29 @@ func _draw_drop(c: Control, col: Color, initials: String, text_scale: float) -> 
 
 # =================================================================== CHARACTER
 func _build_character() -> void:
-	_build_prompt(Rect2(40, 84, 1200, 124), true)
+	_build_prompt(Rect2(40, 84, 1010 if not _multi.is_empty() else 1200, 124), true)
 	var ex: Array = _data.get("exclude", [])
 	var ids: Array[String] = []
 	for id in Cast.survivors():
 		if not ex.has(id):
 			ids.append(str(id))
-	if not ids.has(_answer):
-		ids.append(_answer)
+	for needed in ([_answer] if _multi.is_empty() else _multi):
+		if not ids.has(str(needed)):
+			ids.append(str(needed))
+	if not _multi.is_empty():
+		_confirm = Style.button("THAT'S ALL OF THEM! [Enter]", Vector2(176, 96), 20)
+		_confirm.position = Vector2(1066, 96)
+		_confirm.size = Vector2(176, 96)
+		_confirm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_confirm.focus_mode = Control.FOCUS_NONE
+		_confirm.pressed.connect(_confirm_multi)
+		_stage.add_child(_confirm)
 	var n := ids.size()
 	var top := n if n <= 7 else ceili(n / 2.0)
 	var gap := 12.0
 	var cw := minf(164.0, (1200.0 - (top - 1) * gap) / top)
-	var ch := 234.0 if n > 7 else 300.0
+	# two rows end at y 684, clear of the "Log [L]" tag in the bottom-right corner (Main.LOG_TAG_POS)
+	var ch := 222.0 if n > 7 else 300.0
 	var y0 := 228.0
 	for i in n:
 		var row := 0 if i < top else 1
@@ -693,10 +852,19 @@ func _tw_to(n: Object, prop: String, val: Variant, dur: float, delay: float = 0.
 	tw.tween_property(n, prop, val, dur * _k).set_delay(delay * _k).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 
 
+## Skill "hypothesis": crosses out one plainly wrong option. Never an option that isn't simply wrong: nothing in a
+## "free" choice, not the offered vote (that is the trap, and it must stay a real choice), and not an "early" answer.
 func _apply_hypothesis() -> void:
+	if bool(_data.get("free", false)):
+		return
+	var keep := {}
+	if _data.has("vote_option"):
+		keep[str(_data["vote_option"])] = true
+	for e in (_data.get("early", {}) as Dictionary).keys():
+		keep[str(e)] = true
 	var wrong: Array[String] = []
 	for k in _keys:
-		if k != _answer and not _crossed.has(k):
+		if k != _answer and not _pair.has(k) and not _multi.has(k) and not _crossed.has(k) and not keep.has(k):
 			wrong.append(k)
 	if wrong.is_empty():
 		return
@@ -781,11 +949,19 @@ func _draw_cross(cross: Control, col: Color, line_mode: bool) -> void:
 func _pick(key: String) -> void:
 	if _busy or _done or key == "" or _reaction != null:
 		return
+	if not _pair.is_empty():
+		return   # a two-part question is only ever answered as a pair (_pick_pair)
 	if _crossed.has(key) or not _nodes.has(key):
+		return
+	if not _multi.is_empty():
+		_toggle_guest(key)
 		return
 	_busy = true
 	var n: Control = _nodes[key]
 	Audio.sfx("confirm")
+	if _type == "choice" and (bool(_data.get("free", false)) or key == str(_data.get("vote_option", -1))):
+		_settle_choice(key)
+		return
 	if _type == "present":
 		await _present_fly(key)
 	else:
@@ -795,8 +971,126 @@ func _pick(key: String) -> void:
 		await _sleep(0.2 * _k)
 	if key == _answer:
 		_correct(key)
+	elif (_data.get("early", {}) as Dictionary).has(key):
+		await _early(key)
 	else:
 		_wrong(key)
+
+
+## An option that isn't right or wrong: "free" answers, and the early vote. The script reads the flags it sets.
+func _settle_choice(key: String) -> void:
+	var fl := {}
+	if key == str(_data.get("vote_option", -1)):
+		fl["voted_early"] = true
+	var per_option: Array = _data.get("option_flags", [])
+	var idx := int(key)
+	if idx < per_option.size() and str(per_option[idx]) != "":
+		fl[str(per_option[idx])] = true
+	_result = {"flags": fl}
+	_solved = true
+	Audio.sfx("gavel", 0.8, -4.0)
+	var tw := create_tween()
+	tw.tween_property(_nodes[key], "scale", Vector2.ONE * 1.08, 0.12 * _k).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await _sleep(0.5 * _k)
+	_finish()
+
+
+## Right but too soon: nothing lost, Mochi says it can't be proved yet, and the Drop stays available.
+func _early(key: String) -> void:
+	Game.note_early(key)
+	if _fly_card:
+		var card := _fly_card
+		_fly_card = null
+		var tw := create_tween()
+		tw.tween_property(card, "modulate:a", 0.0, 0.2 * _k)
+		tw.tween_callback(card.queue_free)
+	var line: Variant = (_data["early"] as Dictionary)[key]
+	await _show_reaction(line if typeof(line) == TYPE_DICTIONARY else {"speaker": "mochi", "expr": "normal", "text": str(line)})
+	_busy = false
+
+
+# ------------------------------------------------------------------- two-part present
+func _pick_pair() -> void:
+	if _busy or _done or _slots.size() < 2 or _tried.has(_pair_key()):
+		return
+	_busy = true
+	Audio.sfx("confirm")
+	Audio.sfx("shoot")
+	var mid := Vector2(W * 0.5, H * 0.52)
+	_kit_speedlines(mid, Color(Style.AQUA, 0.55), 0.4, 220.0, 36)
+	await _sleep(0.4 * _k)
+	var early: Dictionary = _data.get("early", {})
+	var ok := _pair.has(_slots[0]) and _pair.has(_slots[1]) and _slots[0] != _slots[1]
+	if ok:
+		_correct(_slots[0])
+		return
+	for s in _slots:
+		if early.has(s):
+			await _early(s)
+			return
+	await _wrong_set()
+
+
+## A wrong two-part answer or list of guests: costs convince; doesn't say which part was wrong.
+func _wrong_set() -> void:
+	Audio.sfx("wrong")
+	Audio.sfx("static", 1.0, -8.0)
+	_kit_error(Vector2(W * 0.5, H * 0.5))
+	Game.mistake(Game.PENALTY_CHOICE)
+	_kit_stamp("WRONG!", Style.DANGER, Vector2(W * 0.5, H * 0.5), 64, 0.32, 4.0)
+	await _sleep(0.55 * _k)
+	var line: Dictionary = {}
+	var wl: Variant = _data.get("wrong", null)
+	if typeof(wl) == TYPE_DICTIONARY:
+		line = wl
+	if line.is_empty():
+		line = {"speaker": _speaker, "expr": "sad", "text": "Hmm... that doesn't hold together. Think it over again."}
+	if not _pair.is_empty():
+		_tried[_pair_key()] = true
+		_slots.clear()
+		_refresh_slots()
+	await _show_reaction(line)
+	_busy = false
+
+
+# ------------------------------------------------------------------- several guests
+func _toggle_guest(key: String) -> void:
+	if _busy or _done:
+		return
+	var b: Button = _nodes[key]
+	if _chosen.has(key):
+		_chosen.erase(key)
+		_style_card(b, 0.0)
+		Audio.sfx("cancel", 1.1, -6.0)
+	else:
+		_chosen.append(key)
+		var st := _btn_style(Color(0.30, 0.17, 0.08, 0.98), Style.YUZU, 4, 0.0, 14, Color(Style.AQUA, 0.95))
+		b.add_theme_stylebox_override("normal", st)
+		b.add_theme_stylebox_override("hover", st)
+		b.add_theme_stylebox_override("focus", st)
+		Audio.sfx("confirm", 1.1)
+
+
+func _confirm_multi() -> void:
+	if _busy or _done or _reaction != null or _chosen.is_empty():
+		return
+	_busy = true
+	Audio.sfx("confirm")
+	await _sleep(0.2 * _k)
+	var wrong_one := ""
+	for k in _chosen:
+		if not _multi.has(k):
+			wrong_one = k
+			break
+	if wrong_one == "" and _chosen.size() == _multi.size():
+		_correct(_chosen[0])
+		return
+	if wrong_one != "":
+		_crossed[wrong_one] = "wrong"
+		_chosen.erase(wrong_one)
+		_style_card(_nodes[wrong_one], 0.0)
+		_cross_out(_nodes[wrong_one], Style.DANGER)
+	await _wrong_set()
 
 
 var _fly_card: Control = null
@@ -851,11 +1145,13 @@ func _correct(key: String) -> void:
 	Audio.sfx("correct")
 	Audio.sfx("break", 1.1, -6.0)
 	_kit_impact(center, Style.GOLD)
-	Game.reward(Game.REWARD_CHOICE)
+	Game.reward(Game.REWARD_PAIR if not _pair.is_empty() or not _multi.is_empty() else Game.REWARD_CHOICE)
+	for c in ([key] if _pair.is_empty() else _pair):
+		Game.pay_early(str(c))
 	# highlight the right answer, fade the rest
 	for k in _keys:
 		var other: Control = _nodes[k]
-		if k != key:
+		if k != key and not _multi.has(k) and not _pair.has(k):
 			var tw0 := create_tween()
 			tw0.tween_property(other, "modulate:a", 0.22, 0.2 * _k)
 	var b := n as Button
@@ -930,7 +1226,7 @@ func _finish() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.25 * _k)
 	await tw.finished
-	finished.emit({})
+	finished.emit(_result)
 
 
 # =================================================================== wrong-answer reaction line
@@ -938,6 +1234,7 @@ func _show_reaction(line: Dictionary) -> void:
 	var who := str(line.get("speaker", _speaker))
 	var expr := str(line.get("expr", "normal"))
 	var text := str(line.get("text", "..."))
+	Game.log_say(who, text)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1050,13 +1347,23 @@ func _reaction_click() -> void:
 
 # =================================================================== input
 func _input(e: InputEvent) -> void:
+	# Several guests: arrows move between the cards and Space picks the focused one (as with any button); Enter confirms.
+	if _type == "character" and not _multi.is_empty() and not _done and not _busy and _reaction == null:
+		var km := e as InputEventKey
+		if km and km.pressed and not km.echo and km.keycode in [KEY_ENTER, KEY_KP_ENTER]:
+			get_viewport().set_input_as_handled()
+			_confirm_multi()
+		return
 	# Present: Enter/Space presents the selected Truth Drop (before a focused card can eat it).
 	if _type != "present" or _done or _busy or _reaction != null:
 		return
 	var k := e as InputEventKey
 	if k and k.pressed and not k.echo and k.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 		get_viewport().set_input_as_handled()
-		_pick(_sel)
+		_present_action()
+	elif k and k.pressed and not k.echo and k.keycode == KEY_V:
+		get_viewport().set_input_as_handled()
+		_view_selected()
 
 
 func _unhandled_input(e: InputEvent) -> void:
@@ -1096,6 +1403,17 @@ func _unhandled_input(e: InputEvent) -> void:
 # =================================================================== autotest
 func _autoplay() -> void:
 	await _sleep(0.9 if Game.autotest_slow else 0.3)
+	if not _pair.is_empty():
+		await _autoplay_pair()
+		return
+	if not _multi.is_empty():
+		await _autoplay_multi()
+		return
+	if _data.has("vote_option") and Game.autotest_wrong:
+		_pick(str(_data["vote_option"]))
+		return
+	if _auto_wrong and _data.has("vote_option") and str(_data["vote_option"]) == _first_wrong():
+		_auto_wrong = false   # an isolated run should reach the normal answer; --wrong-path takes the vote
 	if _auto_wrong:
 		for key in _keys:
 			if key != _answer and not _crossed.has(key):
@@ -1111,7 +1429,102 @@ func _autoplay() -> void:
 	if _type == "present":
 		_select_clue(_answer, true)
 		await _sleep(0.6 if Game.autotest_slow else 0.1)
+		if Game.debug_minigame != "" and not Clues.images(_answer).is_empty():
+			_view_selected()
+			await _sleep(0.05)
 	_pick(_answer)
+
+
+func _first_wrong() -> String:
+	for key in _keys:
+		if key != _answer and not _crossed.has(key):
+			return key
+	return ""
+
+
+func _autoplay_pair() -> void:
+	if _auto_wrong:
+		var wrongs: Array[String] = []
+		for key in _keys:
+			if not _pair.has(key):
+				wrongs.append(key)
+		wrongs.append_array(_pair)
+		_slots.append(wrongs[0])
+		_slots.append(wrongs[1])
+		_refresh_slots()
+		_pick_pair()
+		await _sleep(0.1)
+		while _busy and not _done:
+			await _sleep(0.05)
+	if _done:
+		return
+	# a double-click on a right answer only puts it in a slot (and a second one takes it back): it costs nothing
+	var first := str(_pair[0])
+	var before := Game.convince
+	_slots.clear()
+	_refresh_slots()
+	_auto_double_click(first)
+	var slotted := _slots.has(first) and not _crossed.has(first) and is_equal_approx(Game.convince, before) and not _done
+	_auto_double_click(first)
+	if slotted and not _slots.has(first):
+		print("[autotest] two-part present: a double-click filled a slot and emptied it again, at no cost")
+	else:
+		push_error("two-part present: a double-click on a right answer was scored on its own")
+		print("[autotest] FAIL two-part present: double-click slots=", _slots, " crossed=", _crossed, " convince ", before, " -> ", Game.convince)
+	# one answer in each order: the pair is accepted whichever goes first
+	_slots.clear()
+	_slots.append(str(_pair[1]))
+	_slots.append(str(_pair[0]))
+	_refresh_slots()
+	_pick_pair()
+
+
+## The same event a player's double-click on a notebook card sends.
+func _auto_double_click(id: String) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.double_click = true
+	_on_card_input(ev, id)
+
+
+func _autoplay_multi() -> void:
+	if _auto_wrong:
+		for key in _keys:
+			if not _multi.has(key):
+				_toggle_guest(key)
+				_confirm_multi()
+				break
+		await _sleep(0.1)
+		while _busy and not _done:
+			await _sleep(0.05)
+		# picking too few is also wrong
+		if _multi.size() > 1 and not _done:
+			_toggle_guest(str(_multi[0]))
+			_confirm_multi()
+			await _sleep(0.1)
+			while _busy and not _done:
+				await _sleep(0.05)
+			_toggle_guest(str(_multi[0]))
+	if _done:
+		return
+	for key in _multi:
+		if not _chosen.has(str(key)):
+			_toggle_guest(str(key))
+	if Game.debug_minigame != "":
+		# isolated runs confirm with the Enter key, the way a keyboard player does
+		var ev := InputEventKey.new()
+		ev.keycode = KEY_ENTER
+		ev.physical_keycode = KEY_ENTER
+		ev.pressed = true
+		get_viewport().push_input(ev)
+		await _sleep(0.02)
+		if _busy or _done:
+			print("[autotest] several guests: Enter confirmed the picks")
+			return
+		push_error("character: Enter did not confirm the picks")
+		print("[autotest] FAIL several guests: Enter did not confirm")
+	_confirm_multi()
 
 
 # =================================================================== frame

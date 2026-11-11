@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="160" viewBox="0 0 260 160">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="18" y1="0" x2="130" y2="0"><stop offset="0" stop-color="#4a3a5e" stop-opacity="1.0"/><stop offset="0.6" stop-color="#2e2440" stop-opacity="1.0"/><stop offset="1" stop-color="#22192e" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="18" y1="0" x2="130" y2="0"><stop offset="0" stop-color="#4a3a5e" stop-opacity="1.0"/><stop offset="0.6" stop-color="#2e2440" stop-opacity="1.0"/><stop offset="1" stop-color="#22192e" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l3" gradientUnits="userSpaceOnUse" x1="0" y1="78" x2="0" y2="138"><stop offset="0" stop-color="#3e3050" stop-opacity="1.0"/><stop offset="1" stop-color="#1c1426" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l4" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="104"><stop offset="0" stop-color="#4a3a5e" stop-opacity="1.0"/><stop offset="1" stop-color="#2a2038" stop-opacity="1.0"/></linearGradient>
+<radialGradient id="q5" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ff3b3b" stop-opacity="0.8"/><stop offset="0.5" stop-color="#ff3b3b" stop-opacity="0.3"/><stop offset="1" stop-color="#ff3b3b" stop-opacity="0"/></radialGradient></defs>
+<g >
+<path d="M130 84 Q104 46 52 20 Q60 44 38 52 Q48 68 18 80 Q40 90 26 108 Q68 98 98 116 Q114 100 130 102 Z" fill="#000000" opacity="0.3" transform="translate(6 8)"/>
+<path d="M130 84 Q104 46 52 20 Q60 44 38 52 Q48 68 18 80 Q40 90 26 108 Q68 98 98 116 Q114 100 130 102 Z" fill="url(#l1)" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<path d="M122 86 Q92 56 52 20" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M118 92 Q84 70 38 52" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M114 98 Q70 86 18 80" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112 104 Q74 100 26 108" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M120 90 Q96 66 62 40" stroke="#7a6a9a" stroke-width="1.6" opacity="0.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(260 0) scale(-1 1)">
+<path d="M130 84 Q104 46 52 20 Q60 44 38 52 Q48 68 18 80 Q40 90 26 108 Q68 98 98 116 Q114 100 130 102 Z" fill="#000000" opacity="0.3" transform="translate(6 8)"/>
+<path d="M130 84 Q104 46 52 20 Q60 44 38 52 Q48 68 18 80 Q40 90 26 108 Q68 98 98 116 Q114 100 130 102 Z" fill="url(#l2)" stroke="#2a1a10" stroke-width="4" stroke-linejoin="round"/>
+<path d="M122 86 Q92 56 52 20" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M118 92 Q84 70 38 52" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M114 98 Q70 86 18 80" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112 104 Q74 100 26 108" stroke="#140e1c" stroke-width="3" opacity="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M120 90 Q96 66 62 40" stroke="#7a6a9a" stroke-width="1.6" opacity="0.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<circle cx="78" cy="66" r="7" fill="#d9a845" stroke="#2a1a10" stroke-width="2"/>
+<line x1="74" y1="66" x2="82" y2="66" stroke="#8a6420" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="78" y1="62" x2="78" y2="70" stroke="#8a6420" stroke-width="1.6" stroke-linecap="round"/>
+<ellipse cx="130" cy="108" rx="24" ry="30" fill="url(#l3)" stroke="#2a1a10" stroke-width="4"/>
+<polygon points="144,74 152,40 134,66" fill="#2e2440" stroke="#2a1a10" stroke-width="3.5" stroke-linejoin="round"/>
+<polygon points="145,70 149,50 139,66" fill="#8a5a7a" opacity="0.7"/>
+<polygon points="116,74 108,40 126,66" fill="#2e2440" stroke="#2a1a10" stroke-width="3.5" stroke-linejoin="round"/>
+<polygon points="115,70 111,50 121,66" fill="#8a5a7a" opacity="0.7"/>
+<circle cx="130" cy="82" r="21" fill="url(#l4)" stroke="#2a1a10" stroke-width="4"/>
+<ellipse cx="121" cy="78" rx="5" ry="6" fill="#f4e04d" stroke="#2a1a10" stroke-width="1.6"/>
+<ellipse cx="121" cy="79" rx="1.6" ry="4" fill="#2a1a10"/>
+<circle cx="139" cy="78" r="18" fill="url(#q5)"/>
+<circle cx="139" cy="78" r="6.5" fill="#ff3b3b" stroke="#2a1a10" stroke-width="1.8"/>
+<circle cx="139" cy="78" r="9.5" fill="none" stroke="#d9a845" stroke-width="2.2"/>
+<circle cx="137.5" cy="76.5" r="1.8" fill="#ffd0d0"/>
+<ellipse cx="130" cy="92" rx="8" ry="5" fill="#5a4870" stroke="#2a1a10" stroke-width="2"/>
+<polygon points="124,98 127,109 129,98" fill="#fffbe8" stroke="#2a1a10" stroke-width="1.4"/>
+<polygon points="131,98 133,109 136,98" fill="#fffbe8" stroke="#2a1a10" stroke-width="1.4"/>
+<path d="M138 134 l4 12" stroke="#2a1a10" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M122 134 l-4 12" stroke="#2a1a10" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

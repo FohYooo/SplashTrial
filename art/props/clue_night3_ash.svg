@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs></defs>
+<ellipse cx="104" cy="182" rx="80" ry="10" fill="#000000" opacity="0.3"/>
+<path d="M30 120 L170 120 L182 168 L18 168 Z" fill="#2a2e36" stroke="#2a1a10" stroke-width="4"/>
+<line x1="40" y1="120" x2="34" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<line x1="62" y1="120" x2="56" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<line x1="84" y1="120" x2="78" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<line x1="106" y1="120" x2="100" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<line x1="128" y1="120" x2="122" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<line x1="150" y1="120" x2="144" y2="168" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<path d="M62 112 Q80 70 112 84 Q140 60 150 104 Q120 120 62 112 Z" fill="#4a4a50" stroke="#2a1a10" stroke-width="3"/>
+<path d="M120 40 L176 52 L168 98 L118 88 Z" fill="#efe6cc" stroke="#2a1a10" stroke-width="3.5" transform="rotate(8 146 70)"/>
+<path d="M118 88 Q130 96 140 88 Q152 98 168 98" fill="none" stroke="#2a2a2a" stroke-width="5"/>
+<rect x="128" y="60" width="7" height="10" fill="#2a1a10" transform="rotate(8 146 70)"/>
+<rect x="138" y="60" width="7" height="10" fill="#2a1a10" transform="rotate(8 146 70)"/>
+<rect x="148" y="60" width="7" height="10" fill="#2a1a10" transform="rotate(8 146 70)"/>
+<rect x="158" y="60" width="7" height="10" fill="#2a1a10" transform="rotate(8 146 70)"/>
+</svg>

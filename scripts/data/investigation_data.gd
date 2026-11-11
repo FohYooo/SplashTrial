@@ -6,6 +6,7 @@ extends RefCounted
 ## Hotspot scripts / talk scripts are story ids in story/story_case.gd.
 ## The investigation screen sets flag "seen_<script id>" after a script finishes once, so
 ## scripts can branch with `@if seen_<id> -> again`.
+## Optional: const STAGES := [{"after": int, "script": String}] and a room's "opens_stage": n (see docs/ARCHITECTURE.md section 1e).
 
 const START_ROOM := "bath"
 const ROOM_ORDER := ["bath", "changing", "sauna", "garden", "lounge", "storage", "giftshop", "dining"]

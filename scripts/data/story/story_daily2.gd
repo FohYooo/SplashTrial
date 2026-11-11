@@ -964,6 +964,9 @@ snapjaw[happy]: *Two down, plenty to go!* Sleep tight, passengers! The Mudlark h
 @music sad
 think: Laugh all you want, Snapjaw. You can drain a lake. You can't drain us.
 think: Coco's courage. Marigold's care. I'm carrying both of them now. And I'm not putting either one down.
+@sfx qk_tremor
+@shake 3
+narr: Somewhere far below the mud, the rock gave a small, sleepy shrug. The water in the little tub shivered into rings. Nobody thought much of it.
 @card CHAPTER 2 — END | 11 guests remain aboard the Mudlark
 @end
 """,

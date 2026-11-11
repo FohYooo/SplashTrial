@@ -20,7 +20,7 @@ const PEEK_SLOTS := [
 	{"x": 1184.0, "k": 0.5, "rot": -0.13, "vis": 205.0},
 ]
 const PEEK_START := ["mochi", "lulu", "bruno", "coco"]
-const MOODS := {"new": "happy", "continue": "happy", "cases": "shock", "case1": "happy", "case2": "shock", "back": "normal", "credits": "normal", "quit": "sad"}
+const MOODS := {"new": "happy", "continue": "happy", "cases": "shock", "case1": "happy", "case2": "shock", "case3": "shock", "back": "normal", "credits": "normal", "quit": "sad"}
 const MENU_W := 330.0
 const CASE_MENU_W := 540.0
 
@@ -123,7 +123,10 @@ func _ready() -> void:
 		_twinkles.append({"p": Vector2(randf_range(320, 1240), randf_range(20, 330)), "ph": randf() * TAU, "sp": randf_range(1.5, 3.2), "r": randf_range(7, 14)})
 	_intro()
 	if Game.autotest:
-		finished.emit.call_deferred({"action": "case%d" % Game.debug_case if Game.debug_case > 0 else "new"})
+		var auto_action := "case%d" % Game.debug_case if Game.debug_case > 0 else "new"
+		if OS.get_cmdline_user_args().has("--continue"):
+			auto_action = "continue"   # debug: resume from the save file
+		finished.emit.call_deferred({"action": auto_action})
 		_chosen = true
 	elif Game.debug_case_menu:
 		_skip_intro()
@@ -336,13 +339,13 @@ func _build_menu() -> void:
 	_menu = VBoxContainer.new()
 	_menu.position = Vector2(640.0 - MENU_W * 0.5, 362)
 	add_child(_menu)
-	_case_note = Style.label("Case 2 opens with the ending of Case 1.", 19, Style.TEXT_DIM)
+	_case_note = Style.label("Each later case opens with the ending of the one before it.", 19, Style.TEXT_DIM)
 	_case_note.add_theme_color_override("font_outline_color", Style.BG_DARK)
 	_case_note.add_theme_constant_override("outline_size", 6)
 	_case_note.visible = false
 	add_child(_case_note)
 	_case_note.reset_size()
-	_case_note.position = Vector2(640.0 - _case_note.size.x * 0.5, 574)
+	_case_note.position = Vector2(640.0 - _case_note.size.x * 0.5, 636)
 	_fill_menu(_main_items(), MENU_W, true)
 	_ind_l = Sprite2D.new()
 	_ind_r = Sprite2D.new()

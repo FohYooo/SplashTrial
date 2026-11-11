@@ -22,6 +22,8 @@ const Cast := preload("res://scripts/data/cast.gd")
 const Clues := preload("res://scripts/data/clues.gd")
 const Skills := preload("res://scripts/data/skills.gd")
 const Assets := preload("res://scripts/core/assets.gd")
+const Chapters := preload("res://scripts/data/chapters.gd")
+const EvidenceViewer := preload("res://scripts/ui/evidence_viewer.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -105,6 +107,7 @@ var _tip: Slant
 var _tip_title: Label
 var _tip_label: Label
 var _italic: SystemFont
+var _ui_rects: Array = []      # other clickable areas the crosshair should give way to
 
 
 func setup(d: Dictionary) -> void:
@@ -354,6 +357,10 @@ func _unhandled_input(e: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	match k.keycode:
+		KEY_V:
+			if _panel_shown:
+				_view_selected()
+				get_viewport().set_input_as_handled()
 		KEY_Q, KEY_LEFT:
 			if _panel_shown:
 				_cycle_drop(-1)
@@ -388,6 +395,8 @@ func _update_aim() -> void:
 		return
 	var m := get_global_mouse_position()
 	var over_ui := _panel_shown and _panel_rect.has_point(m)
+	for r in _ui_rects:
+		over_ui = over_ui or (r as Rect2).has_point(m)
 	var on := _aim_enabled and _aim_allowed() and not over_ui and Rect2(0, 0, W, H).has_point(m)
 	_fx.aim_on = on
 	_fx.aim = _to_fx(m)
@@ -954,6 +963,7 @@ func _break_banner(text: String = BREAK_TEXT, shouter: String = "mochi") -> void
 
 ## Speech box with the speaker's face, name and line. Click/Space closes after min_t; auto-closes at max_t.
 func _say_box(speaker: String, expr: String, text: String, pos: Vector2, w: float, max_t: float, min_t: float = 0.35) -> void:
+	Game.log_say(speaker, text)
 	var col := Cast.color(speaker)
 	var fsz := 21
 	var text_w := w - 170.0
@@ -1015,12 +1025,44 @@ func _say_box(speaker: String, expr: String, text: String, pos: Vector2, w: floa
 
 
 # =================================================================== Truth Drop ammo tray
+## The Truth Drops a debate loads: those of its own the player holds (a Drop they never found isn't in the tray, and
+## one another guest handed over in the trial is, since it's in the notebook by then), topped up to the chapter's
+## "ammo_min" from the notebook. The extras go in at positions fixed by the segment's id, so retries look the same and
+## the answer's place gives nothing away.
+func _ammo_list(ids: Array) -> Array:
+	var out := _held(ids)
+	var want := mini(int(Chapters.get_value("ammo_min", 0)), 6)
+	if out.size() >= want:
+		return out
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(data.get("id", "")))
+	var pool: Array = []
+	for c in Game.clues:
+		if not out.has(c):
+			pool.append(c)
+	while out.size() < want and not pool.is_empty():
+		var c: Variant = pool.pop_at(rng.randi() % pool.size())
+		out.insert(rng.randi() % (out.size() + 1), c)
+	return out
+
+
+## The Truth Drops of a list that are in the notebook, in the list's order.
+func _held(ids: Array) -> Array:
+	var out: Array = []
+	for c in ids:
+		if Game.has_clue(str(c)) and not out.has(c):
+			out.append(c)
+	return out
+
+
+## Up to six Truth Drops fit in a row; keys 1-9 pick them (see _unhandled_input).
 func _build_drop_panel(ids: Array) -> void:
 	_drop_ids = ids.duplicate()
 	_chips.clear()
 	var n := _drop_ids.size()
-	var chip_w := 236.0 if n <= 3 else 222.0
-	var gap := 14.0
+	var chip_w := 236.0 if n <= 3 else (222.0 if n <= 5 else 190.0)
+	var gap := 14.0 if n <= 5 else 10.0
+	var icon := 62.0 if n <= 5 else 46.0
 	var pw := n * chip_w + (n - 1) * gap + 36.0
 	_panel = Control.new()
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1058,7 +1100,7 @@ func _build_drop_panel(ids: Array) -> void:
 		var cbg := _slant(Vector2(chip_w, CHIP_H), Color.BLACK, Color.BLACK, 2.0, 14.0, 10.0, 0)
 		chip.add_child(cbg)
 		chip.set_meta("bg", cbg)
-		var ibg := _slant(Vector2(62, 60), Color(0.14, 0.24, 0.36, 1.0), Style.AQUA_DEEP, 2.0, 8.0, 6.0, 0, Color(INK, 0.8), Vector2(3, 3))
+		var ibg := _slant(Vector2(icon, 60), Color(0.14, 0.24, 0.36, 1.0), Style.AQUA_DEEP, 2.0, 8.0, 6.0, 0, Color(INK, 0.8), Vector2(3, 3))
 		ibg.position = Vector2(14, 8)
 		chip.add_child(ibg)
 		var tex := Assets.clue_icon(id)
@@ -1067,8 +1109,8 @@ func _build_drop_panel(ids: Array) -> void:
 			ir.texture = tex
 			ir.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			ir.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			ir.position = Vector2(4, 2)
-			ir.size = Vector2(56, 56)
+			ir.position = Vector2(3, 2 + (56.0 - minf(icon - 6.0, 56.0)) * 0.5)
+			ir.size = Vector2.ONE * minf(icon - 6.0, 56.0)
 			ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ibg.add_child(ir)
 		else:
@@ -1079,17 +1121,17 @@ func _build_drop_panel(ids: Array) -> void:
 			var ini := Style.label(_initials(Clues.clue_name(id)), 22, Style.BG_DARK, true)
 			ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			ini.size = Vector2(62, 60)
+			ini.size = Vector2(icon, 60)
 			ini.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			ibg.add_child(ini)
 		var nm := Label.new()
 		nm.text = Clues.clue_name(id)
 		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		nm.max_lines_visible = 2
-		nm.position = Vector2(84, 4)
-		nm.size = Vector2(chip_w - 100, CHIP_H - 8)
-		nm.add_theme_font_size_override("font_size", 17)
+		nm.max_lines_visible = 2 if n <= 5 else 3
+		nm.position = Vector2(icon + 22.0, 4)
+		nm.size = Vector2(chip_w - icon - 38.0, CHIP_H - 8)
+		nm.add_theme_font_size_override("font_size", 17 if n <= 5 else 14)
 		nm.add_theme_color_override("font_color", Style.TEXT)
 		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(nm)
@@ -1268,6 +1310,30 @@ func _hover_drop(i: int) -> void:
 	var cx := chip.get_global_rect().get_center().x
 	_tip.position = Vector2(clampf(cx - tw_w * 0.5, 12.0, W - tw_w - 20.0), PANEL_Y - _tip.size.y - 8.0)
 	_tip.visible = true
+
+
+## Opens the pictures of the loaded Truth Drop, if it has any. The segment waits while they're open.
+func _view_selected() -> void:
+	var id := _selected_drop()
+	if Clues.images(id).is_empty():
+		return
+	_set_cursor_hidden(false)
+	var v: Control = EvidenceViewer.new()
+	v.setup({"clue": id})
+	add_child(v)
+
+
+## A Truth Drop that's right but too soon: costs nothing and earns a small bonus later. True if `id` is one here.
+func _early_line(id: String, at: Vector2) -> bool:
+	var early: Dictionary = data.get("early", {})
+	if not early.has(id):
+		return false
+	Game.note_early(id)
+	var line: Variant = early[id]
+	var d: Dictionary = line if typeof(line) == TYPE_DICTIONARY else {"speaker": "mochi", "expr": "normal", "text": str(line)}
+	Audio.sfx("select", 0.9)
+	await _say_box(str(d.get("speaker", "mochi")), str(d.get("expr", "normal")), str(d.get("text", "")), at, 760.0, _fxd(3.4), _fxd(0.4))
+	return true
 
 
 ## Projectile origin (top of the selected chip) in fx coordinates.

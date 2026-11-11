@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="q1" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ff7eb9" stop-opacity="0.6"/><stop offset="0.5" stop-color="#ff7eb9" stop-opacity="0.2"/><stop offset="1" stop-color="#ff7eb9" stop-opacity="0"/></radialGradient></defs>
+<ellipse cx="100" cy="186" rx="66" ry="8" fill="#000000" opacity="0.2"/>
+<path d="M40 104 L40 156 A60 20 0 0 0 160 156 L160 104 Z" fill="#c3ccd6" stroke="#2a1a10" stroke-width="4.5"/>
+<ellipse cx="100" cy="104" rx="60" ry="20" fill="#f4f1ec" stroke="#2a1a10" stroke-width="4.5"/>
+<ellipse cx="84" cy="104" rx="8" ry="3.5" fill="#c8c4bc"/>
+<ellipse cx="104" cy="106" rx="8" ry="3.5" fill="#c8c4bc"/>
+<g transform="rotate(-24 150 64)">
+<ellipse cx="150" cy="64" rx="46" ry="16" fill="#c3ccd6" stroke="#2a1a10" stroke-width="4.5"/>
+<path d="M136 58 L150 72 L164 58" stroke="#2a1a10" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<circle cx="160" cy="54" r="15.4" fill="url(#q1)"/>
+<path d="M160 47 Q161.5 52.5 167 54 Q161.5 55.5 160 61 Q158.5 55.5 153 54 Q158.5 52.5 160 47 Z" fill="#ffffff" opacity="1"/>
+<circle cx="158" cy="58" r="3.5" fill="#ff7eb9" stroke="#ffffff" stroke-width="0.8"/>
+</svg>

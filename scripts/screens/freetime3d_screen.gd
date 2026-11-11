@@ -7,6 +7,7 @@ extends Control
 ## shop arcade; chapter 2: promenade deck, main stairs + lower passage, saloon; rooms1.gd / rooms2.gd FREE_SPACES),
 ## find a capybara, look at them and press E / click to hang out. Autotest picks the same guests as the 2D screen.
 ## Debug: --skip-intro skips "freetime_intro"; --space3d=<id> starts in that space; --cam=x,y,z,tx,ty,tz places the camera.
+## Case 3: from Day 3 a space's "ledger_page" anchor is a loose page to read (story id page_<space>, if it exists).
 
 signal finished(result: Dictionary)
 
@@ -21,8 +22,6 @@ const Kit := preload("res://scripts/world3d/kit.gd")
 const Player3D := preload("res://scripts/world3d/player3d.gd")
 const Hud3D := preload("res://scripts/world3d/hud3d.gd")
 const MouseGuard := preload("res://scripts/world3d/mouse_guard.gd")
-const Rooms1 := preload("res://scripts/world3d/rooms1.gd")
-const Rooms2 := preload("res://scripts/world3d/rooms2.gd")
 const LiftRide := preload("res://scripts/world3d/lift_ride.gd")
 
 const W := 1280.0
@@ -112,20 +111,24 @@ func _wants_mouse() -> bool:
 
 
 func _free_start() -> String:
-	return Rooms2.FREE_START if Chapters.current == 2 else Rooms1.FREE_START
+	return str(Chapters.rooms3d().get_script_constant_map()["FREE_START"])
 
 
 func _make_names() -> void:
-	_free = Rooms2.FREE_SPACES if Chapters.current == 2 else Rooms1.FREE_SPACES
-	var spaces: Dictionary = Rooms2.SPACES if Chapters.current == 2 else Rooms1.SPACES
-	for id in spaces.keys():
-		_names[id] = str((spaces[id] as Dictionary)["name"])
+	var world: Dictionary = Chapters.rooms3d().get_script_constant_map()
+	var entries: Dictionary = (world["SPACES"] as Dictionary).duplicate()
 	var path := str(Chapters.get_value("investigation", ""))
 	if path != "" and ResourceLoader.exists(path):
 		var script: Script = load(path)
-		var rooms: Dictionary = script.get_script_constant_map().get("ROOMS", {})
-		for id in rooms.keys():
-			_names[id] = str((rooms[id] as Dictionary).get("name", id))
+		entries.merge(script.get_script_constant_map().get("ROOMS", {}), true)
+	for id in entries.keys():
+		_names[id] = str((entries[id] as Dictionary).get("name", id))
+	# a space whose day hasn't come stays shut, like any other door outside Free Time's reach
+	var day := Chapters.day_at(Game.main.current_step())
+	_free = []
+	for id in world["FREE_SPACES"]:
+		if Chapters.room_open(entries.get(id, {}), day):
+			_free.append(id)
 
 
 ## Builds one walkable space with the guests who are there, and puts the player at the door they came through.
@@ -137,12 +140,10 @@ func _enter_space(id: String) -> void:
 	_holder.add_child(_room3d)
 	var k := Kit.new(_room3d)
 	k.mode = "freetime"
-	if Chapters.current == 2:
-		Rooms2.build(id, k, _names)
-	else:
-		Rooms1.build(id, k, _names)
+	Chapters.rooms3d().call("build", id, k, _names)
 	_kit = k
 	_space = id
+	Game.log_place(str(_names.get(id, id)))
 	_focus = {}
 	_tag.visible = false
 	_panel.visible = false
@@ -165,7 +166,8 @@ func _enter_space(id: String) -> void:
 			_set_done(g)
 	for to in k.doors.keys():
 		var d: Dictionary = k.doors[to]
-		if d.has("link"):
+		# examinable doors, and hidden (jib) doors to places Free Time doesn't go, aren't doors here
+		if d.has("link") or (bool(d.get("hidden", false)) and not _free.has(str(to))):
 			continue
 		var t := {"kind": "door", "to": str(to), "label": str(_names.get(to, to)), "hinge": d.get("hinge")}
 		(d["body"] as Node3D).set_meta("target", t)
@@ -178,6 +180,12 @@ func _enter_space(id: String) -> void:
 	for nt in k.notes:
 		var t := {"kind": "note", "label": str(nt["label"]), "text": str(nt["text"])}
 		(nt["body"] as Node3D).set_meta("target", t)
+		_useable.append(t)
+	# Case 3 from Day 3: a loose Ledger page tucked away in this space can be read (story id page_<space>)
+	if k.hot.has("ledger_page") and Story.has("page_" + id):
+		var hp: Dictionary = k.hot["ledger_page"]
+		var t := {"kind": "page", "label": "Loose page", "script": "page_" + id}
+		(hp["body"] as Node3D).set_meta("target", t)
 		_useable.append(t)
 	var cam := MouseGuard.cam_arg()
 	if not cam.is_empty():
@@ -390,6 +398,9 @@ func _free_player() -> void:
 func _first_bg(txt: String) -> String:
 	for line in txt.split("\n"):
 		var l := line.strip_edges()
+		# a script that branches before its first @bg (Case 3's hangouts pick theirs by day) sets its own, from black
+		if l.begins_with("@if ") or l.begins_with("@ifnot ") or l.begins_with("@jump "):
+			return ""
 		if l.begins_with("@bg "):
 			var parts := l.substr(4).strip_edges().split(" ", false)
 			return parts[0] if parts.size() > 0 else ""
@@ -525,6 +536,8 @@ func _use(t: Dictionary) -> void:
 			await _ride(t)
 		"note":
 			await _read_note(t)
+		"page":
+			await _read_page(t)
 
 
 func _go_door(t: Dictionary) -> void:
@@ -551,6 +564,11 @@ func _go_door(t: Dictionary) -> void:
 
 
 func _ride(t: Dictionary) -> void:
+	var lift_to := str((_kit.lifts[str(t["lift_id"])] as Dictionary)["to_space"])
+	if lift_to != "" and lift_to != _space and not _free.has(lift_to):
+		Audio.sfx("cancel")
+		_toast("Not now. It's Free Time: go and find someone!", Style.TEXT_DIM)
+		return
 	_active = false
 	_set_focus({})
 	Audio.sfx("confirm")
@@ -582,6 +600,7 @@ func _ride(t: Dictionary) -> void:
 
 
 func _read_note(t: Dictionary) -> void:
+	Game.log_thing(str(t["label"]))
 	_active = false
 	_set_focus({})
 	Audio.sfx("select")
@@ -592,6 +611,27 @@ func _read_note(t: Dictionary) -> void:
 	add_child(_sp)
 	move_child(_sp, _fade.get_index())
 	_sp.play_text("think: %s\n@end" % str(t["text"]))
+	if _sp.is_running():
+		await _sp.finished
+	if not is_inside_tree():
+		return
+	_free_player()
+	_enable()
+
+
+## A loose page: its story script plays over the room (it sets its own flag and Logbook entry), then back to walking.
+func _read_page(t: Dictionary) -> void:
+	Game.log_thing(str(t["label"]))
+	_active = false
+	_set_focus({})
+	Audio.sfx("select")
+	_free_player()
+	_sp = ScriptPlayer.new()
+	_sp.transparent = true
+	_sp.auto_portrait = true
+	add_child(_sp)
+	move_child(_sp, _fade.get_index())
+	_sp.play_text(Story.get_text(str(t["script"])))
 	if _sp.is_running():
 		await _sp.finished
 	if not is_inside_tree():
@@ -651,7 +691,7 @@ func _build_header() -> void:
 	bar.size = Vector2(250, 4)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_header.add_child(bar)
-	var sub := Style.label("Day 1  -  Afternoon. Who will you spend time with?", 18, Style.TEXT, true)
+	var sub := Style.label("Day %d  -  Afternoon. Who will you spend time with?" % maxi(Chapters.day_at(Game.main.current_step()), 1), 18, Style.TEXT, true)
 	sub.position = Vector2(38, 80)
 	sub.add_theme_color_override("font_outline_color", Style.BG_DARK)
 	sub.add_theme_constant_override("outline_size", 6)

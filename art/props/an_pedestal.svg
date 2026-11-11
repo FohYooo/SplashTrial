@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="340" viewBox="0 0 320 340">
+<defs><linearGradient id="l1" gradientUnits="userSpaceOnUse" x1="42" y1="0" x2="278" y2="0"><stop offset="0" stop-color="#3a3f9a" stop-opacity="1.0"/><stop offset="0.5" stop-color="#6a70d0" stop-opacity="1.0"/><stop offset="1" stop-color="#23265e" stop-opacity="1.0"/></linearGradient>
+<linearGradient id="l2" gradientUnits="userSpaceOnUse" x1="0" y1="34" x2="0" y2="86"><stop offset="0" stop-color="#ffe39a" stop-opacity="1.0"/><stop offset="1" stop-color="#d9a845" stop-opacity="1.0"/></linearGradient>
+<radialGradient id="q3" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd86b" stop-opacity="0.6"/><stop offset="0.5" stop-color="#ffd86b" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd86b" stop-opacity="0"/></radialGradient>
+<radialGradient id="q4" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd86b" stop-opacity="0.6"/><stop offset="0.5" stop-color="#ffd86b" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd86b" stop-opacity="0"/></radialGradient>
+<radialGradient id="q5" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd86b" stop-opacity="0.6"/><stop offset="0.5" stop-color="#ffd86b" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd86b" stop-opacity="0"/></radialGradient>
+<radialGradient id="q6" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd86b" stop-opacity="0.6"/><stop offset="0.5" stop-color="#ffd86b" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd86b" stop-opacity="0"/></radialGradient></defs>
+<path d="M74 60 L246 60 L278 300 L42 300 Z" fill="url(#l1)" stroke="#2a1a10" stroke-width="4"/>
+<ellipse cx="160" cy="300" rx="124" ry="28" fill="#1b1c4e" stroke="#2a1a10" stroke-width="4"/>
+<ellipse cx="160" cy="60" rx="102" ry="26" fill="url(#l2)" stroke="#2a1a10" stroke-width="4"/>
+<ellipse cx="160" cy="56" rx="80" ry="17" fill="#8e2b4a" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="95.2" cy="180.4" r="22.4" fill="url(#q3)"/>
+<circle cx="95.2" cy="180.4" r="7" fill="#fff4c4" stroke="#2a1a10" stroke-width="1.6"/>
+<circle cx="93.1" cy="178.3" r="2.1" fill="#ffffff" opacity="0.9"/>
+<circle cx="138.4" cy="166.8" r="22.4" fill="url(#q4)"/>
+<circle cx="138.4" cy="166.8" r="7" fill="#fff4c4" stroke="#2a1a10" stroke-width="1.6"/>
+<circle cx="136.3" cy="164.7" r="2.1" fill="#ffffff" opacity="0.9"/>
+<circle cx="181.6" cy="166.8" r="22.4" fill="url(#q5)"/>
+<circle cx="181.6" cy="166.8" r="7" fill="#fff4c4" stroke="#2a1a10" stroke-width="1.6"/>
+<circle cx="179.5" cy="164.7" r="2.1" fill="#ffffff" opacity="0.9"/>
+<circle cx="224.8" cy="180.4" r="22.4" fill="url(#q6)"/>
+<circle cx="224.8" cy="180.4" r="7" fill="#fff4c4" stroke="#2a1a10" stroke-width="1.6"/>
+<circle cx="222.7" cy="178.3" r="2.1" fill="#ffffff" opacity="0.9"/>
+</svg>

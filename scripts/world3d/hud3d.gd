@@ -58,6 +58,8 @@ func set_hints(keys: Array) -> void:
 	hint.reset_size()
 	var sz := hint.get_combined_minimum_size()
 	hint.position = Vector2(16, 720 - sz.y - 14)
+	if _hidden:
+		hint.modulate.a = 0.0   # rebuilt while a snippet is up: it comes back with the rest of the HUD
 
 
 func set_focus(on: bool) -> void:

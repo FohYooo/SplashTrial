@@ -60,17 +60,17 @@ static func _h(i: int) -> float:
 	return fposmod(sin(float(i) * 12.9898) * 43758.5453, 1.0)
 
 
-## A cluster of glowing cave mushrooms.
-static func _fungus(k, p: Vector3, s: float, cap: Material, stem: Material) -> void:
+## A cluster of glowing cave mushrooms: adds its stems and caps to the arrays, to be drawn as one batch each.
+static func _fungus(p: Vector3, s: float, stems: Array, caps: Array) -> void:
 	for i in 3:
 		var o := p + Vector3(0.0, 0.0, (i - 1) * 0.7 * s) + Vector3(0, -0.3 * s * (i % 2), 0)
-		k.cyl(0.07 * s, 0.1 * s, 0.6 * s, o + Vector3(0, 0.3 * s, 0), stem, null, false, 6)
-		k.sphere(0.35 * s, o + Vector3(0, 0.62 * s, 0), cap, null, Vector3(1, 0.45, 1), 10)
+		stems.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s, s, s)), o + Vector3(0, 0.3 * s, 0)))
+		caps.append(Transform3D(Basis.IDENTITY.scaled(Vector3(0.35 * s, 0.16 * s, 0.35 * s)), o + Vector3(0, 0.62 * s, 0)))
 
 
 ## Ship cabin shell: wood floor, upper wall (cream paint or tan panelling), teal wainscot, brass trim,
 ## dark beamed ceiling with a pipe or two.
-static func _ship_shell(k, w: float, d: float, h: float, upper: String = "tan") -> void:
+static func _ship_shell(k, w: float, d: float, h: float, upper: String = "tan", walls: Array = ["n", "s", "e", "w"]) -> Dictionary:
 	var wall_m: Material
 	if upper == "cream":
 		wall_m = k.mat(CREAM, 0.95)
@@ -78,14 +78,16 @@ static func _ship_shell(k, w: float, d: float, h: float, upper: String = "tan") 
 		wall_m = k.wood_wall(TEAL_DARK, TEAL, 0.3)
 	else:
 		wall_m = k.wood_wall(TAN.darkened(0.15), TAN, 0.26)
-	k.shell(w, d, h, {
+	var opts := {
 		"floor": k.wood_floor(Color(0.3, 0.17, 0.09), Color(0.5, 0.31, 0.16), 0.2),
 		"wall": wall_m,
 		"wain": k.wood_wall(TEAL_DARK, TEAL, 0.18) if upper != "teal" else k.wood_wall(TEAL_DARK.darkened(0.2), TEAL_DARK, 0.18),
 		"wain_h": 1.05,
 		"trim": k.brass,
-		"ceiling": k.mat(Color(0.24, 0.15, 0.09), 0.85), "beams": true})
+		"ceiling": k.mat(Color(0.24, 0.15, 0.09), 0.85), "beams": true, "walls": walls}
+	k.shell(w, d, h, opts)
 	k.cyl(0.06, 0.06, w, Vector3(0, h - 0.32, -d / 2.0 + 0.3), k.mat(Color(0.5, 0.42, 0.3), 0.4, 0.7)).rotation.z = PI / 2.0
+	return opts
 
 
 ## A porthole with a bit of cave glow spilling in.
@@ -100,11 +102,13 @@ static func _port(k, pos: Vector3, rot_y: float, r: float = 0.2, light: bool = t
 static func _infirmary(k) -> void:
 	var W := 6.0
 	var D := 8.0
-	var H := 2.5
+	var H := 2.7
 	k.environment("indoor", Color(0.7, 0.72, 0.72), 0.4)
-	_ship_shell(k, W, D, H, "cream")
-	k.hanging_lamp(Vector3(0, 2.15, -0.8), Color(1.0, 0.92, 0.8), 1.3, H, true)
-	k.hanging_lamp(Vector3(0, 2.15, 2.4), Color(1.0, 0.92, 0.8), 0.7, H, false, 5.0)
+	var opts: Dictionary = _ship_shell(k, W, D, H, "cream", ["n", "s", "w"])
+	# the east wall has a real opening: the door hangs ajar on the passage outside
+	k.wall_run(Vector2(W / 2.0, -D / 2.0), Vector2(W / 2.0, D / 2.0), 0.0, H, opts, [[D / 2.0 - 2.55, D / 2.0 - 1.45, 0.0, 2.15]])
+	k.hanging_lamp(Vector3(0, 2.3, -0.8), Color(1.0, 0.92, 0.8), 1.3, H, true)
+	k.hanging_lamp(Vector3(0, 2.3, 2.4), Color(1.0, 0.92, 0.8), 0.7, H, false, 5.0)
 	# the ship's hull slopes in along the west wall
 	var hull: MeshInstance3D = k.box(Vector3(0.1, 1.4, D), Vector3(-W / 2.0 + 0.22, 0.62, 0), k.wood_wall(TEAL_DARK, TEAL, 0.18))
 	hull.rotation.z = 0.3
@@ -127,7 +131,7 @@ static func _infirmary(k) -> void:
 	for i in 2:
 		k.box(Vector3(0.6, 0.25, 0.02), Vector3(-1.9 + (i - 0.5) * 0.66, 0.6, -D / 2.0 + 0.71), k.wood_light)
 	# hotspot: rounds log (clipboard on the wall above the desk)
-	var lg: Node3D = k.hotspot("log", Vector3(-1.9, 1.45, -D / 2.0 + 0.03), Vector3(0.6, 0.75, 0.35), Vector3(0, 0.05, 0.12))
+	var lg: Node3D = k.hotspot("log", Vector3(-1.9, 1.45, -D / 2.0 + 0.01), Vector3(0.6, 0.75, 0.35), Vector3(0, 0.05, 0.12))
 	k.box(Vector3(0.32, 0.44, 0.02), Vector3(0, 0, 0.01), k.wood_light, false, lg)
 	k.box(Vector3(0.28, 0.38, 0.01), Vector3(0, -0.02, 0.025), k.paper, false, lg)
 	k.box(Vector3(0.12, 0.05, 0.03), Vector3(0, 0.2, 0.03), k.steel, false, lg)
@@ -156,14 +160,20 @@ static func _infirmary(k) -> void:
 	k.steam(Vector3(-2.2, 1.1, -1.6), Vector3(0.05, 0.02, 0.05), 6, 0.35, 0.1, 0.3, 2.0)
 	# hotspot: the door (east wall, swinging, no doorstop) + the dropped breakfast tray
 	var dr: Node3D = k.hotspot("door", Vector3(W / 2.0 - 0.04, 0, -2.0), Vector3(1.3, 2.3, 0.8), Vector3.ZERO, -PI / 2.0)
-	k.box(Vector3(1.15, 2.2, 0.06), Vector3(0, 1.1, 0.02), k.wood_dark, false, dr)
-	k.quad(Vector2(0.95, 2.0), Vector3(0, 1.0, 0.04), k.mat(Color(0.08, 0.06, 0.05), 0.9), dr)
+	k.leaf(dr, 1.0, 2.1)
+	for sx in [-0.56, 0.56]:
+		k.box(Vector3(0.12, 2.2, 0.3), Vector3(sx, 1.1, -0.1), k.wood_dark, false, dr)
+	k.box(Vector3(1.24, 0.12, 0.3), Vector3(0, 2.14, -0.1), k.wood_dark, false, dr)
+	k.box(Vector3(1.0, 0.02, 0.3), Vector3(0, 0.01, -0.1), k.wood_dark, false, dr)
 	var hinge := Node3D.new()
-	hinge.position = Vector3(-0.48, 0, 0.06)
+	hinge.position = Vector3(-0.5, 0, 0.06)
 	hinge.rotation.y = -0.9
 	dr.add_child(hinge)
-	k.box(Vector3(0.95, 2.0, 0.05), Vector3(0.475, 1.0, 0), k.mat(Color(0.55, 0.35, 0.2), 0.6), false, hinge)
-	k.sphere(0.03, Vector3(0.85, 1.0, 0.04), k.brass, hinge)
+	k.box(Vector3(1.0, 2.1, 0.05), Vector3(0.5, 1.05, 0), k.mat(Color(0.55, 0.35, 0.2), 0.6), true, hinge)
+	k.sphere(0.03, Vector3(0.88, 1.0, 0.04), k.brass, hinge)
+	k.passage_glimpse(Vector3(W / 2.0 + 0.2, 0, -2.0), -PI / 2.0, k.smat(Kit.SH_METAL, {"base": Color(0.27, 0.3, 0.3)}),
+		k.stone_floor(Color(0.22, 0.22, 0.23), Color(0.32, 0.31, 0.3), 0.8, 0.7), k.mat(Color(0.14, 0.14, 0.15), 0.7, 0.3), Color(1.0, 0.82, 0.55), 3.0, 2.8, 2.5, 0.5)
+	k.blocker(Vector3(1.0, 2.2, 0.2), Vector3(W / 2.0 + 0.08, 1.1, -2.0))
 	k.box(Vector3(0.45, 0.02, 0.3), Vector3(0.3, 0.01, 0.6), k.mat(Color(0.75, 0.6, 0.4), 0.6), false, dr, 0.4)
 	k.cyl(0.04, 0.03, 0.06, Vector3(0.0, 0.03, 0.85), k.white, dr).rotation.z = PI / 2.0
 	k.cyl(0.09, 0.08, 0.012, Vector3(0.5, 0.01, 0.9), k.white, dr)
@@ -177,6 +187,7 @@ static func _infirmary(k) -> void:
 	for sz in [-0.3, 0.3]:
 		k.sphere(0.09, Vector3(-0.25, 0.08, sz * 1.1), fur, bd, Vector3(0.7, 0.5, 1.6))
 		k.sphere(0.1, Vector3(0.62, 0.09, sz * 0.6), scrubs, bd, Vector3(1.8, 0.7, 0.8))
+	k.blocker(Vector3(1.5, 0.36, 0.72), Vector3(0.1, 0.18, -0.9))
 	var cap := Node3D.new()
 	cap.position = Vector3(-0.95, 0.03, 0.55)
 	cap.rotation = Vector3(0.0, 0.7, 0.25)
@@ -184,10 +195,33 @@ static func _infirmary(k) -> void:
 	k.box(Vector3(0.24, 0.08, 0.14), Vector3(0, 0.04, 0), k.white, false, cap)
 	k.box(Vector3(0.07, 0.025, 0.012), Vector3(0, 0.05, 0.075), k.mat(Color(0.2, 0.7, 0.3), 0.6), false, cap)
 	k.box(Vector3(0.025, 0.07, 0.012), Vector3(0, 0.05, 0.075), k.mat(Color(0.2, 0.7, 0.3), 0.6), false, cap)
-	k.cctv(Vector3(W / 2.0 - 0.15, 2.25, D / 2.0 - 0.4), -PI / 2.0 - 0.7)
+	k.cctv(Vector3(W / 2.0, 2.35, D / 2.0 - 0.4), -PI / 2.0, -0.7)
+	# a curtain rail round the cot, a stand for a drip, the small tools of the trade
+	k.beam(Vector3(0.25, 2.1, -D / 2.0), Vector3(0.25, 2.1, -D / 2.0 + 1.5), 0.012, k.steel)
+	k.beam(Vector3(0.25, 2.1, -D / 2.0 + 1.5), Vector3(W / 2.0, 2.1, -D / 2.0 + 1.5), 0.012, k.steel)
+	for i in 4:
+		k.box(Vector3(0.05, 1.5, 0.3), Vector3(0.26, 1.34, -D / 2.0 + 0.2 + i * 0.32), k.mat(Color(0.82, 0.9, 0.88), 0.95))
+		k.cyl(0.006, 0.006, 0.06, Vector3(0.26, 2.09, -D / 2.0 + 0.2 + i * 0.32), k.steel, null, false, 6)
+	var drip := Vector3(2.55, 0, -D / 2.0 + 1.6)
+	k.cyl(0.14, 0.17, 0.03, drip + Vector3(0, 0.015, 0), k.steel, null, false, 12)
+	k.cyl(0.012, 0.012, 1.7, drip + Vector3(0, 0.87, 0), k.steel, null, true, 8)
+	k.beam(drip + Vector3(0, 1.7, 0), drip + Vector3(0.2, 1.72, 0), 0.008, k.steel)
+	k.box(Vector3(0.11, 0.2, 0.05), drip + Vector3(0.2, 1.57, 0), k.mat(Color(0.85, 0.92, 0.95), 0.2))
+	var jars: Node3D = k.wall_shelf(Vector3(-1.9, 1.95, -D / 2.0), 0.0, 1.2, 0.2, k.wood_light)
+	for i in 5:
+		k.cyl(0.05, 0.05, 0.14, Vector3(-0.45 + i * 0.22, 0.07, 0.1), k.mat([Color(0.7, 0.85, 0.9), Color(0.95, 0.8, 0.5), Color(0.75, 0.9, 0.75)][i % 3], 0.2), jars, false, 10)
+		k.cyl(0.054, 0.054, 0.02, Vector3(-0.45 + i * 0.22, 0.15, 0.1), k.white, jars, false, 10)
+	k.picture(Vector3(W / 2.0, 1.75, 1.3), -PI / 2.0, Vector2(0.6, 0.8), Color(0.92, 0.9, 0.84), k.brass, "WASH!", 6)
+	k.picture(Vector3(-W / 2.0, 1.75, 2.3), PI / 2.0, Vector2(0.5, 0.36), Color(0.46, 0.62, 0.68), k.brass)
+	k.wall_clock(Vector3(-0.9, 2.15, D / 2.0), PI)
+	var bin_p := Vector3(-0.6, 0, -D / 2.0 + 0.35)
+	k.cyl(0.17, 0.15, 0.42, bin_p + Vector3(0, 0.21, 0), k.mat(Color(0.85, 0.86, 0.84), 0.35), null, true, 14)
+	k.cyl(0.18, 0.18, 0.03, bin_p + Vector3(0, 0.435, 0), k.steel, null, false, 14)
+	k.stool(Vector3(-1.9, 0, -D / 2.0 + 1.1), k.mat(Color(0.2, 0.42, 0.44), 0.6))
+	k.rug(Vector3(0, 0, 2.6), Vector2(1.4, 1.0), Color(0.3, 0.48, 0.5), Color(0.8, 0.76, 0.6))
 	k.person("grub", Vector3(-1.9, 0, 0.3))
 	k.person("nibs", Vector3(2.1, 0, 0.2))
-	k.door("companionway", "Lower Passage", Vector3(0, 0, D / 2.0), PI, {"h": 1.9})
+	k.door("companionway", "Lower Passage", Vector3(0, 0, D / 2.0), PI)
 	k.spawn = Vector3(0, 0, 2.8)
 	k.look = Vector3(0, 0.9, -3.0)
 
@@ -197,32 +231,41 @@ static func _boiler(k) -> void:
 	var W := 10.0
 	var D := 10.0
 	var H := 6.0
-	k.environment("dim", Color(0.5, 0.4, 0.36), 0.32)
-	var plates: Material = k.smat(Kit.SH_METAL, {"base": Color(0.24, 0.24, 0.26)})
-	k.shell(W, D, H, {"floor": k.smat(Kit.SH_METAL, {"base": Color(0.3, 0.29, 0.3), "plate": Vector2(1.0, 1.0)}),
+	k.environment("dim", Color(0.62, 0.5, 0.42), 0.56)
+	var plates: Material = k.smat(Kit.SH_METAL, {"base": Color(0.42, 0.42, 0.44)})
+	k.shell(W, D, H, {"floor": k.smat(Kit.SH_METAL, {"base": Color(0.46, 0.44, 0.44), "plate": Vector2(1.0, 1.0)}),
 		"wall": plates, "wain": null, "trim": k.mat(Color(0.14, 0.14, 0.15), 0.5, 0.6),
 		"ceiling": k.mat(Color(0.12, 0.12, 0.13), 0.7, 0.4)})
 	var pipe_m: Material = k.mat(Color(0.38, 0.36, 0.34), 0.45, 0.7)
 	for i in 3:
 		k.cyl(0.08 - i * 0.015, 0.08 - i * 0.015, W, Vector3(0, 2.4 + i * 0.22, -D / 2.0 + 0.2 + i * 0.1), pipe_m).rotation.z = PI / 2.0
 	for x in [-3.6, -0.4, 3.9]:
-		k.cyl(0.07, 0.07, H, Vector3(x, H / 2.0, -D / 2.0 + 0.2), pipe_m)
-	k.cyl(0.006, 0.006, 2.4, Vector3(-1.0, H - 1.2, 0.8), k.black)
-	k.sphere(0.09, Vector3(-1.0, H - 2.45, 0.8), k.glow(Color(1.0, 0.85, 0.6), 4.0))
-	k.omni(Vector3(-1.0, H - 2.65, 0.8), Color(1.0, 0.82, 0.6), 1.3, 10.0, true)
+		k.cyl(0.07, 0.07, H, Vector3(x, H / 2.0, -D / 2.0 + 0.2), pipe_m, null, true)
+	k.bulb(Vector3(-1.0, H - 2.45, 0.8), H, Color(1.0, 0.85, 0.6), 1.7, 11.0, true)
+	# caged work lamps: one over the door, a pair either side of the furnace, one by the coal
+	k.wall_lamp(Vector3(1.55, 2.6, D / 2.0), PI, Color(1.0, 0.86, 0.62), 0.95, 6.5)
+	k.wall_lamp(Vector3(4.2, 2.6, D / 2.0), PI, Color(1.0, 0.86, 0.62), 0.6, 5.0)
+	k.wall_lamp(Vector3(-0.5, 2.7, -D / 2.0), 0.0, Color(1.0, 0.82, 0.58), 1.0, 7.0)
+	k.wall_lamp(Vector3(3.6, 2.7, -D / 2.0), 0.0, Color(1.0, 0.82, 0.58), 1.0, 7.0)
+	k.wall_lamp(Vector3(W / 2.0, 2.6, -0.5), -PI / 2.0, Color(1.0, 0.82, 0.58), 0.75, 7.0)
 	# a metal stair along the south wall up to a catwalk along the west wall
 	var grate: Material = k.mat(Color(0.2, 0.2, 0.22), 0.45, 0.7)
-	k.stairs(Vector3(0.6, 0, 4.4), Vector3(-3.8, 2.9, 4.4), 1.1, {"mat": grate, "solid": false, "rail": "right", "rail_mat": k.steel})
-	k.slab(-W / 2.0, -D / 2.0, -3.8, D / 2.0, 2.9, grate, 0.08)
-	k.rail(Vector3(-3.8, 2.9, -D / 2.0), Vector3(-3.8, 2.9, 3.85), k.steel)
+	k.stairs(Vector3(0.7, 0, 4.3), Vector3(-3.7, 2.9, 4.3), 1.4, {"mat": grate, "solid": false, "rail": "left", "rail_mat": k.steel})
+	k.slab(-W / 2.0, -D / 2.0, -3.7, D / 2.0, 2.9, grate, 0.08)
+	k.rail(Vector3(-3.7, 2.9, -D / 2.0), Vector3(-3.7, 2.9, 3.6), k.steel)
 	k.omni(Vector3(-4.4, 4.4, -1.0), Color(1.0, 0.75, 0.5), 0.8, 7.0)
 	k.note("Catwalk", "From up here the furnace looks like it's breathing. Let's not stay long.", Vector3(-4.4, 2.9, -2.0), Vector3(1.0, 1.2, 1.6), Vector3(0, 0.6, 0))
 	# hotspot: furnace (back right)
 	var fn: Node3D = k.hotspot("furnace", Vector3(1.6, 0, -D / 2.0 + 0.85), Vector3(2.4, 2.4, 1.6))
-	var iron: Material = k.mat(Color(0.1, 0.1, 0.11), 0.5, 0.6)
+	var iron: Material = k.mat(Color(0.2, 0.19, 0.2), 0.55, 0.25)
 	k.box(Vector3(2.0, 1.9, 1.3), Vector3(0, 0.95, 0), iron, true, fn)
 	k.box(Vector3(2.1, 0.12, 1.4), Vector3(0, 1.95, 0), k.mat(Color(0.16, 0.16, 0.17), 0.5, 0.6), false, fn)
-	k.cyl(0.25, 0.25, H, Vector3(0, 2.0 + H / 2.0 - 0.9, -0.2), iron, fn)
+	k.cyl(0.25, 0.25, H - 1.1, Vector3(0, (H + 1.1) / 2.0, -0.2), iron, fn)
+	for i in 3:
+		k.box(Vector3(2.04, 0.06, 1.34), Vector3(0, 0.3 + i * 0.6, 0), k.mat(Color(0.28, 0.26, 0.26), 0.5, 0.3), false, fn)
+	for sx in [-0.82, 0.82]:
+		for yy in [0.5, 1.1, 1.65]:
+			k.sphere(0.035, Vector3(sx, yy, 0.665), k.brass, fn, Vector3.ONE, 8)
 	k.box(Vector3(0.9, 0.7, 0.06), Vector3(0, 0.85, 0.66), k.mat(Color(0.2, 0.2, 0.22), 0.4, 0.7), false, fn)
 	k.box(Vector3(0.7, 0.45, 0.02), Vector3(0, 0.82, 0.7), k.glow(Color(1.0, 0.42, 0.1), 5.0), false, fn)
 	for i in 5:
@@ -233,7 +276,7 @@ static func _boiler(k) -> void:
 	k.flickers.append(fire)
 	# hotspot: pressure gauges on the pipes (back left)
 	var gg: Node3D = k.hotspot("gauges", Vector3(-1.8, 1.75, -D / 2.0 + 0.3), Vector3(1.3, 0.8, 0.6), Vector3(0, 0, 0.1))
-	k.cyl(0.05, 0.05, 1.2, Vector3(0, -0.25, 0), pipe_m, gg).rotation.z = PI / 2.0
+	k.cyl(0.05, 0.05, 3.2, Vector3(-0.2, -0.25, 0), pipe_m, gg).rotation.z = PI / 2.0
 	for i in 2:
 		var gx := -0.3 + i * 0.6
 		var r := 0.17 - i * 0.04
@@ -245,10 +288,10 @@ static func _boiler(k) -> void:
 		var needle: MeshInstance3D = k.box(Vector3(0.012, r * 0.75, 0.005), Vector3(gx, 0.08, 0.085), k.mat(Color(0.85, 0.1, 0.1), 0.5), false, gg)
 		needle.rotation.z = -0.9 + i * 1.6
 		needle.position += Vector3(sin(0.9 - i * 1.6), cos(0.9 - i * 1.6), 0) * r * 0.3
-	k.sphere(0.04, Vector3(0.6, -0.25, 0.05), k.glow(Color(1.0, 0.2, 0.15), 2.0), gg)
+	k.sphere(0.04, Vector3(0.6, -0.25, 0.05), k.glow(Color(1.0, 0.2, 0.15), 2.0), gg, Vector3.ONE, 8)
 	# hotspot: coal pile (left of centre) with a shovel
 	var cl: Node3D = k.hotspot("coal", Vector3(-1.5, 0, -2.6), Vector3(2.0, 1.1, 1.6))
-	var coal: Material = k.mat(Color(0.13, 0.13, 0.15), 0.3, 0.25)
+	var coal: Material = k.mat(Color(0.2, 0.2, 0.22), 0.35, 0.2)
 	k.sphere(0.8, Vector3(0, 0.0, 0), coal, cl, Vector3(1.2, 0.85, 0.9), 14)
 	for i in 26:
 		var a := i * 2.399
@@ -275,10 +318,39 @@ static func _boiler(k) -> void:
 		var sole: MeshInstance3D = k.box(Vector3(0.38, 0.008, 0.17), fp, dust, false, bp, -0.1)
 		sole.position.x += 0.0
 		k.box(Vector3(0.12, 0.008, 0.15), fp + Vector3(-0.28, 0, 0), dust, false, bp, -0.1)
-	k.cctv(Vector3(-W / 2.0 + 0.15, 2.8, D / 2.0 - 0.4), PI / 2.0 + 0.7)
+	k.cctv(Vector3(W / 2.0, 3.3, D / 2.0 - 0.6), -PI / 2.0, -0.7)
+	# the working end of the room: a tool board, oil cans, a coal barrow, warning plates, valve wheels on the pipes
+	var board := Vector3(W / 2.0, 1.55, 1.6)
+	k.box(Vector3(0.03, 0.9, 1.5), board + Vector3(-0.015, 0, 0), k.wood_mid)
+	var tool_m: Material = k.mat(Color(0.6, 0.62, 0.64), 0.35, 0.4)
+	for i in 6:
+		var hz := -0.55 + i * 0.22
+		k.sphere(0.012, board + Vector3(-0.04, 0.32, hz), k.brass, null, Vector3.ONE, 6)
+		k.box(Vector3(0.018, 0.34 + 0.09 * (i % 3), 0.035), board + Vector3(-0.04, 0.1 - 0.04 * (i % 3), hz), tool_m)
+		k.box(Vector3(0.018, 0.05, 0.1), board + Vector3(-0.04, -0.1 - 0.09 * (i % 3), hz), tool_m)
+	for z in [-1.6, 0.1, 2.3]:
+		k.picture(Vector3(W / 2.0, 2.3, z - 0.0), -PI / 2.0, Vector2(0.56, 0.3), Color(0.95, 0.78, 0.15), k.black, "DANGER", 0, Color(0.1, 0.08, 0.05))
+	for i in 3:
+		var can := Vector3(4.2, 0, -3.7 + i * 0.32)
+		k.cyl(0.08, 0.1, 0.22, can + Vector3(0, 0.11, 0), k.mat([Color(0.55, 0.14, 0.12), Color(0.3, 0.42, 0.3), Color(0.52, 0.48, 0.3)][i], 0.5), null, false, 12)
+		k.beam(can + Vector3(0, 0.22, 0), can + Vector3(0.14, 0.32, 0), 0.008, k.steel)
+	var barrow := Vector3(-3.1, 0, -1.2)
+	k.box(Vector3(0.6, 0.3, 0.9), barrow + Vector3(0, 0.38, 0), k.mat(Color(0.34, 0.33, 0.33), 0.5, 0.3), true)
+	k.torus(0.06, 0.2, barrow + Vector3(0, 0.2, 0.55), k.mat(Color(0.1, 0.1, 0.1), 0.6), null, Vector3(0, 0, PI / 2.0))
+	for sx in [-0.22, 0.22]:
+		k.beam(barrow + Vector3(sx, 0.34, -0.3), barrow + Vector3(sx, 0.55, -1.0), 0.02, k.wood_light)
+		k.beam(barrow + Vector3(sx, 0.23, 0.4), barrow + Vector3(sx, 0.0, -0.3), 0.016, k.steel)
+	for i in 10:
+		k.sphere(0.09, barrow + Vector3(-0.2 + 0.1 * (i % 5), 0.55 + 0.03 * (i % 3), -0.3 + 0.17 * (i / 2)), coal, null, Vector3(1, 0.8, 1), 6)
+	var red_wheel: Material = k.mat(Color(0.7, 0.16, 0.12), 0.5)
+	for x in [-3.6, 3.9]:
+		k.torus(0.1, 0.14, Vector3(x, 1.5, -D / 2.0 + 0.3), red_wheel, null, Vector3(PI / 2.0, 0, 0))
+		for a in [0.0, PI / 2.0]:
+			var sp: MeshInstance3D = k.box(Vector3(0.24, 0.02, 0.02), Vector3(x, 1.5, -D / 2.0 + 0.3), red_wheel)
+			sp.rotation.z = a
 	k.person("bruno", Vector3(-2.7, 0, 1.2))
 	k.person("reginald", Vector3(3.0, 0, 1.3))
-	k.door("companionway", "Lower Passage", Vector3(3.0, 0, D / 2.0), PI, {"mat": k.steel, "frame": k.mat(Color(0.18, 0.18, 0.2), 0.5, 0.6), "porthole": true})
+	k.door("companionway", "Lower Passage", Vector3(3.0, 0, D / 2.0), PI, {"mat": k.mat(Color(0.44, 0.46, 0.48), 0.4, 0.35), "frame": k.mat(Color(0.26, 0.26, 0.28), 0.5, 0.3), "porthole": true})
 	k.spawn = Vector3(3.0, 0, 3.8)
 	k.look = Vector3(-1.0, 1.0, -4.5)
 
@@ -287,17 +359,18 @@ static func _boiler(k) -> void:
 static func _laundry(k) -> void:
 	var W := 4.5
 	var D := 10.0
-	var H := 2.6
+	var H := 2.75
 	k.environment("indoor", Color(0.55, 0.65, 0.62), 0.38)
 	_ship_shell(k, W, D, H, "teal")
-	k.hanging_lamp(Vector3(-0.3, 2.25, -2.4), Color(1.0, 0.9, 0.72), 1.1, H, true)
-	k.hanging_lamp(Vector3(-0.3, 2.25, 2.2), Color(1.0, 0.9, 0.72), 0.8, H, false, 5.0)
+	k.hanging_lamp(Vector3(-0.3, 2.4, -2.4), Color(1.0, 0.9, 0.72), 1.1, H, true)
+	k.hanging_lamp(Vector3(-0.3, 2.4, 2.2), Color(1.0, 0.9, 0.72), 0.8, H, false, 5.0)
 	_port(k, Vector3(-W / 2.0, 1.8, -1.6), PI / 2.0)
 	# shelves with folded towels (back right)
+	var towel_cols := [Color(0.95, 0.95, 0.95), Color(0.7, 0.85, 0.95), Color(0.95, 0.85, 0.7)]
 	for i in 2:
-		k.box(Vector3(1.2, 0.04, 0.3), Vector3(1.2, 1.75 + i * 0.35, -D / 2.0 + 0.16), k.wood_light)
+		var sh: Node3D = k.wall_shelf(Vector3(1.2, 1.72 + i * 0.5, -D / 2.0), 0.0, 1.5, 0.3, k.wood_light)
 		for j in 3:
-			k.box(Vector3(0.28, 0.12, 0.24), Vector3(0.8 + j * 0.38, 1.83 + i * 0.35, -D / 2.0 + 0.16), k.mat([Color(0.95, 0.95, 0.95), Color(0.7, 0.85, 0.95), Color(0.95, 0.85, 0.7)][(i + j) % 3], 0.95))
+			k.folded_stack(Vector3(-0.45 + j * 0.45, 0.0, 0.16), [towel_cols[(i + j) % 3], towel_cols[(i + j + 1) % 3]], 4 - (i + j) % 2, Vector2(0.36, 0.26), 0.0, sh)
 	# hotspot: drying line with sheets (and a lilac shawl)
 	var ln: Node3D = k.hotspot("line", Vector3(1.35, 1.4, -0.8), Vector3(4.6, 1.4, 0.6), Vector3(0, 0.25, 0), -PI / 2.0)
 	k.cyl(0.006, 0.006, 4.4, Vector3(0, 0.75, 0), k.mat(Color(0.85, 0.82, 0.75), 0.9), ln).rotation.z = PI / 2.0
@@ -316,16 +389,25 @@ static func _laundry(k) -> void:
 	# hotspot: boot rack (front left) with enormous boots
 	var rk: Node3D = k.hotspot("rack", Vector3(-1.4, 0, 1.4), Vector3(1.5, 1.0, 0.8), Vector3.ZERO, PI / 2.0)
 	for yy in [0.12, 0.5]:
-		k.box(Vector3(1.3, 0.04, 0.45), Vector3(0, yy, 0), k.wood_light, false, rk)
+		for sl in 4:
+			k.box(Vector3(1.3, 0.03, 0.09), Vector3(0, yy, -0.16 + sl * 0.107), k.wood_light, false, rk)
 	for sx in [-0.64, 0.64]:
 		k.box(Vector3(0.04, 0.6, 0.45), Vector3(sx, 0.3, 0), k.wood_dark, false, rk)
 	var boot: Material = k.mat(Color(0.36, 0.2, 0.1), 0.6)
+	var boot_sole: Material = k.mat(Color(0.14, 0.09, 0.06), 0.8)
 	for sx in [-0.3, 0.25]:
-		k.box(Vector3(0.24, 0.42, 0.3), Vector3(sx, 0.75, -0.05), boot, false, rk)
-		k.sphere(0.15, Vector3(sx, 0.6, 0.12), boot, rk, Vector3(1.0, 0.6, 1.3))
-		k.box(Vector3(0.26, 0.04, 0.46), Vector3(sx, 0.54, 0.03), k.mat(Color(0.15, 0.1, 0.06), 0.8), false, rk)
-	for sx in [-0.4, -0.15, 0.2, 0.42]:
-		k.box(Vector3(0.1, 0.08, 0.22), Vector3(sx, 0.18, 0), k.mat(Color(0.25, 0.3, 0.45).lerp(Color(0.6, 0.4, 0.3), _h(int(sx * 10.0) + 3)), 0.7), false, rk)
+		# a boot: sole and heel, a rounded toe, a tall shaft, a folded-over cuff
+		k.box(Vector3(0.24, 0.05, 0.48), Vector3(sx, 0.54, 0.05), boot_sole, false, rk)
+		k.sphere(0.145, Vector3(sx, 0.64, 0.17), boot, rk, Vector3(0.82, 0.62, 1.05), 14)
+		k.cyl(0.125, 0.135, 0.56, Vector3(sx, 0.84, -0.07), boot, rk, false, 16)
+		k.cyl(0.14, 0.14, 0.09, Vector3(sx, 1.12, -0.07), k.mat(Color(0.44, 0.27, 0.14), 0.6), rk, false, 16)
+		for yy in [0.72, 0.84]:
+			k.cyl(0.128, 0.138, 0.012, Vector3(sx, yy, -0.07), boot_sole, rk, false, 16)
+	for sx in [-0.42, -0.15, 0.2, 0.42]:
+		var col: Color = Color(0.25, 0.3, 0.45).lerp(Color(0.6, 0.4, 0.3), _h(int(sx * 10.0) + 3))
+		k.box(Vector3(0.11, 0.05, 0.25), Vector3(sx, 0.16, 0.02), k.mat(col.darkened(0.25), 0.7), false, rk)
+		k.sphere(0.06, Vector3(sx, 0.2, 0.08), k.mat(col, 0.7), rk, Vector3(0.9, 0.7, 1.25), 8)
+		k.cyl(0.04, 0.05, 0.1, Vector3(sx, 0.23, -0.07), k.mat(col, 0.7), rk, false, 10)
 	k.blocker(Vector3(0.5, 1.0, 1.3), Vector3(-1.4, 0.5, 1.4))
 	# hotspot: sewing basket (floor, right of centre)
 	var bk: Node3D = k.hotspot("basket", Vector3(1.4, 0, 2.9), Vector3(0.8, 0.6, 0.7))
@@ -344,12 +426,54 @@ static func _laundry(k) -> void:
 			k.cyl(0.33 - (0.42 - yy) * 0.1, 0.33 - (0.42 - yy) * 0.1, 0.03, Vector3(tx, yy, 0), k.steel, tb, false, 18)
 		for j in 6:
 			k.sphere(0.07 + 0.03 * _h(j + i * 6), Vector3(tx + cos(j * 1.1) * 0.16, 0.56, sin(j * 1.1) * 0.14), k.mat(Color(0.97, 0.98, 1.0), 0.6), tb, Vector3(1, 0.7, 1), 8)
-	k.box(Vector3(0.35, 0.55, 0.04), Vector3(0.45, 0.6, -0.15), k.wood_light, false, tb, -0.3)
+	# a washboard leaning in the far tub, ridged so it reads as one
+	var wb := Node3D.new()
+	wb.position = Vector3(0.43, 0.56, -0.08)
+	wb.rotation = Vector3(-0.28, -0.3, 0)
+	tb.add_child(wb)
+	k.box(Vector3(0.36, 0.56, 0.03), Vector3(0, 0.26, 0), k.wood_light, false, wb)
+	for yy in 7:
+		k.box(Vector3(0.28, 0.02, 0.012), Vector3(0, 0.08 + yy * 0.05, 0.02), k.steel, false, wb)
 	k.steam(Vector3(-0.8, 0.7, -D / 2.0 + 0.7), Vector3(0.5, 0.05, 0.25), 10, 0.6, 0.12, 0.35, 3.0)
-	k.cctv(Vector3(W / 2.0 - 0.15, 2.3, D / 2.0 - 0.4), -PI / 2.0 - 0.7)
+	k.cctv(Vector3(W / 2.0, 2.4, D / 2.0 - 0.4), -PI / 2.0, -0.7)
+	# a mangle with its big crank, an ironing board, a hamper, hanging shirts, soap on a shelf
+	var mg := Vector3(-1.75, 0, -1.0 - 1.6)
+	var cast: Material = k.mat(Color(0.2, 0.22, 0.22), 0.5, 0.35)
+	for sz in [-0.3, 0.3]:
+		k.box(Vector3(0.1, 1.0, 0.06), mg + Vector3(0, 0.5, sz), cast)
+		k.box(Vector3(0.56, 0.06, 0.08), mg + Vector3(0, 0.03, sz), cast)
+	for yy in [0.8, 0.98]:
+		k.cyl(0.085, 0.085, 0.56, mg + Vector3(0, yy, 0), k.mat(Color(0.82, 0.8, 0.72), 0.5), null, false, 16).rotation.x = PI / 2.0
+	k.torus(0.15, 0.2, mg + Vector3(0, 0.9, 0.42), cast, null, Vector3(PI / 2.0, 0, 0))
+	k.beam(mg + Vector3(0, 0.9, 0.3), mg + Vector3(0, 0.9, 0.42), 0.022, cast)
+	k.beam(mg + Vector3(0, 0.9, 0.44), mg + Vector3(0.18, 1.06, 0.46), 0.016, cast)
+	k.box(Vector3(0.7, 0.03, 0.56), mg + Vector3(0, 0.62, 0), k.wood_light)
+	k.blocker(Vector3(0.56, 1.05, 0.72), mg + Vector3(0, 0.52, 0))
+	var ib := Vector3(-1.72, 0, 2.95)
+	k.box(Vector3(0.36, 0.025, 1.3), ib + Vector3(0, 0.82, 0), k.mat(Color(0.9, 0.9, 0.84), 0.9))
+	k.beam(ib + Vector3(-0.14, 0.81, -0.4), ib + Vector3(0.14, 0.0, 0.36), 0.012, k.steel)
+	k.beam(ib + Vector3(0.14, 0.81, -0.4), ib + Vector3(-0.14, 0.0, 0.36), 0.012, k.steel)
+	k.beam(ib + Vector3(-0.14, 0.81, 0.4), ib + Vector3(0.14, 0.0, -0.36), 0.012, k.steel)
+	k.beam(ib + Vector3(0.14, 0.81, 0.4), ib + Vector3(-0.14, 0.0, -0.36), 0.012, k.steel)
+	k.blocker(Vector3(0.36, 0.85, 1.2), ib + Vector3(0, 0.42, 0))
+	k.box(Vector3(0.14, 0.05, 0.24), ib + Vector3(0, 0.86, -0.3), k.mat(Color(0.28, 0.29, 0.3), 0.4, 0.5))
+	k.beam(ib + Vector3(0, 0.92, -0.42), ib + Vector3(0, 0.92, -0.2), 0.012, k.wood_dark)
+	var hamper := Vector3(1.6, 0, 3.98)
+	k.cyl(0.3, 0.25, 0.62, hamper + Vector3(0, 0.31, 0), k.mat(Color(0.66, 0.5, 0.28), 0.95), null, true, 14)
+	k.torus(0.27, 0.32, hamper + Vector3(0, 0.62, 0), k.mat(Color(0.48, 0.34, 0.18), 0.9))
+	k.sphere(0.2, hamper + Vector3(0, 0.66, 0), k.mat(Color(0.9, 0.9, 0.86), 0.95), null, Vector3(1.2, 0.5, 1.1), 10)
+	var soap: Node3D = k.wall_shelf(Vector3(-W / 2.0, 1.55, -3.4), PI / 2.0, 1.0, 0.2, k.wood_light)
+	for i in 4:
+		k.bottle(Vector3(-0.35 + i * 0.22, 0.0, 0.1), [Color(0.3, 0.6, 0.45), Color(0.85, 0.75, 0.4), Color(0.45, 0.6, 0.85), Color(0.85, 0.5, 0.45)][i], 0.24, soap)
+	k.wall_rail(Vector3(W / 2.0 - 0.12, 2.1, 2.2), Vector3(W / 2.0 - 0.12, 2.1, 3.9), Vector3(0.12, 0, 0), k.steel, 0.012)
+	for i in 3:
+		var z := 2.45 + i * 0.5
+		k.cyl(0.006, 0.006, 0.08, Vector3(W / 2.0 - 0.12, 2.08, z), k.steel, null, false, 6)
+		k.box(Vector3(0.05, 0.72, 0.42), Vector3(W / 2.0 - 0.12, 1.68, z), k.stripes(Color(0.92, 0.92, 0.9), [Color(0.3, 0.4, 0.7), Color(0.7, 0.3, 0.3), Color(0.3, 0.55, 0.45)][i], 16.0))
+	k.picture(Vector3(W / 2.0, 1.95, 0.4), -PI / 2.0, Vector2(0.52, 0.72), Color(0.86, 0.9, 0.84), k.brass, "SORT!", 5)
 	k.person("bramble", Vector3(-1.4, 0, -1.2))
 	k.person("duchess", Vector3(0.1, 0, 0.9))
-	k.door("companionway", "Lower Passage", Vector3(0, 0, D / 2.0), PI, {"h": 2.0})
+	k.door("companionway", "Lower Passage", Vector3(0, 0, D / 2.0), PI)
 	k.spawn = Vector3(0, 0, 3.8)
 	k.look = Vector3(0, 1.1, -5.0)
 
@@ -369,6 +493,7 @@ static func _hall(k) -> void:
 	for nd in ndoor:
 		var dx: float = nd[1]
 		var g: Node3D = k.hotspot(str(nd[0]), Vector3(dx, 0, -D / 2.0 + 0.04), Vector3(1.4, 2.5, 0.7))
+		k.leaf(g, 1.0, 2.15)
 		k.box(Vector3(1.2, 2.3, 0.07), Vector3(0, 1.15, 0.02), k.wood_dark, false, g)
 		k.box(Vector3(1.0, 2.15, 0.05), Vector3(0, 1.075, 0.07), k.mat(Color(0.42, 0.24, 0.13), 0.6), false, g)
 		for yy in [0.65, 1.55]:
@@ -400,8 +525,10 @@ static func _hall(k) -> void:
 	for i in 6:
 		k.box(Vector3(0.55 - (i % 3) * 0.12, 0.025, 0.005), Vector3(-4.25, 1.88 - i * 0.08, -D / 2.0 + 0.075), k.mat(Color(0.9, 0.9, 0.85), 0.9))
 	k.bucket(Vector3(5.2, 1.25, -D / 2.0 + 0.2), 0.9, null, k.mat(Color(0.85, 0.12, 0.1), 0.5))
-	k.box(Vector3(0.05, 0.25, 0.04), Vector3(5.2, 1.6, -D / 2.0 + 0.04), k.brass)
-	k.cctv(Vector3(W / 2.0 - 0.15, 2.6, D / 2.0 - 0.4), -PI / 2.0 - 0.6)
+	k.beam(Vector3(5.2, 1.72, -D / 2.0), Vector3(5.2, 1.72, -D / 2.0 + 0.22), 0.012, k.brass)
+	k.torus(0.1, 0.13, Vector3(5.2, 1.59, -D / 2.0 + 0.2), k.brass, null, Vector3(PI / 2.0, 0, 0))
+	k.label("FIRE", Vector3(5.2, 1.36, -D / 2.0 + 0.34), 0.0, 28, Color(0.96, 0.9, 0.8), null, 0.003, 0).rotation.x = -0.1
+	k.cctv(Vector3(W / 2.0, 2.65, D / 2.0 - 0.35), -PI / 2.0, -0.6)
 	k.person("lulu", Vector3(-4.6, 0, -0.65))
 	k.person("pepper", Vector3(4.2, 0, 0.6))
 	k.door("purser", "", Vector3(-W / 2.0, 0, 0.0), PI / 2.0)
@@ -417,10 +544,10 @@ static func _hall(k) -> void:
 static func _tumble_cabin(k) -> void:
 	var W := 4.5
 	var D := 4.0
-	var H := 2.3
+	var H := 2.7
 	k.environment("indoor", Color(0.66, 0.58, 0.48), 0.36)
 	_ship_shell(k, W, D, H, "tan")
-	k.hanging_lamp(Vector3(0.3, 2.0, 0.3), Color(1.0, 0.86, 0.66), 0.9, H, true, 5.0)
+	k.hanging_lamp(Vector3(0.3, 2.3, 0.3), Color(1.0, 0.86, 0.66), 0.9, H, true, 5.0)
 	# hotspot: bunk & rug
 	var bn: Node3D = k.hotspot("bunk", Vector3(0, 0, -D / 2.0 + 0.6), Vector3(2.6, 1.1, 2.4), Vector3(0, 0.55, 0.5))
 	k.box(Vector3(2.2, 0.5, 0.95), Vector3(0, 0.25, 0), k.wood_mid, true, bn)
@@ -447,7 +574,7 @@ static func _tumble_cabin(k) -> void:
 	k.torus(0.018, 0.026, Vector3(0.055, 0.65, 0), k.white, ns, Vector3(PI / 2.0, 0, 0))
 	# hotspot: droopy nightcap on a hook (back wall, left)
 	var nc: Node3D = k.hotspot("nightcap", Vector3(-1.7, 1.8, -D / 2.0 + 0.03), Vector3(0.6, 0.8, 0.45), Vector3(0, -0.1, 0.15))
-	k.cyl(0.012, 0.012, 0.1, Vector3(0, 0.12, 0.05), k.brass, nc).rotation.x = PI / 2.0
+	k.cyl(0.012, 0.012, 0.1, Vector3(0, 0.12, 0.02), k.brass, nc).rotation.x = PI / 2.0
 	var blue: Material = k.mat(Color(0.2, 0.3, 0.7), 0.9)
 	k.cyl(0.05, 0.15, 0.3, Vector3(0, 0.0, 0.1), blue, nc)
 	var tip: MeshInstance3D = k.cyl(0.01, 0.05, 0.3, Vector3(0.1, -0.2, 0.1), blue, nc)
@@ -456,9 +583,34 @@ static func _tumble_cabin(k) -> void:
 	k.torus(0.14, 0.17, Vector3(0, -0.15, 0.1), k.white, nc)
 	for i in 4:
 		k.sphere(0.012, Vector3(-0.06 + i * 0.04, -0.02 + 0.06 * (i % 2), 0.16), k.glow(Color(1.0, 0.95, 0.5), 2.0), nc)
-	k.sphere(0.3, Vector3(-W / 2.0 + 0.04, 1.5, -0.2), k.mat(Color(0.75, 0.8, 0.85), 0.05, 1.0), null, Vector3(0.05, 1.2, 0.8))
-	k.person("tumble", Vector3(-1.4, 0, 0.9))
-	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 1.0), -PI / 2.0, {"h": 1.75})
+	# a proper mirror, a washstand with jug and basin, a few personal things, a trunk at the foot of the bunk
+	k.mirror(Vector3(-W / 2.0, 1.55, -0.2), PI / 2.0, Vector2(0.5, 0.7), true, k.brass, Color(0.66, 0.6, 0.48), Color(0.3, 0.42, 0.42))
+	var wash := Vector3(-W / 2.0 + 0.32, 0, -0.2)
+	k.box(Vector3(0.5, 0.74, 0.6), wash + Vector3(0, 0.37, 0), k.wood_mid, true)
+	k.box(Vector3(0.54, 0.03, 0.64), wash + Vector3(0, 0.755, 0), k.wood_light)
+	k.cyl(0.17, 0.12, 0.08, wash + Vector3(0, 0.81, 0), k.mat(Color(0.92, 0.92, 0.88), 0.3), null, false, 16)
+	k.cyl(0.05, 0.08, 0.24, wash + Vector3(0.13, 0.89, -0.18), k.mat(Color(0.3, 0.5, 0.62), 0.3), null, false, 12)
+	k.torus(0.035, 0.05, wash + Vector3(0.22, 0.92, -0.18), k.mat(Color(0.3, 0.5, 0.62), 0.3), null, Vector3(PI / 2.0, 0, 0))
+	var shelf: Node3D = k.wall_shelf(Vector3(1.25, 1.75, -D / 2.0), 0.0, 1.3, 0.2, k.wood_dark)
+	var spines := [Color(0.5, 0.12, 0.16), Color(0.16, 0.3, 0.42), Color(0.75, 0.62, 0.3), Color(0.2, 0.4, 0.3)]
+	for i in 8:
+		var h := 0.16 + 0.07 * _h(i + 1)
+		k.box(Vector3(0.05, h, 0.14), Vector3(-0.55 + i * 0.058, h / 2.0, 0.09), k.mat(spines[i % 4], 0.8), false, shelf)
+	k.sphere(0.07, Vector3(0.2, 0.07, 0.1), k.mat(Color(0.9, 0.8, 0.6), 0.5), shelf, Vector3(1.1, 0.9, 1.0), 10)
+	k.cyl(0.05, 0.06, 0.13, Vector3(0.45, 0.065, 0.1), k.mat(Color(0.4, 0.3, 0.55), 0.4), shelf, false, 10)
+	k.picture(Vector3(W / 2.0, 1.75, -1.2), -PI / 2.0, Vector2(0.44, 0.56), Color(0.62, 0.72, 0.62), k.brass)
+	k.picture(Vector3(0.0, 1.85, D / 2.0), PI, Vector2(0.56, 0.4), Color(0.56, 0.5, 0.4), k.wood_dark)
+	k.wall_clock(Vector3(-1.2, 2.0, D / 2.0), PI, 0.15)
+	var trunk := Vector3(-1.72, 0, 1.55)
+	k.box(Vector3(0.9, 0.42, 0.55), trunk + Vector3(0, 0.21, 0), k.mat(Color(0.4, 0.24, 0.14), 0.6), true)
+	k.box(Vector3(0.92, 0.08, 0.57), trunk + Vector3(0, 0.46, 0), k.mat(Color(0.3, 0.18, 0.1), 0.6))
+	for sx in [-0.3, 0.3]:
+		k.box(Vector3(0.05, 0.515, 0.59), trunk + Vector3(sx, 0.2575, 0), k.brass)
+	var slippers: Material = k.mat(Color(0.34, 0.36, 0.7), 0.9)
+	for sx in [-0.09, 0.09]:
+		k.sphere(0.07, Vector3(0.65 + sx, 0.035, 0.82), slippers, null, Vector3(0.75, 0.42, 1.5), 8)
+	k.person("tumble", Vector3(-1.4, 0, 0.75))
+	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 1.0), -PI / 2.0)
 	k.spawn = Vector3(1.0, 0, 1.0)
 	k.look = Vector3(-0.3, 0.9, -2.0)
 
@@ -472,6 +624,7 @@ static func _purser(k) -> void:
 	k.environment("indoor", Color(0.64, 0.55, 0.45), 0.34)
 	_ship_shell(k, W, D, H, "tan")
 	k.hanging_lamp(Vector3(0, 2.3, -1.2), Color(1.0, 0.86, 0.64), 1.2, H, true)
+	k.wall_lamp(Vector3(W / 2.0, 1.95, -1.55), -PI / 2.0, Color(1.0, 0.82, 0.58), 0.6, 3.5)
 	k.hanging_lamp(Vector3(0.6, 2.3, 1.6), Color(1.0, 0.86, 0.64), 0.6, H, false, 4.5)
 	# the office floor is one step up, behind a service counter with a gap on the right
 	k.slab(-W / 2.0, -D / 2.0, W / 2.0, 0.2, UP, k.wood_floor(Color(0.34, 0.2, 0.1), Color(0.54, 0.34, 0.18), 0.2), 0.18)
@@ -537,10 +690,10 @@ static func _purser(k) -> void:
 	for sx in [-0.42, 0.42]:
 		k.box(Vector3(0.16, 0.3, 0.72), Vector3(sx, 0.55, 0.0), leather, false, ac)
 	k.box(Vector3(0.36, 0.5, 0.03), Vector3(0.32, 0.6, 0.3), k.mat(Color(0.95, 0.8, 0.35), 0.95), false, ac, 0.2)
-	k.cctv(Vector3(W / 2.0 - 0.15, 2.55, D / 2.0 - 0.4), -PI / 2.0 - 0.7)
+	k.cctv(Vector3(2.9, 2.45, D / 2.0), PI, 0.7)
 	k.person("zuzu", Vector3(-2.3, 0, 1.6))
 	k.person("fennel", Vector3(-0.5, 0, 1.7))
-	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 1.6), -PI / 2.0, {"h": 2.0})
+	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 1.6), -PI / 2.0)
 	k.spawn = Vector3(2.4, 0, 1.7)
 	k.look = Vector3(-1.0, 1.1, -2.4)
 
@@ -568,12 +721,12 @@ static func _promenade(k) -> void:
 		if i % 3 != 1:
 			k.shoji(Vector2(1.4, 0.9), Vector3(wx + 0.03, 1.8, z), PI / 2.0, Color(1.0, 0.82, 0.55), 1.4, Vector2(3, 2), false)
 			k.box(Vector3(0.08, 0.06, 1.5), Vector3(wx + 0.05, 1.33, z), k.brass)
-		k.wall_lamp(Vector3(wx, 2.2, z + 2.2), PI / 2.0, Color(1.0, 0.8, 0.55), 0.7, 5.0)
+		k.wall_lamp(Vector3(wx, 2.2, z + 2.2), PI / 2.0, Color(1.0, 0.8, 0.55), 0.8, 6.0)
 	# canopy over the west half, posts, upper-deck rail
-	k.box(Vector3(4.6, 0.14, L), Vector3(wx + 2.2, 3.15, 0), k.mat(Color(0.86, 0.84, 0.78), 0.8))
+	Kit.arch(k.box(Vector3(4.6, 0.14, L), Vector3(wx + 2.2, 3.15, 0), k.mat(Color(0.86, 0.84, 0.78), 0.8)), "roof")
 	k.box(Vector3(0.12, 0.3, L), Vector3(0.5, 3.0, 0), k.mat(TEAL, 0.6))
 	for i in 7:
-		k.cyl(0.07, 0.07, 3.0, Vector3(0.5, 1.5, -12.0 + i * 3.4), k.mat(Color(0.9, 0.9, 0.86), 0.6))
+		k.cyl(0.07, 0.07, 3.0, Vector3(0.5, 1.5, -12.0 + i * 3.4), k.mat(Color(0.9, 0.9, 0.86), 0.6), null, true)
 	for i in 15:
 		k.cyl(0.025, 0.025, 0.7, Vector3(0.45, 3.55, -13.0 + i * 1.85), k.white)
 	k.box(Vector3(0.06, 0.06, L), Vector3(0.45, 3.9, 0), k.white)
@@ -602,7 +755,7 @@ static func _promenade(k) -> void:
 	k.box(Vector3(1.0, 1.5, 0.03), Vector3(2.8, 3.1, -L / 2.0 + 0.3), k.mat(Color(0.5, 0.08, 0.16), 0.8))
 	k.cyl(0.32, 0.32, 0.02, Vector3(2.8, 3.2, -L / 2.0 + 0.32), k.mat(Color(0.25, 0.55, 0.3), 0.6)).rotation.x = PI / 2.0
 	var wheel := Node3D.new()
-	wheel.position = Vector3(0, 1.2, L / 2.0 + 2.2)
+	wheel.position = Vector3(0, 1.2, L / 2.0 + 3.7)
 	k.root.add_child(wheel)
 	var red: Material = k.mat(Color(0.75, 0.12, 0.1), 0.6)
 	k.torus(3.0, 3.25, Vector3.ZERO, red, wheel, Vector3(0, 0, PI / 2.0))
@@ -630,11 +783,11 @@ static func _promenade(k) -> void:
 			k.box(Vector3(0.62, 0.32, 0.04), cp + Vector3(0, 0.16, sz), k.wood_dark)
 		k.blocker(Vector3(0.6, 0.8, 1.4), cp + Vector3(0, 0.4, 0))
 	for i in 3:
-		var pp := Vector3(-3.4, 0, -6.8 + i * 0.9)
+		var pp := Vector3(-3.55, 0, -4.9 + i * 0.75)
 		k.box(Vector3(0.6, 0.4, 0.7), pp + Vector3(0, 0.2, 0), k.wood_mid, true)
 		for j in 4:
 			k.sphere(0.13, pp + Vector3(-0.15 + (j % 2) * 0.3, 0.5, -0.15 + (j / 2) * 0.3), k.mat(Color(0.25, 0.55, 0.22).lerp(Color(0.4, 0.65, 0.3), _h(i * 4 + j)), 0.8), null, Vector3.ONE, 8)
-	var grill := Vector3(-3.2, 0, 7.4)
+	var grill := Vector3(-3.3, 0, 8.6)
 	k.box(Vector3(0.6, 0.85, 1.2), grill + Vector3(0, 0.425, 0), k.mat(Color(0.15, 0.15, 0.16), 0.5, 0.6), true)
 	k.box(Vector3(0.5, 0.02, 1.0), grill + Vector3(0, 0.86, 0), k.glow(Color(1.0, 0.4, 0.12), 2.0))
 	for i in 3:
@@ -642,14 +795,14 @@ static func _promenade(k) -> void:
 	k.steam(grill + Vector3(0, 1.0, 0), Vector3(0.15, 0.02, 0.4), 8, 0.45, 0.14, 0.4, 2.0)
 	k.omni(grill + Vector3(0.4, 1.1, 0), Color(1.0, 0.5, 0.2), 0.8, 3.0)
 	var anchor := Vector3(3.3, 0, 10.6)
-	k.cyl(0.05, 0.05, 1.1, anchor + Vector3(0, 0.6, 0), k.steel)
+	k.cyl(0.05, 0.05, 1.2, anchor + Vector3(0, 0.6, 0), k.steel, null, true)
 	k.torus(0.07, 0.11, anchor + Vector3(0, 1.2, 0), k.steel, null, Vector3(PI / 2.0, 0, 0))
 	k.torus(0.4, 0.46, anchor + Vector3(0, 0.45, 0), k.steel, null, Vector3(PI / 2.0, 0, 0))
 	k.box(Vector3(0.9, 0.06, 0.06), anchor + Vector3(0, 1.0, 0), k.steel)
 	k.box(Vector3(0.36, 0.5, 0.1), Vector3(wx + 0.06, 1.5, -2.7), k.brass, false, null, PI / 2.0)
 	for i in 2:
 		k.cyl(0.08, 0.08, 0.03, Vector3(wx + 0.12, 1.6 - i * 0.2, -2.7), k.white).rotation.z = PI / 2.0
-	k.box(Vector3(0.12, 0.4, 0.5), Vector3(wx + 0.08, 1.5, 1.4), k.white)
+	k.box(Vector3(0.12, 0.4, 0.5), Vector3(wx + 0.06, 1.5, 1.4), k.white)
 	k.box(Vector3(0.02, 0.08, 0.28), Vector3(wx + 0.15, 1.5, 1.4), k.mat(Color(0.2, 0.7, 0.3), 0.6))
 	k.box(Vector3(0.02, 0.24, 0.08), Vector3(wx + 0.15, 1.5, 1.4), k.mat(Color(0.2, 0.7, 0.3), 0.6))
 	var easel := Node3D.new()
@@ -661,47 +814,76 @@ static func _promenade(k) -> void:
 		leg.rotation.x = -0.12
 	k.box(Vector3(0.8, 0.6, 0.03), Vector3(0, 1.25, 0.1), k.white, false, easel)
 	k.box(Vector3(0.7, 0.5, 0.01), Vector3(0, 1.25, 0.12), k.mat(Color(0.05, 0.25, 0.3), 0.9), false, easel)
+	k.blocker(Vector3(0.7, 1.6, 0.7), easel.position + Vector3(0, 0.8, 0))
 	for i in 5:
 		k.sphere(0.03, Vector3(-0.25 + i * 0.12, 1.15 + 0.1 * sin(i * 2.0), 0.13), k.glow(FUNGUS, 2.0), easel, Vector3(1, 1, 0.3))
-	k.cctv(Vector3(wx + 0.1, 2.7, 9.8), PI / 2.0 + 0.5)
-	k.cctv(Vector3(0.55, 2.75, -9.0), PI / 2.0 + 2.4)
+	k.cctv(Vector3(wx, 2.75, 9.8), PI / 2.0, 0.5)
+	k.cctv(Vector3(0.57, 2.75, -9.0), PI / 2.0, 2.4 - PI)
 	# strings of paper lanterns between the canopy and the rail
 	var lcols := [Color(1.0, 0.4, 0.3), Color(1.0, 0.85, 0.5), Color(1.0, 0.95, 0.85), Color(1.0, 0.6, 0.3)]
 	for i in 4:
 		var z := -11.0 + i * 7.0
-		k.lantern_string(Vector3(0.5, 2.95, z), Vector3(ex - 0.1, 2.4, z + 2.5), 5, lcols, 0.35, 2)
-	k.lantern_string(Vector3(-3.5, 3.0, -13.0), Vector3(-3.5, 3.0, 13.0), 16, lcols, 0.25, 3)
+		k.lantern_string(Vector3(0.5, 2.95, z), Vector3(ex - 0.1, 2.4, z + 2.5), 5, lcols, 0.35, 5)
+		k.cyl(0.025, 0.03, 2.4, Vector3(ex - 0.1, 1.2, z + 2.5), k.white, null, false, 8)
+	k.lantern_string(Vector3(-3.5, 3.08, -13.0), Vector3(-3.5, 3.08, 13.0), 16, lcols, 0.25, 0)
 	# ---- the cave beyond: dark lake, rock walls and ceiling, glowing fungus, stalactites
 	k.box(Vector3(160, 0.1, 160), Vector3(0, -2.2, 0), k.water(Color(0.01, 0.05, 0.07), Color(0.05, 0.25, 0.28), 0.25))
 	var rock_m: Material = k.rock_mat(Color(0.08, 0.11, 0.13), Color(0.2, 0.24, 0.26))
 	var glow_m: Material = k.glow(FUNGUS, 3.5)
 	var glow2: Material = k.glow(Color(0.5, 1.0, 0.75), 3.0)
 	var stem: Material = k.mat(Color(0.7, 0.9, 0.85), 0.6)
+	var stems: Array = []
+	var caps_a: Array = []
+	var caps_b: Array = []
 	for i in 14:
 		var a := -1.2 + i * 0.2
 		var p := Vector3(cos(a) * 30.0 + 6.0, 3.0 + 6.0 * _h(i), sin(a) * 30.0)
 		k.sphere(1.0, p, rock_m, null, Vector3(10, 14 + 6 * _h(i + 3), 9), 14)
 		for j in 6:
 			var q := p + Vector3(-8.0 - 1.5 * _h(i * 7 + j), -7.0 + 9.0 * _h(i * 3 + j), -6.0 + 12.0 * _h(i * 5 + j * 2))
-			_fungus(k, q, 0.5 + 0.6 * _h(i + j * 11), glow_m if j % 3 else glow2, stem)
+			_fungus(q, 0.5 + 0.6 * _h(i + j * 11), stems, caps_a if j % 3 else caps_b)
 	for i in 10:
 		var p := Vector3(-28.0 + 2.0 * _h(i), 2.0 + 8.0 * _h(i + 5), -40.0 + i * 9.0)
 		k.sphere(1.0, p, rock_m, null, Vector3(12, 16, 10), 14)
 		for j in 4:
-			_fungus(k, p + Vector3(10.5, -6.0 + 8.0 * _h(i * 2 + j), -5.0 + 10.0 * _h(i * 4 + j)), 0.6 + 0.5 * _h(i + j * 7), glow_m, stem)
-	for p in [Vector3(22, 3, -10), Vector3(22, 3, 6), Vector3(-18, 3, -6), Vector3(-18, 3, 10)]:
-		k.omni(p, FUNGUS, 2.2, 18.0)
+			_fungus(p + Vector3(10.5, -6.0 + 8.0 * _h(i * 2 + j), -5.0 + 10.0 * _h(i * 4 + j)), 0.6 + 0.5 * _h(i + j * 7), stems, caps_a)
+	# the cave's own light: a few big soft sources instead of many small ones
+	for p in [Vector3(22, 3, -6), Vector3(-18, 3, 2), Vector3(16, 4, 10)]:
+		k.omni(p, FUNGUS, 2.6, 30.0)
 	k.box(Vector3(160, 2.0, 160), Vector3(0, 24.0, 0), rock_m)
+	var tips: Array = []
+	var tip_glow: Array = []
 	for i in 60:
 		var p := Vector3(-40.0 + 80.0 * _h(i * 3 + 1), 23.0, -40.0 + 80.0 * _h(i * 7 + 2))
 		if absf(p.x) < 6.0 and absf(p.z) < 16.0:
 			continue
 		var len := 2.0 + 5.0 * _h(i + 9)
-		k.cyl(0.6 + 0.6 * _h(i), 0.02, len, p - Vector3(0, len / 2.0, 0), rock_m, null, false, 7)
+		var wide := 0.6 + 0.6 * _h(i)
+		tips.append(Transform3D(Basis.IDENTITY.scaled(Vector3(wide, len, wide)), p - Vector3(0, len / 2.0, 0)))
 		if i % 2 == 0:
-			k.sphere(0.18, p - Vector3(0, len * 0.6, 0), glow_m, null, Vector3.ONE, 6)
-	k.omni(Vector3(16, 4, 0), FUNGUS, 1.4, 30.0)
-	k.omni(Vector3(-14, 4, -10), FUNGUS, 1.0, 25.0)
+			tip_glow.append(Transform3D(Basis.IDENTITY.scaled(Vector3(0.18, 0.18, 0.18)), p - Vector3(0, len * 0.6, 0)))
+	var stem_mesh := CylinderMesh.new()
+	stem_mesh.top_radius = 0.07
+	stem_mesh.bottom_radius = 0.1
+	stem_mesh.height = 0.6
+	stem_mesh.radial_segments = 6
+	stem_mesh.rings = 1
+	var cap_mesh := SphereMesh.new()
+	cap_mesh.radius = 1.0
+	cap_mesh.height = 2.0
+	cap_mesh.radial_segments = 10
+	cap_mesh.rings = 6
+	var tip_mesh := CylinderMesh.new()
+	tip_mesh.top_radius = 1.0
+	tip_mesh.bottom_radius = 0.02
+	tip_mesh.height = 1.0
+	tip_mesh.radial_segments = 7
+	tip_mesh.rings = 1
+	k.scatter(stem_mesh, stem, stems)
+	k.scatter(cap_mesh, glow_m, caps_a)
+	k.scatter(cap_mesh, glow2, caps_b)
+	k.scatter(tip_mesh, rock_m, tips)
+	k.scatter(cap_mesh, glow_m, tip_glow)
 	k.door("companionway", "Main Stairs", Vector3(wx + 0.05, 0, -6.6), PI / 2.0)
 	k.door("saloon", "", Vector3(wx + 0.05, 0, 6.6), PI / 2.0)
 	k.lift("deck_lift", Vector3(-2.7, 0, 11.6), 0.0, "lower_lift", "companionway", "Lower Passage", _cargo_style(k, "DECK"))
@@ -709,10 +891,10 @@ static func _promenade(k) -> void:
 	if k.mode == "freetime":
 		k.person("lulu", Vector3(0.0, 0, -11.8))
 		k.person("reginald", Vector3(0.2, 0, 4.2))
-		k.person("bramble", Vector3(-2.5, 0, -5.9))
+		k.person("bramble", Vector3(-2.4, 0, -4.3))
 		k.person("pepper", Vector3(3.0, 0, -0.6))
-		k.person("duchess", Vector3(1.9, 0, -3.4))
-		k.person("tumble", Vector3(1.9, 0, 6.8))
+		k.person("duchess", Vector3(1.5, 0, -3.4))
+		k.person("tumble", Vector3(1.5, 0, 6.8))
 	k.spawn = Vector3(0.0, 0, 12.6)
 	k.look = Vector3(0, 1.3, 0.0)
 
@@ -736,7 +918,7 @@ static func _companionway(k) -> void:
 	k.slab(-3.5, -4.5, 3.5, 4.5, 0.0, floor_m)
 	k.slab(-3.5, -4.5, 3.5, 4.5, H + 0.12, k.mat(Color(0.24, 0.15, 0.09), 0.85), 0.12, false)
 	k.wall_run(Vector2(-3.5, -4.5), Vector2(3.5, -4.5), 0.0, H, o)
-	k.wall_run(Vector2(3.5, -4.5), Vector2(3.5, 4.5), 0.0, H, o, [[6.8, 9.0, 0.0, 2.5]])
+	k.wall_run(Vector2(3.5, -4.5), Vector2(3.5, 4.5), 0.0, H, o, [[6.8, 9.0, 0.0, 2.7]])
 	k.wall_run(Vector2(3.5, 4.5), Vector2(-3.5, 4.5), 0.0, H, o)
 	k.wall_run(Vector2(-3.5, 4.5), Vector2(-3.5, -4.5), 0.0, H, o)
 	# landings
@@ -750,7 +932,7 @@ static func _companionway(k) -> void:
 	# lamps and deck signs on each level
 	for y in [0.0, Y1, Y2]:
 		var yy: float = y
-		k.wall_lamp(Vector3(-3.5, yy + 2.0, 0.0), PI / 2.0, Color(1.0, 0.8, 0.55), 0.75, 7.0)
+		k.wall_lamp(Vector3(-3.5, yy + 2.0, 3.2 if yy == Y2 else 0.0), PI / 2.0, Color(1.0, 0.8, 0.55), 0.75, 7.0)
 		k.wall_lamp(Vector3(3.5, yy + 2.0, -0.5), -PI / 2.0, Color(1.0, 0.8, 0.55), 0.75, 7.0)
 	_port(k, Vector3(-3.5, 2.0, 2.0), PI / 2.0)
 	_port(k, Vector3(3.5, Y2 + 1.6, 3.6), -PI / 2.0)
@@ -761,34 +943,32 @@ static func _companionway(k) -> void:
 	k.door("hall", "Cabin Corridor", Vector3(-1.5, Y1, -4.5), 0.0)
 	k.door("saloon", "", Vector3(1.5, Y1, -4.5), 0.0)
 	k.door("promenade", "", Vector3(-0.6, Y2, 4.5), PI)
-	k.cctv(Vector3(-3.4, Y1 + 2.6, -4.3), 0.7)
+	k.cctv(Vector3(-3.2, Y1 + 2.6, -4.5), 0.0, 0.7)
 	# ---- Lower Passage: low, pipes overhead, puddles on the floor, with a bay for the cargo lift
 	var pass_o := {"floor": k.stone_floor(Color(0.22, 0.22, 0.23), Color(0.32, 0.31, 0.3), 0.8, 0.7),
 		"wall": k.smat(Kit.SH_METAL, {"base": Color(0.27, 0.3, 0.3)}), "wain": k.wood_wall(TEAL_DARK.darkened(0.2), TEAL_DARK, 0.18), "wain_h": 0.9,
 		"trim": k.mat(Color(0.2, 0.22, 0.22), 0.5, 0.6), "ceiling": k.mat(Color(0.14, 0.14, 0.15), 0.7, 0.3), "open": ["w"]}
-	k.plan([[3.5, 2.3, 21.0, 4.5], [15.0, 0.0, 17.4, 2.3, 3.1]], 0.0, 2.5, pass_o)
+	k.plan([[3.55, 2.3, 21.0, 4.5], [15.0, 0.0, 17.4, 2.3, 3.2]], 0.0, 2.7, pass_o)
+	k.portal(Vector3(3.6, 0, 3.4), PI / 2.0, 2.2, 2.7, 0.32, k.mat(Color(0.2, 0.22, 0.22), 0.5, 0.3))
 	var pipe_m: Material = k.mat(Color(0.42, 0.36, 0.28), 0.4, 0.7)
 	k.beam(Vector3(3.5, 2.28, 2.55), Vector3(21.0, 2.28, 2.55), 0.07, pipe_m)
 	k.beam(Vector3(3.5, 2.28, 4.25), Vector3(21.0, 2.28, 4.25), 0.045, pipe_m)
 	k.beam(Vector3(3.5, 2.1, 4.38), Vector3(21.0, 2.1, 4.38), 0.03, k.brass)
 	for i in 6:
 		var x := 5.0 + i * 3.1
-		k.sphere(0.06, Vector3(x, 2.25, 3.4), k.glow(Color(1.0, 0.82, 0.55), 4.0))
-		var l: OmniLight3D = k.omni(Vector3(x, 2.1, 3.4), Color(1.0, 0.8, 0.55), 0.8, 5.0, i == 2)
+		var l: OmniLight3D = k.bulb(Vector3(x, 2.3, 3.4), 2.7, Color(1.0, 0.82, 0.55), 0.8, 5.0, i == 2)
 		if i % 2 == 1:
 			k.flickers.append(l)
-	var puddle: Material = k.mat(Color(0.06, 0.09, 0.1), 0.05, 0.3)
-	for pd in [Vector3(7.0, 0.006, 3.9), Vector3(11.0, 0.006, 2.9), Vector3(18.0, 0.006, 3.7)]:
-		var pm: MeshInstance3D = k.cyl(0.55, 0.55, 0.01, pd, puddle, null, false, 14)
-		pm.scale = Vector3(1.4, 1, 0.8)
+	for pd in [Vector3(7.0, 0, 3.7), Vector3(11.0, 0, 3.05), Vector3(18.0, 0, 3.55)]:
+		k.puddle(pd, Vector2(1.7, 1.1), 0.2)
 	k.torus(0.1, 0.14, Vector3(13.6, 1.3, 2.34), k.mat(Color(0.75, 0.15, 0.12), 0.5), null, Vector3(PI / 2.0, 0, 0))
 	k.note("Valve", "Something's gurgling in these pipes. Hopefully just water.", Vector3(13.6, 0, 2.6), Vector3(0.7, 0.8, 0.5), Vector3(0, 1.3, 0))
 	k.lift("lower_lift", Vector3(16.2, 0, 2.3), 0.0, "deck_lift", "promenade", "Promenade Deck", _cargo_style(k, "LOWER"))
-	k.door("laundry", "", Vector3(8.0, 0, 2.3), 0.0, {"h": 1.9})
-	k.door("infirmary", "", Vector3(12.0, 0, 4.5), PI, {"h": 1.9})
-	k.door("boiler", "", Vector3(21.0, 0, 3.4), -PI / 2.0, {"h": 1.9, "mat": k.steel, "frame": k.mat(Color(0.18, 0.18, 0.2), 0.5, 0.6)})
-	k.door("back_stairs", "", Vector3(5.6, 0, 4.5), PI, {"h": 1.9})
-	k.cctv(Vector3(20.8, 2.2, 2.45), -PI / 2.0 - 0.5)
+	k.door("laundry", "", Vector3(8.0, 0, 2.3), 0.0)
+	k.door("infirmary", "", Vector3(12.0, 0, 4.5), PI)
+	k.door("boiler", "", Vector3(21.0, 0, 3.4), -PI / 2.0, {"mat": k.steel, "frame": k.mat(Color(0.18, 0.18, 0.2), 0.5, 0.6)})
+	k.door("back_stairs", "", Vector3(5.6, 0, 4.5), PI)
+	k.cctv(Vector3(19.7, 2.35, 2.3), 0.0, 0.5)
 	if k.mode == "freetime":
 		k.person("bruno", Vector3(18.9, 0, 3.8))
 		k.person("marigold", Vector3(10.3, 0, 3.9))
@@ -798,30 +978,52 @@ static func _companionway(k) -> void:
 
 # =================================================================== Back Stairs (one narrow flight)
 static func _back_stairs(k) -> void:
-	k.environment("dim", Color(0.45, 0.42, 0.42), 0.26)
+	k.environment("dim", Color(0.45, 0.42, 0.42), 0.3)
 	k.bounds = Vector2(1.5, 7.6)
 	var wall_m: Material = k.wood_wall(TAN.darkened(0.55), TAN.darkened(0.35), 0.2)
 	var o := {"floor": k.wood_floor(Color(0.22, 0.13, 0.08), Color(0.36, 0.22, 0.12), 0.16), "wall": wall_m, "wain": null,
 		"trim": k.mat(Color(0.14, 0.1, 0.07), 0.8), "ceiling": k.mat(Color(0.14, 0.1, 0.08), 0.9)}
 	var low_o := o.duplicate()
 	low_o["open"] = ["n"]
-	k.plan([[-0.75, 0.0, 0.75, 1.8]], 0.0, 5.45, low_o)
+	k.plan([[-0.75, 0.0, 0.75, 1.8]], 0.0, 5.75, low_o)
 	var top_o := o.duplicate()
 	top_o["open"] = ["s"]
-	k.plan([[-0.75, -6.2, 0.75, -4.4]], 3.0, 2.45, top_o)
+	k.plan([[-0.75, -6.2, 0.75, -4.4]], 3.0, 2.75, top_o)
 	var side := {"wall": wall_m, "wain": null, "trim": o["trim"]}
-	k.wall_run(Vector2(0.75, -4.4), Vector2(0.75, 0.0), 0.0, 5.45, side)
-	k.wall_run(Vector2(-0.75, 0.0), Vector2(-0.75, -4.4), 0.0, 5.45, side)
-	k.slab(-0.75, -4.4, 0.75, 0.0, 5.57, o["ceiling"], 0.12, false)
+	k.wall_run(Vector2(0.75, -4.4), Vector2(0.75, 0.0), 0.0, 5.75, side)
+	k.wall_run(Vector2(-0.75, 0.0), Vector2(-0.75, -4.4), 0.0, 5.75, side)
+	k.slab(-0.75, -4.4, 0.75, 0.0, 5.87, o["ceiling"], 0.12, false, "ceiling")
 	k.stairs(Vector3(0, 0, 0.0), Vector3(0, 3.0, -4.4), 1.5, {"mat": k.wood_mid, "rail": "none"})
-	k.beam(Vector3(0.68, 1.0, -0.1), Vector3(0.68, 4.0, -4.3), 0.025, k.brass)
-	for p in [Vector3(0, 2.6, 1.0), Vector3(0, 3.8, -2.2), Vector3(0, 5.2, -5.4)]:
+	# handrail bolted to the east wall, all the way up
+	k.wall_rail(Vector3(0.69, 0.95, -0.05), Vector3(0.69, 3.95, -4.35), Vector3(0.06, 0, 0), k.brass)
+	k.wall_rail(Vector3(0.69, 0.95, 1.7), Vector3(0.69, 0.95, 0.05), Vector3(0.06, 0, 0), k.brass)
+	for p in [Vector3(0, 4.95, 1.0), Vector3(0, 5.05, -2.2), Vector3(0, 5.15, -5.4)]:
 		var pp: Vector3 = p
-		k.sphere(0.05, pp, k.glow(Color(1.0, 0.82, 0.55), 4.0))
-		k.flickers.append(k.omni(pp + Vector3(0, -0.1, 0), Color(1.0, 0.82, 0.55), 0.7, 4.5))
+		k.flickers.append(k.bulb(pp, 5.75, Color(1.0, 0.82, 0.55), 1.15, 7.5))
 	k.note("Worn steps", "The steps sag in the middle. Generations of tired paws, probably.", Vector3(0, 1.4, -2.0), Vector3(1.0, 0.6, 1.0), Vector3(0, 0.4, 0))
-	k.door("companionway", "Lower Passage", Vector3(0, 0, 1.8), PI, {"h": 2.0})
-	k.door("hall", "Cabin Corridor", Vector3(0, 3.0, -6.2), 0.0, {"h": 2.0})
+	# service clutter: bare pipes up the wall, a fire bucket, oilskins on pegs, a duty roster, a mop in a pail
+	var pipe: Material = k.mat(Color(0.5, 0.42, 0.3), 0.45, 0.5)
+	k.wall_rail(Vector3(-0.68, 0.6, 1.72), Vector3(-0.68, 5.65, 1.72), Vector3(-0.07, 0, 0), pipe, 0.03)
+	k.wall_rail(Vector3(-0.71, 3.2, -0.2), Vector3(-0.71, 5.2, -4.2), Vector3(-0.04, 0, 0), pipe, 0.018)
+	k.bucket(Vector3(-0.56, 0, 0.45), 0.8, null, k.mat(Color(0.85, 0.12, 0.1), 0.5))
+	k.bucket(Vector3(0.53, 0, 0.3), 0.85)
+	k.box(Vector3(0.03, 1.5, 0.03), Vector3(0.54, 0.75, 0.36), k.wood_light).rotation.x = -0.12
+	k.sphere(0.14, Vector3(0.53, 0.2, 0.3), k.mat(Color(0.8, 0.78, 0.68), 0.95), null, Vector3(1.0, 0.8, 1.0), 8)
+	k.picture(Vector3(0.75, 1.65, 0.95), -PI / 2.0, Vector2(0.5, 0.72), Color(0.92, 0.88, 0.76), k.wood_dark, "ROSTER", 7)
+	k.picture(Vector3(-0.75, 1.95, 1.05), PI / 2.0, Vector2(0.44, 0.32), Color(0.95, 0.78, 0.15), k.black, "MIND\nTHE STEP", 0, Color(0.1, 0.08, 0.05))
+	k.box(Vector3(0.03, 0.09, 0.9), Vector3(-0.735, 4.1, -5.2), k.wood_dark)
+	var oil: Material = k.mat(Color(0.82, 0.68, 0.18), 0.65)
+	for i in 3:
+		k.cyl(0.008, 0.008, 0.08, Vector3(-0.71, 4.1, -5.5 + i * 0.3), k.brass, null, false, 6).rotation.z = PI / 2.0
+		k.box(Vector3(0.05, 0.86, 0.26), Vector3(-0.7, 3.65, -5.5 + i * 0.3), oil if i != 1 else k.mat(Color(0.3, 0.32, 0.3), 0.7))
+	k.torus(0.15, 0.24, Vector3(0.72, 4.4, -5.0), k.stripes(Color(0.95, 0.95, 0.95), Color(0.85, 0.15, 0.12), 4.0), null, Vector3(0, 0, PI / 2.0))
+	k.box(Vector3(0.05, 0.05, 0.05), Vector3(0.725, 4.0, -4.8), k.brass)
+	k.torus(0.13, 0.2, Vector3(0.7, 3.8, -4.8), k.mat(Color(0.66, 0.54, 0.36), 0.9), null, Vector3(0, 0, PI / 2.0))
+	var shelf: Node3D = k.wall_shelf(Vector3(0.75, 4.6, -5.55), -PI / 2.0, 0.9, 0.2, k.wood_dark)
+	for i in 4:
+		k.cyl(0.05, 0.06, 0.16, Vector3(-0.3 + i * 0.2, 0.08, 0.1), k.mat([Color(0.55, 0.14, 0.12), Color(0.45, 0.45, 0.48), Color(0.5, 0.42, 0.2), Color(0.3, 0.4, 0.3)][i], 0.5), shelf, false, 10)
+	k.door("companionway", "Lower Passage", Vector3(0, 0, 1.8), PI)
+	k.door("hall", "Cabin Corridor", Vector3(0, 3.0, -6.2), 0.0)
 	k.spawn = Vector3(0, 0, 0.8)
 	k.look = Vector3(0, 2.5, -5.0)
 
@@ -852,12 +1054,13 @@ static func _saloon(k) -> void:
 	var piano := Vector3(2.0, 0, 5.2)
 	k.box(Vector3(1.4, 1.2, 0.55), piano + Vector3(0, 0.6, 0.3), k.mat(Color(0.12, 0.07, 0.05), 0.3), true)
 	k.box(Vector3(1.3, 0.06, 0.28), piano + Vector3(0, 0.8, -0.1), k.white)
+	k.blocker(Vector3(1.3, 0.85, 0.32), piano + Vector3(0, 0.42, -0.1))
 	k.note("Piano", "One key is stuck. It's the sad one.", piano, Vector3(1.5, 1.4, 1.0), Vector3(0, 0.7, 0.0))
 	k.table(Vector3(-2.0, 0, 5.2), Vector3(0.8, 0.72, 0.8), k.wood_light, k.wood_dark)
 	k.box(Vector3(0.6, 0.02, 0.6), Vector3(-2.0, 0.73, 5.2), k.mat(Color(0.25, 0.2, 0.15), 0.5))
 	for i in 8:
 		k.cyl(0.018, 0.024, 0.08, Vector3(-2.24 + (i % 4) * 0.16, 0.78, 5.0 + (i / 4) * 0.4), k.white if i < 4 else k.black)
-	k.cctv(Vector3(W / 2.0 - 0.15, 2.7, -D / 2.0 + 0.5), -PI / 2.0 + 0.6)
+	k.cctv(Vector3(W / 2.0, 2.65, -D / 2.0 + 0.5), -PI / 2.0, 0.6)
 	k.door("promenade", "", Vector3(0, 0, -D / 2.0), 0.0)
 	k.door("companionway", "Main Stairs", Vector3(0, 0, D / 2.0), PI)
 	if k.mode == "freetime":
@@ -873,16 +1076,51 @@ static func _saloon(k) -> void:
 static func _mochi_cabin(k) -> void:
 	var W := 3.8
 	var D := 3.6
-	var H := 2.3
+	var H := 2.7
 	k.environment("indoor", Color(0.6, 0.55, 0.48), 0.34)
 	_ship_shell(k, W, D, H, "tan")
-	k.hanging_lamp(Vector3(0.5, 2.0, 0.2), Color(1.0, 0.86, 0.66), 0.8, H, true, 5.0)
-	k.box(Vector3(2.0, 0.5, 0.9), Vector3(-0.8, 0.25, -D / 2.0 + 0.55), k.wood_mid, true)
-	k.box(Vector3(1.9, 0.14, 0.86), Vector3(-0.8, 0.57, -D / 2.0 + 0.55), k.white)
-	k.box(Vector3(1.3, 0.05, 0.88), Vector3(-0.5, 0.66, -D / 2.0 + 0.55), k.mat(Color(0.2, 0.3, 0.6), 0.9))
-	k.sphere(0.2, Vector3(-1.5, 0.7, -D / 2.0 + 0.55), k.white, null, Vector3(1.0, 0.4, 1.5))
+	k.hanging_lamp(Vector3(0.5, 2.3, 0.2), Color(1.0, 0.86, 0.66), 0.8, H, true, 5.0)
+	var bz := -D / 2.0 + 0.55
+	k.box(Vector3(2.0, 0.5, 0.9), Vector3(-0.8, 0.25, bz), k.wood_mid, true)
+	for sx in [-0.48, 0.48]:
+		k.box(Vector3(0.84, 0.3, 0.02), Vector3(-0.8 + sx, 0.25, bz + 0.46), k.wood_light)
+		k.sphere(0.022, Vector3(-0.8 + sx, 0.25, bz + 0.48), k.brass, null, Vector3.ONE, 8)
+	k.box(Vector3(1.9, 0.14, 0.86), Vector3(-0.8, 0.57, bz), k.white)
+	k.box(Vector3(1.3, 0.05, 0.88), Vector3(-0.5, 0.66, bz), k.mat(Color(0.2, 0.3, 0.6), 0.9))
+	k.sphere(0.2, Vector3(-1.5, 0.7, bz), k.white, null, Vector3(1.0, 0.4, 1.5))
 	k.porthole(Vector3(-0.8, 1.6, -D / 2.0 + 0.02), 0.0, 0.2, FUNGUS, 1.5)
-	k.note("Your bunk", "Thin walls. You can hear everything on this boat.", Vector3(-0.8, 0, -D / 2.0 + 0.55), Vector3(2.0, 0.9, 1.0), Vector3(0, 0.45, 0))
-	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 0.7), -PI / 2.0, {"h": 1.75})
+	k.note("Your bunk", "Thin walls. You can hear everything on this boat.", Vector3(-0.8, 0, bz), Vector3(2.0, 0.9, 1.0), Vector3(0, 0.45, 0))
+	# a fold-down desk under a shelf, a mirror, a coat on a hook, your case at the foot of the bunk
+	var desk := Vector3(1.32, 0, -D / 2.0 + 0.3)
+	k.box(Vector3(0.9, 0.05, 0.54), desk + Vector3(0, 0.72, 0), k.wood_light)
+	for sx in [-0.4, 0.4]:
+		k.box(Vector3(0.05, 0.7, 0.05), desk + Vector3(sx, 0.35, 0.18), k.wood_dark)
+	k.blocker(Vector3(0.9, 0.75, 0.54), desk + Vector3(0, 0.37, 0))
+	k.box(Vector3(0.3, 0.02, 0.4), desk + Vector3(-0.15, 0.755, 0.02), k.paper, false, null, 0.15)
+	k.cyl(0.03, 0.03, 0.11, desk + Vector3(0.25, 0.8, -0.1), k.mat(Color(0.2, 0.3, 0.5), 0.4), null, false, 10)
+	k.beam(desk + Vector3(0.05, 0.76, 0.1), desk + Vector3(0.22, 0.76, 0.14), 0.006, k.black)
+	k.stool(desk + Vector3(-0.1, 0, 0.62), k.wood_mid, 0.42)
+	var shelf: Node3D = k.wall_shelf(Vector3(1.3, 1.65, -D / 2.0), 0.0, 1.0, 0.2, k.wood_dark)
+	var spines := [Color(0.5, 0.12, 0.16), Color(0.16, 0.3, 0.42), Color(0.75, 0.62, 0.3), Color(0.2, 0.4, 0.3)]
+	for i in 7:
+		var h := 0.16 + 0.07 * _h(i + 5)
+		k.box(Vector3(0.05, h, 0.14), Vector3(-0.42 + i * 0.058, h / 2.0, 0.09), k.mat(spines[i % 4], 0.8), false, shelf)
+	k.sphere(0.07, Vector3(0.3, 0.07, 0.1), k.mat(Color(0.85, 0.76, 0.52), 0.5), shelf, Vector3(1.1, 0.9, 1.0), 10)
+	k.mirror(Vector3(-W / 2.0, 1.55, 0.4), PI / 2.0, Vector2(0.4, 0.56), true, k.brass, Color(0.66, 0.6, 0.48), Color(0.3, 0.42, 0.42))
+	k.box(Vector3(0.03, 0.09, 0.7), Vector3(-W / 2.0 + 0.015, 1.75, -0.65), k.wood_dark)
+	k.cyl(0.008, 0.008, 0.09, Vector3(-W / 2.0 + 0.06, 1.75, -0.62), k.brass, null, false, 6).rotation.z = PI / 2.0
+	k.box(Vector3(0.05, 0.9, 0.4), Vector3(-W / 2.0 + 0.07, 1.28, -0.62), k.mat(Color(0.32, 0.4, 0.54), 0.9))
+	k.rug(Vector3(0.4, 0, 0.75), Vector2(1.5, 0.9), Color(0.5, 0.2, 0.18), Color(0.82, 0.62, 0.3))
+	var shoe: Material = k.mat(Color(0.24, 0.16, 0.1), 0.6)
+	for sx in [-0.08, 0.08]:
+		k.sphere(0.07, Vector3(-1.85 + sx, 0.04, 1.3), shoe, null, Vector3(0.7, 0.55, 1.5), 8)
+	var case_p := Vector3(-1.45, 0, 0.62)
+	k.box(Vector3(0.6, 0.26, 0.42), case_p + Vector3(0, 0.13, 0), k.mat(Color(0.55, 0.32, 0.18), 0.7), true, null, 0.2)
+	for sx in [-0.19, 0.19]:
+		k.box(Vector3(0.06, 0.27, 0.43), case_p + Vector3(sx * cos(0.2), 0.133, -sx * sin(0.2)), k.mat(Color(0.36, 0.2, 0.1), 0.7), false, null, 0.2)
+	k.picture(Vector3(-0.8, 1.85, D / 2.0), PI, Vector2(0.5, 0.36), Color(0.5, 0.66, 0.7), k.brass)
+	k.picture(Vector3(0.45, 1.75, D / 2.0), PI, Vector2(0.4, 0.56), Color(0.92, 0.88, 0.76), k.wood_dark, "DECK\nRULES", 5)
+	k.wall_clock(Vector3(-1.45, 2.05, D / 2.0), PI, 0.13)
+	k.door("hall", "Cabin Corridor", Vector3(W / 2.0, 0, 0.7), -PI / 2.0)
 	k.spawn = Vector3(0.6, 0, 0.8)
 	k.look = Vector3(-0.8, 0.9, -1.8)

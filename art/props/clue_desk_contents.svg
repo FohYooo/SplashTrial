@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="q1" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffc93c" stop-opacity="0.5"/><stop offset="0.5" stop-color="#ffc93c" stop-opacity="0.2"/><stop offset="1" stop-color="#ffc93c" stop-opacity="0"/></radialGradient></defs>
+<ellipse cx="100" cy="186" rx="84" ry="9" fill="#000000" opacity="0.2"/>
+<path d="M10 104 L190 104 L178 150 L22 150 Z" fill="#7a4a26" stroke="#2a1a10" stroke-width="4.5" stroke-linejoin="round"/>
+<path d="M40 108 L120 108 L116 134 L44 134 Z" fill="#3a6a4a" stroke="#2a1a10" stroke-width="2.5"/>
+<line x1="150" y1="104" x2="150" y2="62" stroke="#2a1a10" stroke-width="7" stroke-linecap="round"/>
+<line x1="150" y1="104" x2="150" y2="62" stroke="#e2a93a" stroke-width="3" stroke-linecap="round"/>
+<path d="M132 64 Q150 36 168 64 Z" fill="#2f7a4c" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="150" cy="70" r="26" fill="url(#q1)"/>
+<rect x="16" y="88" width="40" height="10" fill="#c0392b" stroke="#2a1a10" stroke-width="2.2"/>
+<rect x="16" y="78" width="40" height="10" fill="#3a7aa8" stroke="#2a1a10" stroke-width="2.2"/>
+<rect x="16" y="68" width="40" height="10" fill="#e8b040" stroke="#2a1a10" stroke-width="2.2"/>
+<circle cx="82" cy="120" r="8" fill="none" stroke="#2a1a10" stroke-width="3"/>
+<circle cx="100" cy="120" r="8" fill="none" stroke="#2a1a10" stroke-width="3"/>
+<line x1="90" y1="120" x2="92" y2="120" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+<rect x="118" y="116" width="24" height="10" fill="#e2a93a" stroke="#2a1a10" stroke-width="2"/>
+<line x1="120" y1="178" x2="172" y2="168" stroke="#2a1a10" stroke-width="11" stroke-linecap="round"/>
+<line x1="120" y1="178" x2="172" y2="168" stroke="#1a1a20" stroke-width="7" stroke-linecap="round"/>
+<line x1="125.9" y1="175.1" x2="162.2" y2="168.1" stroke="#5a5a66" stroke-width="2" opacity="0.8" stroke-linecap="round"/>
+<path d="M171.4 164.9 L183.8 165.7 L172.6 171.1 Z" fill="#e7b347" stroke="#2a1a10" stroke-width="2"/>
+<line x1="141.6" y1="173.8" x2="146.5" y2="172.9" stroke="#e7b347" stroke-width="8" stroke-linecap="round"/>
+<line x1="126.6" y1="180.6" x2="154.1" y2="175.4" stroke="#e7b347" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs></defs>
+<ellipse cx="100" cy="186" rx="82" ry="9" fill="#000000" opacity="0.2"/>
+<rect x="20" y="40" width="160" height="140" fill="#e8e4dc" stroke="#2a1a10" stroke-width="4.5"/>
+<rect x="44" y="70" width="112" height="110" fill="#1a1614" stroke="#2a1a10" stroke-width="3"/>
+<path d="M52 176 Q60 130 100 132 Q140 128 150 176 Z" fill="#6a6662" stroke="#2a1a10" stroke-width="2.5"/>
+<path d="M60 170 Q76 146 104 150 Q130 144 142 170 Z" fill="#8a8680"/>
+<line x1="52" y1="150" x2="52" y2="180" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+<line x1="76" y1="150" x2="76" y2="180" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+<line x1="100" y1="150" x2="100" y2="180" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+<line x1="124" y1="150" x2="124" y2="180" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+<line x1="148" y1="150" x2="148" y2="180" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+<g transform="rotate(14 120 140)">
+<path d="M104 128 L146 128 L146 152 L132 146 L120 154 L104 146 Z" fill="#fbf6ea" stroke="#2a1a10" stroke-width="2.5"/>
+<rect x="110" y="134" width="5" height="7" fill="#3a3a40"/>
+<rect x="118" y="134" width="5" height="7" fill="#3a3a40"/>
+<rect x="126" y="134" width="5" height="7" fill="#3a3a40"/>
+<rect x="134" y="134" width="5" height="7" fill="#3a3a40"/>
+</g>
+</svg>

@@ -3,10 +3,12 @@ extends "res://scripts/trial/trial_common.gd"
 ## Statements fly in one at a time from a vanishing point in the distance (small, faint, leaning), rush
 ## toward the camera to full size, drift, then rush past the camera or slash off sideways - looping.
 ## The speaker slashes in on the opposite side through a diagonal wipe with speed lines.
-## {Weak spots} glow yuzu-orange; the player loads a Truth Drop (click / keys 1-4 / wheel) and clicks a
+## {Weak spots} glow yuzu-orange; the player loads a Truth Drop (click / number keys / wheel) and clicks a
 ## weak spot to fire a water shot. Correct spot + drop -> freeze-frame, crack, SCREEN SHATTER, banner.
 ## Wrong -> glitch + coral flash + shake + mistake + the data's "wrong" line.
-## Each full loop without success -> no penalty (only wrong shots cost convince); after 2 loops the hint thought-bubble appears.
+## Each full loop without success -> no penalty (only wrong shots cost convince); after the chapter's "hint_loops" the hint
+## thought-bubble appears, or, with "hint_on_request", a button offers it for Game.HINT_COST. A Drop listed under the segment's
+## "early" is right but too soon: no cost, and a bonus when it comes up for real. V opens the loaded Drop's pictures.
 ## Skills: scoop_sense (answer sparkles after the first loop), power_nap (durations x Game.timer_scale()).
 
 const FLY_IN := 0.36
@@ -50,6 +52,7 @@ var _loop_label: Label
 var _count_label: Label
 var _bar: SegBar
 var _hud_cache := ""
+var _hint_btn: Button
 
 
 func _ready() -> void:
@@ -70,7 +73,7 @@ func _ready() -> void:
 		_durs.append(d)
 		_loop_total += d
 	_build_hud()
-	_build_drop_panel(data.get("drops", []))
+	_build_drop_panel(_ammo_list(data.get("drops", [])))
 	_run.call_deferred()
 
 
@@ -121,6 +124,14 @@ func _build_hud() -> void:
 	_bar.durs = _durs
 	_bar.total = _loop_total
 	lp.add_child(_bar)
+	if bool(Chapters.get_value("hint_on_request", false)) and str(data.get("hint", "")) != "":
+		_hint_btn = Style.button("Ask Mochi's hunch  (-%d%%)  [H]" % roundi(Game.HINT_COST), Vector2(290, 36), 14)
+		_hint_btn.position = Vector2(960, 78)
+		_hint_btn.size = Vector2(290, 36)
+		_hint_btn.focus_mode = Control.FOCUS_NONE
+		_hint_btn.pressed.connect(_ask_hint)
+		_hud.add_child(_hint_btn)
+		_ui_rects.append(Rect2(_hint_btn.position, _hint_btn.size))
 
 
 func _update_hud() -> void:
@@ -151,6 +162,7 @@ func _start_statement(i: int) -> void:
 	_sdur = float(_durs[i])
 	var s: Dictionary = _statements[i]
 	var text := str(s.get("text", ""))
+	Game.log_say(str(s.get("speaker", "")), text, true)
 	_side = i % 2
 	_show_speaker(str(s.get("speaker", "")), str(s.get("expr", "normal")), _side)
 	if _view and is_instance_valid(_view):
@@ -360,10 +372,29 @@ func _loop_end() -> void:
 	await _toast("TIME'S UP!", "The debate loops around... listen closely for the lie!", Style.DANGER, _fxd(1.1))
 	if _gone():
 		return
-	if _loop >= 2 and not _hint_shown:
+	var after := int(Chapters.get_value("hint_loops", 2))
+	if after > 0 and _loop >= after and not _hint_shown and _hint_btn == null:
 		_show_hint()
 	_state = "play"
 	_start_statement(0)
+
+
+func _ask_hint() -> void:
+	if _hint_shown or _state != "play":
+		return
+	Game.set_convince(Game.convince - Game.HINT_COST)
+	_hint_btn.disabled = true
+	_ui_rects.clear()
+	_show_hint()
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	var k := e as InputEventKey
+	if k and k.pressed and not k.echo and k.keycode == KEY_H and _hint_btn != null:
+		_ask_hint()
+		get_viewport().set_input_as_handled()
+		return
+	super(e)
 
 
 func _show_hint() -> void:
@@ -466,6 +497,11 @@ func _resolve(w: int, drop: String, gp: Vector2) -> void:
 		return
 	if _si == _ans_stmt and w == _ans_weak and drop == _ans_drop:
 		_win(w, gp)
+	elif (data.get("early", {}) as Dictionary).has(drop):
+		_state = "wrong"
+		await _early_line(drop, Vector2(260, 420))
+		if not _gone():
+			_state = "play"
 	else:
 		_wrong_shot(gp)
 
@@ -486,6 +522,7 @@ func _win(w: int, gp: Vector2) -> void:
 	Audio.sfx("break")
 	_shake(18.0, 0.45)
 	Game.reward(Game.REWARD_DEBATE)
+	Game.pay_early(_ans_drop)
 	if _portrait != null and is_instance_valid(_portrait):
 		_shake_node(_portrait, 14.0)
 	await _wait(_fxd(0.24))
@@ -540,6 +577,17 @@ func _autoplay() -> void:
 		push_warning("debate: answer drop '%s' is not loaded" % _ans_drop)
 		_finish({})
 		return
+	if Game.debug_minigame != "" and _hint_btn != null:
+		_ask_hint()
+	if Game.debug_minigame != "":
+		for i in _drop_ids.size():
+			if not Clues.images(str(_drop_ids[i])).is_empty():
+				_select_drop(i)
+				_view_selected()   # the viewer's own autotest pages through it and closes
+				await _wait(0.05)
+				if _gone():
+					return
+				break
 	if Game.debug_minigame != "" and _drop_ids.size() > 1:
 		_auto_shot((good + 1) % _drop_ids.size())
 		while not _gone() and _state != "play":

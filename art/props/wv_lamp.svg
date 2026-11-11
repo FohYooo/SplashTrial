@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="200" viewBox="0 0 140 200">
+<defs></defs>
+<line x1="70" y1="0" x2="70" y2="70" stroke="#0a0a0a" stroke-width="4" stroke-linecap="round"/>
+<path d="M30 110 L50 70 L90 70 L110 110 Z" fill="#2a2f2c" stroke="#1a120c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="70" cy="110" rx="40" ry="8" fill="#141614" stroke="#1a120c" stroke-width="3"/>
+<ellipse cx="70" cy="132" rx="18" ry="22" fill="#f4ead0" opacity="0.95"/>
+<line x1="50" y1="112" x2="54" y2="160" stroke="#1a1c1a" stroke-width="3" stroke-linecap="round"/>
+<line x1="60" y1="112" x2="62" y2="160" stroke="#1a1c1a" stroke-width="3" stroke-linecap="round"/>
+<line x1="70" y1="112" x2="70" y2="160" stroke="#1a1c1a" stroke-width="3" stroke-linecap="round"/>
+<line x1="80" y1="112" x2="78" y2="160" stroke="#1a1c1a" stroke-width="3" stroke-linecap="round"/>
+<line x1="90" y1="112" x2="86" y2="160" stroke="#1a1c1a" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="70" cy="160" rx="14" ry="4" fill="#1a1c1a"/>
+</svg>

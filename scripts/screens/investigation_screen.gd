@@ -1,7 +1,15 @@
 extends Control
 ## INVESTIGATION - explore the resort (rooms in scripts/data/investigation_data.gd), examine hotspots and
-## talk to people until every required Truth Drop is collected, then play "investigation_complete" and
-## emit finished({}).
+## talk to people. In a chapter with "ending": "choice" nothing ends by itself: once the last stage has played (at once
+## in a chapter without stages) Finish [T] is always there and always works, whatever the player holds, so ending tells
+## them nothing. A required Truth Drop they leave without is brought up in the trial by another guest at a capped cost
+## (ScriptPlayer._missing_drops). While open rooms still have things unexamined, Mochi muses after a while without a
+## find. Otherwise it ends on the last required Truth Drop. Either way it then plays "investigation_complete" and
+## emits finished({}).
+##
+## Stages: investigation data can define const STAGES := [{"after": int, "script": String}]: the story script plays
+## once the player has found that many required Truth Drops during the investigation. A room with "opens_stage": n
+## (1-based) stays shut until the nth stage has played; a hotspot with the same key isn't there until then.
 ##
 ## Room view: full-screen bg, invisible hotspot rects (glow + label tag on hover), people as portraits.
 ## Unexamined things sparkle now and then; examined ones get a check badge. Snippets play in a transparent
@@ -26,6 +34,14 @@ const H := 720.0
 const BAR_H := 54.0
 const INK := Color("2a1a10")
 const DIM := Color(0.5, 0.48, 0.62)
+const NUDGE_FIRST := 240.0     # seconds without finding anything before Mochi first says something
+const NUDGE_NEXT := 150.0
+## Said only while something open is still unexamined, whether or not it matters, so they never mean "you're missing a Drop".
+const NUDGES := [
+	"Have I really looked everywhere?",
+	"There are still things here I haven't had a proper look at.",
+	"Maybe somebody has more to say?",
+]
 
 ## Map layout (board-local centers; the board panel sits at MAP_BOARD.position).
 const MAP_BOARD := Rect2(70, 60, 1140, 620)
@@ -51,6 +67,8 @@ const MAP_LINKS2 := [
 	["purser", "hall"], ["hall", "tumble_cabin"], ["hall", "hub"], ["hub", "infirmary"],
 	["laundry", "infirmary"], ["infirmary", "boiler"],
 ]
+## Laid-out maps by chapter. A chapter without one gets a plain board with its rooms along the bottom.
+const MAP_POS_BY_CHAPTER := {1: MAP_POS, 2: MAP_POS2}
 
 const OUTLINE_SHADER := """shader_type canvas_item;
 uniform vec4 line_color : source_color = vec4(1.0, 0.82, 0.4, 1.0);
@@ -98,6 +116,7 @@ var _drops_count: Label
 var _drops_icon: Control
 var _btn_nb: Button
 var _btn_map: Button
+var _btn_end: Button
 var _map_pulse := false
 var _time := 0.0
 var _dim_tw: Tween = null
@@ -116,6 +135,9 @@ var _map_open := false
 var _lock_ms := 0
 var _cleared := {}
 var _mask_cache := {}
+var _before: Array = []        # Truth Drops already held when this investigation began
+var _nudge_t := 0.0
+var _nudge_n := 0
 
 
 func _init() -> void:
@@ -162,6 +184,7 @@ func _exit_tree() -> void:
 
 # =================================================================== flow
 func _run() -> void:
+	_before = Game.clues.duplicate()
 	var start: String = Inv.START_ROOM
 	if not Inv.ROOMS.has(start):
 		start = str(Inv.ROOM_ORDER[0]) if Inv.ROOM_ORDER.size() > 0 else str(Inv.ROOMS.keys()[0])
@@ -179,7 +202,7 @@ func _run() -> void:
 	tw.tween_property(_bar, "modulate:a", 1.0, _dur(0.3))
 	tw.tween_property(_bar, "position:y", 0.0, _dur(0.35)).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	_show_banner()
-	if Game.has_all_required_clues():
+	if not Chapters.ends_by_choice() and Game.has_all_required_clues():
 		await _complete()
 		return
 	_set_dialogue_mode(false)
@@ -192,25 +215,51 @@ func _run() -> void:
 
 ## Visits every room and activates every hotspot/person in data order, then finishes.
 func _autotest() -> void:
-	for rid in Inv.ROOM_ORDER:
-		if _done or not is_inside_tree():
-			return
-		if not Inv.ROOMS.has(rid):
-			continue
-		if rid != _room_id:
-			# go through the map like a player would (exercises the map build / close path)
-			_open_map()
-			await _wait(0.05)
-			_close_map()
-			await _travel(rid)
-		for t in _targets.duplicate():
+	if Chapters.ends_by_choice():
+		# Finish never waits for Truth Drops: it's there from the start in a chapter without stages (a fresh run has
+		# played none yet), and only after the last one in a chapter with them
+		var want := _stages().is_empty() or _everything_examined()
+		print("[autotest] investigation: Finish offered at the start=", _btn_end.visible, " with ", _missing_clues().size(), " required Drops not found yet")
+		if _btn_end.visible != want:
+			push_error("Investigation: Finish shown=%s at the start, expected %s" % [_btn_end.visible, want])
+	# the first pass touches everything; later ones catch rooms that a stage has opened since
+	var first := true
+	var progress := true
+	while progress:
+		progress = false
+		for rid in Inv.ROOM_ORDER:
 			if _done or not is_inside_tree():
 				return
-			await _wait(0.02)
-			await _activate(t)
+			if not Inv.ROOMS.has(rid) or not _room_open(rid):
+				continue
+			if not first and _room_progress(rid).x >= _room_progress(rid).y:
+				continue
+			if rid != _room_id:
+				# go through the map like a player would (exercises the map build / close path)
+				_open_map()
+				await _wait(0.05)
+				_close_map()
+				await _travel(rid)
+			for t in _targets.duplicate():
+				if _done or not is_inside_tree():
+					return
+				if not first and _seen(str(t["script"])):
+					continue
+				await _wait(0.02)
+				await _activate(t)
+				progress = true
+		first = false
 	if not _done and is_inside_tree():
 		print("[autotest] investigation: all rooms visited, missing clues: ", _missing_clues())
-		await _complete()
+		if Chapters.ends_by_choice():
+			if not _btn_end.visible:
+				push_error("Investigation: Finish still not offered after every stage and every room")
+			for c in _missing_clues():
+				Game.add_clue(str(c))
+			await _request_end()
+		else:
+			await _complete()
+
 
 
 ## Plays the current room's enter script on the first visit. Returns true if the investigation finished.
@@ -225,6 +274,7 @@ func _enter_script() -> bool:
 func _activate(t: Dictionary) -> void:
 	if _done:
 		return
+	_log_examined(t)
 	_busy = true
 	_set_hover({})
 	Audio.sfx("confirm")
@@ -242,6 +292,12 @@ func _activate(t: Dictionary) -> void:
 	_unlock()
 
 
+## The Logbook notes everything looked at, in the same words whatever it turns out to be.
+func _log_examined(t: Dictionary) -> void:
+	if str(t.get("kind", "")) in ["hotspot", "note"]:
+		Game.log_thing(str(t["label"]))
+
+
 ## Plays one snippet as an overlay, marks it seen, and checks for completion.
 ## Returns true if the investigation is complete (finished is being / has been emitted).
 func _snippet(id: String, person: Control) -> bool:
@@ -257,6 +313,9 @@ func _snippet(id: String, person: Control) -> bool:
 	if person and is_instance_valid(person):
 		var tw2 := create_tween()
 		tw2.tween_property(person, "modulate:a", 1.0, _dur(0.25))
+	await _check_stages()
+	if not is_inside_tree():
+		return true
 	_refresh_status()
 	if not Game.has_all_required_clues() and _everything_examined():
 		# Safety net: never soft-lock if a story script forgot a clue.
@@ -266,12 +325,140 @@ func _snippet(id: String, person: Control) -> bool:
 			print("[autotest] investigation: safety net granted ", missing)
 		for c in missing:
 			Game.add_clue(c)
-	if Game.has_all_required_clues():
+		await _check_stages()
+		if not is_inside_tree():
+			return true
+		_refresh_status()
+	if not Chapters.ends_by_choice() and Game.has_all_required_clues():
 		await _complete()
 		return true
 	_set_dialogue_mode(false)
 	_check_room_cleared()
 	return false
+
+
+# =================================================================== stages and ending
+func _stages() -> Array:
+	if Inv is Script:
+		return (Inv as Script).get_script_constant_map().get("STAGES", [])
+	return Inv.STAGES
+
+
+## Required Truth Drops found during this investigation; Drops held on arrival or given to everyone don't count.
+func _required_found() -> int:
+	var given: Array = Chapters.get_value("inv_start_clues", [])
+	var n := 0
+	for c in Clues.required():
+		if Game.has_clue(c) and not given.has(c) and not _before.has(c):
+			n += 1
+	return n
+
+
+## Plays every stage that has come due, in order. A stage script may itself hand over Truth Drops.
+func _check_stages() -> void:
+	for s in _stages():
+		var sd: Dictionary = s
+		var sid := str(sd.get("script", ""))
+		if sid == "" or _seen(sid) or _required_found() < int(sd.get("after", 0)):
+			continue
+		await _play(sid)
+		if not is_inside_tree():
+			return
+		Game.set_flag("seen_" + sid, true)
+		Audio.play_music("investigate")
+		_open_new_hotspots()
+		_on_stage_played()
+		_refresh_finish()
+
+
+## Hook: something may have opened up.
+func _on_stage_played() -> void:
+	pass
+
+
+func _stages_played() -> int:
+	var n := 0
+	for s in _stages():
+		if _seen(str((s as Dictionary).get("script", ""))):
+			n += 1
+	return n
+
+
+## Is Finish on offer? From the moment the last stage has played (at once without stages) it always is, and it never
+## looks at which Truth Drops the player holds: the trial brings up anything required that's missing, at a capped
+## cost. Examining everything open also offers it, so a save from before the stages existed (its Drops were all found
+## before this investigation began, so no stage can fire) can't get stuck short of them.
+func _can_end() -> bool:
+	return _stages_played() >= _stages().size() or _everything_examined()
+
+
+## Shows Finish once it's on offer. Called whenever a stage plays or something is examined.
+func _refresh_finish() -> void:
+	if _btn_end == null:
+		return
+	var offered := Chapters.ends_by_choice() and _can_end()
+	if _btn_end.visible != offered:
+		_btn_end.visible = offered
+		_on_finish_shown()
+
+
+## Hook: Finish has just appeared (or gone).
+func _on_finish_shown() -> void:
+	pass
+
+
+## The player asks to finish. It always works once offered; the question is the same every time.
+func _request_end() -> void:
+	if _done or not Chapters.ends_by_choice() or not _can_end() or (not _can_hover() and not Game.autotest):
+		return
+	_busy = true
+	_set_hover({})
+	_set_dialogue_mode(true)
+	Game.set_flag("inv_end_yes", false)
+	_sp.play_text("@choice Am I finished here? Once the trial starts, there's no coming back.\n> Head to the trial -> go\n> Keep looking -> stay\n@label go\n@flag inv_end_yes true\n@end\n@label stay\n@end")
+	if _sp.is_running():
+		await _sp.finished
+	if not is_inside_tree():
+		return
+	if not bool(Game.get_flag("inv_end_yes", false)):
+		_set_dialogue_mode(false)
+		_unlock()
+		return
+	await _complete()
+
+
+## Mochi's musing after a while without a find. It depends only on whether open rooms still have things unexamined
+## (which their "n/m examined" counters already show), never on which Truth Drops are held, so silence means nothing.
+func _tick_nudge(delta: float) -> void:
+	if not Chapters.ends_by_choice() or Game.autotest or not _can_hover() or _everything_examined():
+		return
+	_nudge_t += delta
+	var wait := NUDGE_FIRST if _nudge_n == 0 else NUDGE_NEXT
+	if OS.get_cmdline_user_args().has("--fast-nudge"):
+		wait = 2.0
+	if _nudge_t < wait:
+		return
+	_nudge_t = 0.0
+	_nudge_n += 1
+	_toast(_nudge_text(), Style.YUZU)
+
+
+## General at first, then the name of some open room that still has things to look at, chosen without regard to what
+## they are, so it says nothing about what matters.
+func _nudge_text() -> String:
+	if _nudge_n <= NUDGES.size():
+		return "(%s)" % str(NUDGES[_nudge_n - 1])
+	var open: Array = []
+	for rid in Inv.ROOM_ORDER:
+		if not Inv.ROOMS.has(rid) or not _room_open(rid):
+			continue
+		var p := _room_progress(rid)
+		if p.x < p.y:
+			open.append(rid)
+	if open.is_empty():
+		return "(%s)" % str(NUDGES[0])
+	var pick := str(open[_nudge_n % open.size()])
+	return "(I never finished with the %s.)" % str((Inv.ROOMS[pick] as Dictionary).get("name", pick))
 
 
 func _play(id: String) -> void:
@@ -387,20 +574,8 @@ func _build_room(rid: String) -> void:
 	_tag.visible = false
 	var hotspots: Array = room.get("hotspots", [])
 	for h in hotspots:
-		var ra: Array = h.get("rect", [0, 0, 10, 10])
-		var rect := Rect2(float(ra[0]), float(ra[1]), float(ra[2]), float(ra[3]))
-		var node := Hotspot.new()
-		node.position = rect.position
-		node.size = rect.size
-		_hot_layer.add_child(node)
-		var t := {
-			"kind": "hotspot", "verb": "Examine", "label": str(h.get("label", "???")),
-			"script": str(h.get("script", "")), "rect": rect, "node": node,
-			"badge": Vector2(rect.end.x - 6.0, rect.position.y + 6.0),
-			"seen": false, "pop": 1.0, "spark": randf_range(0.4, 2.6),
-		}
-		_hook(node, t)
-		_targets.append(t)
+		if _hotspot_open(h):
+			_add_hotspot(h)
 	var people: Array = room.get("people", [])
 	var s: float = Inv.PERSON_SCALE
 	for p in people:
@@ -426,6 +601,44 @@ func _build_room(rid: String) -> void:
 	_refresh_status()
 	for t in _targets:
 		t["pop"] = 1.0
+
+
+## One examinable thing of the current room: an invisible rect over the background.
+func _add_hotspot(h: Dictionary) -> void:
+	var ra: Array = h.get("rect", [0, 0, 10, 10])
+	var rect := Rect2(float(ra[0]), float(ra[1]), float(ra[2]), float(ra[3]))
+	var node := Hotspot.new()
+	node.position = rect.position
+	node.size = rect.size
+	_hot_layer.add_child(node)
+	var t := {
+		"kind": "hotspot", "verb": "Examine", "label": str(h.get("label", "???")), "id": str(h.get("id", "")),
+		"script": str(h.get("script", "")), "rect": rect, "node": node,
+		"badge": Vector2(rect.end.x - 6.0, rect.position.y + 6.0),
+		"seen": false, "pop": 1.0, "spark": randf_range(0.4, 2.6),
+	}
+	_hook(node, t)
+	_targets.append(t)
+
+
+## A hotspot with "opens_stage": n can't be examined until the nth stage has played (it isn't there before, and
+## doesn't count in its room's "examined" numbers), like a room with the same key.
+func _hotspot_open(h: Dictionary) -> bool:
+	return _stages_played() >= int(h.get("opens_stage", 0))
+
+
+## After a stage: adds the current room's hotspots that have just opened. Other rooms pick theirs up when entered.
+func _open_new_hotspots() -> void:
+	var room: Dictionary = Inv.ROOMS.get(_room_id, {})
+	var have := {}
+	for t in _targets:
+		if str(t.get("kind", "")) == "hotspot":
+			have[str(t.get("script", ""))] = true
+	for h in room.get("hotspots", []):
+		var hd: Dictionary = h
+		if _hotspot_open(hd) and not have.has(str(hd.get("script", ""))):
+			_add_hotspot(hd)
+	_refresh_status()
 
 
 ## Small alpha mask of a portrait (rasterized on the CPU from the SVG) for pixel-accurate clicks.
@@ -547,16 +760,19 @@ func _set_dialogue_mode(on: bool, instant: bool = false) -> void:
 		_world.modulate = col
 		_btn_nb.modulate = bcol
 		_btn_map.modulate = bcol
+		_btn_end.modulate = bcol
 	else:
 		_dim_tw = create_tween().set_parallel(true)
 		_dim_tw.tween_property(_world, "modulate", col, _dur(0.22))
 		_dim_tw.tween_property(_btn_nb, "modulate", bcol, _dur(0.22))
 		_dim_tw.tween_property(_btn_map, "modulate", bcol, _dur(0.22))
+		_dim_tw.tween_property(_btn_end, "modulate", bcol, _dur(0.22))
 
 
 ## Pulse the Map button while the current room is done but other rooms still have things to examine.
 func _process(delta: float) -> void:
 	_time += delta
+	_tick_nudge(delta)
 	if _map_pulse and _can_hover():
 		var k := 0.5 + 0.5 * sin(_time * 5.0)
 		_btn_map.self_modulate = Color(1, 1, 1).lerp(Color(1.5, 1.25, 0.6), k)
@@ -579,7 +795,9 @@ func _seen(script_id: String) -> bool:
 func _room_progress(rid: String) -> Vector2i:
 	var room: Dictionary = Inv.ROOMS.get(rid, {})
 	var all: Array = []
-	all.append_array(room.get("hotspots", []))
+	for h in room.get("hotspots", []):
+		if _hotspot_open(h):
+			all.append(h)
 	all.append_array(room.get("people", []))
 	var d := 0
 	for h in all:
@@ -590,6 +808,8 @@ func _room_progress(rid: String) -> Vector2i:
 
 func _everything_examined() -> bool:
 	for rid in Inv.ROOMS.keys():
+		if not _room_open(rid):
+			continue
 		var p := _room_progress(rid)
 		if p.x < p.y:
 			return false
@@ -616,6 +836,7 @@ func _refresh_status() -> void:
 	_room_prog.text = "%d/%d examined" % [p.x, p.y]
 	_room_prog.add_theme_color_override("font_color", Style.GOOD if p.x >= p.y else Style.TEXT_DIM)
 	_update_drops(false)
+	_refresh_finish()
 
 
 func _check_room_cleared() -> void:
@@ -643,10 +864,14 @@ func _owned_required() -> int:
 
 
 func _update_drops(animated: bool) -> void:
-	var total := Clues.required().size()
-	var n := _owned_required()
-	_drops_count.text = "%d/%d" % [n, total]
-	_drops_count.add_theme_color_override("font_color", Style.GOOD if n >= total else Style.GOLD)
+	if Chapters.ends_by_choice():
+		# how many so far, of every kind: nothing here may say how many are left
+		_drops_count.text = str(Game.clues.size())
+	else:
+		var total := Clues.required().size()
+		var n := _owned_required()
+		_drops_count.text = "%d/%d" % [n, total]
+		_drops_count.add_theme_color_override("font_color", Style.GOOD if n >= total else Style.GOLD)
 	if animated:
 		_drops_count.pivot_offset = _drops_count.size * 0.5
 		_drops_count.scale = Vector2.ONE * 1.6
@@ -659,6 +884,8 @@ func _update_drops(animated: bool) -> void:
 
 
 func _on_clue_added(_id: String) -> void:
+	_nudge_t = 0.0
+	_nudge_n = 0
 	if is_inside_tree():
 		_update_drops(true)
 
@@ -691,20 +918,32 @@ func _build_bar() -> void:
 	_room_prog = Style.label("", 16, Style.TEXT_DIM)
 	_room_prog.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(_room_prog)
+	# A chapter that ends on the last required Drop (Cases 1 and 2) keeps the original bar: "TRUTH DROPS n/total",
+	# no Finish button. A chapter the player ends shows only how many were found.
+	var by_choice := Chapters.ends_by_choice()
 	_drops_icon = DropIcon.new()
-	_drops_icon.position = Vector2(616, 9)
+	_drops_icon.position = Vector2(542, 9) if by_choice else Vector2(616, 9)
 	_bar.add_child(_drops_icon)
-	var dl := Style.title_label("TRUTH DROPS", 17, Style.AQUA, Style.BG_DARK, 5)
-	dl.position = Vector2(648, 15)
+	var dl := Style.title_label("TRUTH DROPS FOUND" if by_choice else "TRUTH DROPS", 17, Style.AQUA, Style.BG_DARK, 5)
+	dl.position = Vector2(574, 15) if by_choice else Vector2(648, 15)
 	_bar.add_child(dl)
-	_drops_count = Style.title_label("0/14", 26, Style.GOLD, Style.BG_DARK, 6)
-	_drops_count.position = Vector2(782, 8)
-	_drops_count.size = Vector2(86, 36)
+	_drops_count = Style.title_label("0" if by_choice else "0/14", 26, Style.GOLD, Style.BG_DARK, 6)
+	_drops_count.position = Vector2(776, 8) if by_choice else Vector2(782, 8)
+	_drops_count.size = Vector2(56, 36) if by_choice else Vector2(86, 36)
 	_bar.add_child(_drops_count)
-	_btn_nb = _bar_button("Notebook  [N]", Vector2(920, 8), Vector2(178, 38))
+	if by_choice:
+		_btn_nb = _bar_button("Notebook [N]", Vector2(840, 8), Vector2(158, 38))
+	else:
+		_btn_nb = _bar_button("Notebook  [N]", Vector2(920, 8), Vector2(178, 38))
 	_btn_nb.pressed.connect(_open_notebook)
-	_btn_map = _bar_button("Map  [M]", Vector2(1110, 8), Vector2(152, 38))
+	if by_choice:
+		_btn_map = _bar_button("Map [M]", Vector2(1006, 8), Vector2(118, 38))
+	else:
+		_btn_map = _bar_button("Map  [M]", Vector2(1110, 8), Vector2(152, 38))
 	_btn_map.pressed.connect(_open_map)
+	_btn_end = _bar_button("Finish [T]", Vector2(1132, 8), Vector2(136, 38))
+	_btn_end.pressed.connect(_request_end)
+	_btn_end.visible = Chapters.ends_by_choice() and _can_end()
 
 
 func _bar_button(text: String, pos: Vector2, sz: Vector2) -> Button:
@@ -755,6 +994,7 @@ func _show_banner() -> void:
 		if c.has_meta("room_banner"):
 			c.queue_free()
 	var room: Dictionary = Inv.ROOMS.get(_room_id, {})
+	Game.log_place(str(room.get("name", _room_id)))
 	var root := Control.new()
 	root.set_meta("room_banner", true)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -830,12 +1070,14 @@ func _celebrate() -> void:
 		line.size = Vector2(W, 8)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		band.add_child(line)
-	var tl := Style.title_label("EVERY TRUTH DROP FOUND!", 56, Style.GOLD, Style.BG_DARK, 12)
+	var by_choice := Chapters.ends_by_choice()
+	var tl := Style.title_label("INVESTIGATION OVER" if by_choice else "EVERY TRUTH DROP FOUND!", 56, Style.GOLD, Style.BG_DARK, 12)
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.position = Vector2(0, 40)
 	tl.size = Vector2(W, 80)
 	band.add_child(tl)
-	var sub := Style.label("%d / %d Truth Drops - you're ready for the Splash Trial." % [_owned_required(), Clues.required().size()], 24, Style.AQUA, true)
+	var sub_text := "On to the Splash Trial." if by_choice else "%d / %d Truth Drops - you're ready for the Splash Trial." % [_owned_required(), Clues.required().size()]
+	var sub := Style.label(sub_text, 24, Style.AQUA, true)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.position = Vector2(0, 118)
 	sub.size = Vector2(W, 40)
@@ -893,8 +1135,19 @@ func _close_map() -> void:
 		_hover_under_mouse()
 
 
+## A room or space stays shut until its "opens_day" (always open in a chapter without days) and its "opens_stage".
+func _room_open(rid: String) -> bool:
+	var entry: Dictionary = Inv.ROOMS.get(rid, {})
+	return Chapters.room_open(entry, Chapters.day_at(Game.main.current_step())) and _stages_played() >= int(entry.get("opens_stage", 0))
+
+
 func _on_map_pick(rid: String) -> void:
 	if not _map_open:
+		return
+	if not _room_open(rid):
+		Audio.sfx("cancel")
+		_close_map()
+		_toast("That part of the house is still locked.", Style.TEXT_DIM)
 		return
 	Audio.sfx("confirm")
 	_close_map()
@@ -931,7 +1184,7 @@ func _build_map() -> Control:
 				_close_map())
 	root.add_child(board)
 	root.set_meta("board", board)
-	var title := Style.title_label("RESORT MAP", 34, Style.GOLD, Style.BG_DARK, 10)
+	var title := Style.title_label(str(Chapters.get_value("map_title", "RESORT MAP")), 34, Style.GOLD, Style.BG_DARK, 10)
 	title.position = Vector2(28, 14)
 	board.add_child(title)
 	var hint := Style.label("Click a room to travel there.  [M] or right-click to close.", 17, Style.TEXT_DIM)
@@ -945,7 +1198,7 @@ func _build_map() -> Control:
 	# card positions (unknown rooms get a spot along the bottom)
 	var pos := {}
 	var extra := 0
-	var map_pos: Dictionary = MAP_POS2 if Chapters.current == 2 else MAP_POS
+	var map_pos: Dictionary = MAP_POS_BY_CHAPTER.get(Chapters.current, {})
 	for rid in Inv.ROOM_ORDER:
 		if map_pos.has(rid):
 			pos[rid] = map_pos[rid]
@@ -953,7 +1206,8 @@ func _build_map() -> Control:
 			pos[rid] = Vector2(140 + extra * 190, 560)
 			extra += 1
 	var decor := MapDecor.new()
-	decor.ship = Chapters.current == 2
+	decor.ship = map_pos == MAP_POS2
+	decor.plain = not MAP_POS_BY_CHAPTER.has(Chapters.current)
 	decor.size = MAP_BOARD.size
 	decor.centers = pos
 	board.add_child(decor)
@@ -994,6 +1248,9 @@ func _unhandled_input(e: InputEvent) -> void:
 	elif k.keycode == KEY_N:
 		get_viewport().set_input_as_handled()
 		_open_notebook()
+	elif k.keycode == KEY_T and Chapters.ends_by_choice() and _can_end():
+		get_viewport().set_input_as_handled()
+		_request_end()
 
 
 # =================================================================== helpers
@@ -1299,6 +1556,7 @@ class DropIcon extends Control:
 class MapDecor extends Control:
 	var centers := {}
 	var ship := false
+	var plain := false
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1311,6 +1569,8 @@ class MapDecor extends Control:
 
 	func _draw() -> void:
 		var f := Style.display_font()
+		if plain:
+			return
 		if ship:
 			_draw_ship(f)
 			return

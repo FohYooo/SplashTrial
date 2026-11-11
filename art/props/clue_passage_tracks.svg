@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs></defs>
+<ellipse cx="100" cy="186" rx="82" ry="9" fill="#000000" opacity="0.2"/>
+<path d="M20 40 L180 40 L196 186 L4 186 Z" fill="#9a958c" stroke="#2a1a10" stroke-width="4.5"/>
+<path d="M26 46 L174 46 L188 180 L12 180 Z" fill="#e9e4da"/>
+<ellipse cx="80" cy="60" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="74" cy="46" r="3" fill="#9a958c"/>
+<circle cx="80" cy="46" r="3" fill="#9a958c"/>
+<circle cx="86" cy="46" r="3" fill="#9a958c"/>
+<ellipse cx="120" cy="60" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="114" cy="46" r="3" fill="#9a958c"/>
+<circle cx="120" cy="46" r="3" fill="#9a958c"/>
+<circle cx="126" cy="46" r="3" fill="#9a958c"/>
+<ellipse cx="76" cy="92" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="70" cy="78" r="3" fill="#9a958c"/>
+<circle cx="76" cy="78" r="3" fill="#9a958c"/>
+<circle cx="82" cy="78" r="3" fill="#9a958c"/>
+<ellipse cx="124" cy="92" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="118" cy="78" r="3" fill="#9a958c"/>
+<circle cx="124" cy="78" r="3" fill="#9a958c"/>
+<circle cx="130" cy="78" r="3" fill="#9a958c"/>
+<ellipse cx="80" cy="124" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="74" cy="110" r="3" fill="#9a958c"/>
+<circle cx="80" cy="110" r="3" fill="#9a958c"/>
+<circle cx="86" cy="110" r="3" fill="#9a958c"/>
+<ellipse cx="120" cy="124" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="114" cy="110" r="3" fill="#9a958c"/>
+<circle cx="120" cy="110" r="3" fill="#9a958c"/>
+<circle cx="126" cy="110" r="3" fill="#9a958c"/>
+<ellipse cx="76" cy="156" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="70" cy="142" r="3" fill="#9a958c"/>
+<circle cx="76" cy="142" r="3" fill="#9a958c"/>
+<circle cx="82" cy="142" r="3" fill="#9a958c"/>
+<ellipse cx="124" cy="156" rx="9" ry="13" fill="#9a958c" stroke="#7a756c" stroke-width="1.4"/>
+<circle cx="118" cy="142" r="3" fill="#9a958c"/>
+<circle cx="124" cy="142" r="3" fill="#9a958c"/>
+<circle cx="130" cy="142" r="3" fill="#9a958c"/>
+</svg>

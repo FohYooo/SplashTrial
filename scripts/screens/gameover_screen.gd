@@ -237,7 +237,7 @@ func _build_ui() -> void:
 	_ui.add_child(_info)
 	_info.reset_size()
 	_info.position = Vector2(640 - _info.size.x * 0.5, 318)
-	_hint = Style.title_label("Convince at least 60% and point out the real culprit.", 24, Style.GOLD, Style.BG_DARK, 8)
+	_hint = Style.title_label("Convince at least %d%% and point out the real culprit." % roundi(Game.convince_threshold()), 24, Style.GOLD, Style.BG_DARK, 8)
 	_ui.add_child(_hint)
 	_hint.reset_size()
 	_hint.position = Vector2(640 - _hint.size.x * 0.5, 368)

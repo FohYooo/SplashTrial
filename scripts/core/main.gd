@@ -5,8 +5,12 @@ extends Node
 const Style := preload("res://scripts/ui/style.gd")
 const Clues := preload("res://scripts/data/clues.gd")
 const Chapters := preload("res://scripts/data/chapters.gd")
+const Story := preload("res://scripts/data/story.gd")
 const PauseMenu := preload("res://scripts/ui/pause_menu.gd")
 const Fx := preload("res://scripts/ui/fx.gd")
+
+## The notebook overlay has just closed.
+signal notebook_closed
 
 const SCREENS := {
 	"title": "res://scripts/screens/title_screen.gd",
@@ -18,26 +22,46 @@ const SCREENS := {
 	"gameover": "res://scripts/screens/gameover_screen.gd",
 	"credits": "res://scripts/screens/credits_screen.gd",
 	"drain": "res://scripts/screens/drain_screen.gd",
+	"quake": "res://scripts/screens/quake_screen.gd",
+	"caiman_kill": "res://scripts/screens/caiman_kill_screen.gd",
+	# a chapter with "after_vote": "confession" plays story id "confession" on the courtroom stage
+	"confession": "res://scripts/screens/trial_screen.gd",
+	# a trial that breaks for a recess (Case 3): told as a story with --2d, walked in 3D otherwise (SCREENS_3D)
+	"recess": "res://scripts/screens/story_screen.gd",
 }
 ## 3D walk-around version: investigation and free time are played in 3D rooms (scripts/world3d/).
 ## Pass `--2d` on the command line to get the classic 2D screens back (debug / comparison).
 const SCREENS_3D := {
 	"freetime": "res://scripts/screens/freetime3d_screen.gd",
 	"investigation": "res://scripts/screens/investigation3d_screen.gd",
+	"recess": "res://scripts/screens/recess3d_screen.gd",
 }
 
 ## Story steps are played by the story screen using the script with the same id (current chapter).
 ## The step order per chapter lives in scripts/data/chapters.gd ("next").
-const STORY_STEPS := ["aftermath", "prologue", "motive", "evening", "night", "discovery", "investigation_end", "epilogue"]
+const STORY_STEPS := ["aftermath", "prologue", "day1", "day2", "day3", "day4", "day5", "motive", "evening", "night", "discovery", "investigation_end", "epilogue", "epilogue_after",
+	"night1", "evening2", "night3", "night4"]
+## Free Time steps: a chapter with Free Time on several days (Case 3) gives each day its own step, with its number of visits in
+## chapters.gd "freetime_slots". All of them play the free-time screen, and each is a save checkpoint.
+const FREETIME_STEPS := ["freetime", "freetime2", "freetime3", "freetime4", "freetime5"]
+## Saved on arrival, along with each day's first step in a chapter that has days (Chapters.is_day_start) and every Free Time step.
 const CHECKPOINTS := ["prologue", "freetime", "motive", "investigation", "trial"]
 ## Steps after which all clues are needed (debug --start gives them).
-const LATE_STEPS := ["investigation_end", "trial", "execution", "epilogue", "gameover"]
+const LATE_STEPS := ["investigation_end", "trial", "recess", "confession", "execution", "epilogue", "caiman_kill", "epilogue_after", "gameover"]
+## A trial can stop for a break: its script sets flag "trial_break" to a flow step and ends, Main plays that step, and the
+## trial goes on from its last @checkpoint. Case 3's recess comes back at this label (the trial script's @checkpoint names
+## it too); a debug run that starts at the recess, with no checkpoint yet, comes back there as well.
+const RECESS_RESUME := "after_recess"
+## Not part of a playthrough: no "Log [L]" tag, and the play-time clock stands still.
+const OFF_PLAY_STEPS := ["", "title", "credits_from_title"]
+const LOG_TAG_POS := Vector2(1206, 694)
 
 var ui: Control
 var _screen: Control
 var _step := ""
 var _fade: ColorRect
 var _pause: Control
+var _log_tag: Control
 var _transitioning := false
 ## Case select: the case to enter once the previous case's ending has played (0 = none).
 var _bridge_to := 0
@@ -70,10 +94,13 @@ func _ready() -> void:
 	pl.add_child(pr)
 	_pause = PauseMenu.new()
 	_pause.quit_to_title.connect(func() -> void: goto("title"))
+	_pause.closed.connect(func() -> void: notebook_closed.emit())
 	pr.add_child(_pause)
+	_build_log_tag()
 	if Game.shot_path != "":
 		_take_shot()
 	_boot.call_deferred()
+	_debug_notebook.call_deferred()
 
 
 func _boot() -> void:
@@ -82,9 +109,18 @@ func _boot() -> void:
 		_give_all_clues()
 		Game.start_trial()
 		_show("trial", {"script_text": "@bg trial\n@music trial\n@minigame %s\n@end" % Game.debug_minigame}, "debug_minigame")
+	elif Game.debug_trial != "":
+		Game.new_game()
+		_give_all_clues()
+		Game.start_trial()
+		var scripts: Dictionary = load("res://scripts/data/trial_data_test.gd").get_script_constant_map()["SCRIPTS"]
+		_show("trial", {"script_text": str(scripts.get(Game.debug_trial, "@end"))}, "trial")
 	elif Game.debug_script != "":
 		Game.new_game()
 		_show("story", {"script": Game.debug_script}, "debug_script")
+	elif Game.debug_anim != "":
+		Game.new_game()
+		_show("story", {"script_text": "@anim %s\n@end" % Game.debug_anim}, "debug_script")
 	elif Game.debug_start != "":
 		Game.new_game()
 		if Game.debug_start in LATE_STEPS:
@@ -97,29 +133,47 @@ func _boot() -> void:
 		goto("title")
 
 
+## Debug runs that start past the investigation (a minigame, a trial fixture, a late step) hold every Truth Drop of
+## the chapter, optional and trial-delivered ones too, since a debate's tray only shows Drops in the notebook.
 func _give_all_clues() -> void:
-	for c in Clues.required():
+	for c in Clues.everything():
 		Game.add_clue(str(c))
 
 
 ## Go to a flow step (see NEXT). Public: screens may call Game.main.goto("title").
 func goto(step: String) -> void:
-	if step in CHECKPOINTS and not Game.autotest:
+	# Free Time on several days: everyone can be visited again each day (the arcs themselves live in story flags)
+	if step in FREETIME_STEPS and Chapters.daily_free_time():
+		Game.hangouts_done.clear()
+	if (step in CHECKPOINTS or step in FREETIME_STEPS or Chapters.is_day_start(step)) and not Game.autotest:
 		Game.save_checkpoint(step)
+	if step == "title":
+		Game.flush_play_time()
+	if step in FREETIME_STEPS:
+		_show("freetime", {"slots": Chapters.freetime_slots(step)}, step)
+		return
 	match step:
 		"title":
 			_bridge_to = 0
 			_show("title", {}, step)
-		"freetime":
-			_show("freetime", {"slots": 3}, step)
 		"investigation":
 			_show("investigation", {}, step)
 		"trial":
 			Game.start_trial()
-			_show("trial", {}, step)
+			_show("trial", {"start_label": str(Game.trial_resume.get("label", ""))}, step)
 		"execution":
 			_show("execution", {"path": str(Chapters.get_value("execution", ""))}, step)
-		"drain", "gameover", "credits":
+		"gameover":
+			_show("gameover", {"path": str(Chapters.get_value("gameover", ""))}, step)
+		"recess":
+			_show("recess", {"script": "recess_walk"}, step)
+		"confession":
+			# the confession is optional: a chapter that hasn't written one goes straight on
+			if Story.has("confession"):
+				_show("confession", {"script": "confession"}, step)
+			else:
+				goto(Chapters.next_step(step))
+		"drain", "quake", "caiman_kill", "credits":
 			_show(step, {}, step)
 		_:
 			if step in STORY_STEPS:
@@ -132,6 +186,8 @@ func goto(step: String) -> void:
 func start_chapter(ch: int) -> void:
 	Game.chapter = ch
 	Game.new_game()
+	if Game.autotest:
+		print("[autotest] start chapter ", ch, " clues=", Game.clues.size(), " skills=", Game.skills.size())
 	goto(str(Chapters.get_value("first_step", "prologue")))
 
 
@@ -143,21 +199,69 @@ func start_case(ch: int) -> void:
 		return
 	_bridge_to = ch
 	Game.chapter = ch - 1
+	# the previous case isn't being played again, so its recorded play times stay (new_game would restart them)
+	var clock := Game.phase_seconds.duplicate()
 	Game.new_game()
+	Game.phase_seconds = clock
 	_give_all_clues()
 	goto("execution")
 
 
-func open_notebook(tab: String = "clues") -> void:
-	_pause.open(tab)
+func open_notebook(tab: String = "clues", log_section: String = "") -> void:
+	_pause.open(tab, log_section)
+
+
+## L from something that holds the tree paused itself (a zoomed picture), so that _unhandled_input can't hear it.
+## From pictures opened in the notebook, the notebook is already open: it closes them and turns to the Log.
+func open_log() -> void:
+	if not Chapters.logbook():
+		return
+	if _pause.is_open():
+		_pause.show_log()
+	elif _can_open_notebook():
+		_pause.open("log")
+
+
+## The previous case's ending, replayed by Choose Case on the way in, isn't play of that case either.
+func play_clock_running() -> bool:
+	return not OFF_PLAY_STEPS.has(_step) and not _pause.is_open() and _bridge_to == 0
+
+
+func _can_open_notebook() -> bool:
+	return _step != "title" and not _pause.is_open() and not _transitioning
+
+
+## The small corner tag that tells people L opens the Log. Below the screen wipe, so a transition covers it.
+func _build_log_tag() -> void:
+	var tl := CanvasLayer.new()
+	tl.layer = 40
+	add_child(tl)
+	var tag := PanelContainer.new()
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var st := Style.cut_box(Color(Style.INK, 0.62), 5, Color(Style.AQUA, 0.45), 1)
+	st.content_margin_left = 9
+	st.content_margin_right = 9
+	st.content_margin_top = 2
+	st.content_margin_bottom = 3
+	tag.add_theme_stylebox_override("panel", st)
+	tag.add_child(Style.label("Log [L]", 14, Color(Style.TEXT, 0.85)))
+	tag.position = LOG_TAG_POS
+	tag.visible = false
+	tl.add_child(tag)
+	_log_tag = tag
 
 
 func current_step() -> String:
 	return _step
 
 
+func is_transitioning() -> bool:
+	return _transitioning
+
+
 func _show(kind: String, params: Dictionary, step: String) -> void:
 	_step = step
+	_log_tag.visible = not OFF_PLAY_STEPS.has(step) and Chapters.logbook()
 	_transitioning = true
 	if _pause.is_open():
 		_pause.close()
@@ -181,8 +285,8 @@ func _show(kind: String, params: Dictionary, step: String) -> void:
 	var path: String = SCREENS.get(kind, "")
 	if SCREENS_3D.has(kind) and not OS.get_cmdline_user_args().has("--2d"):
 		path = str(SCREENS_3D[kind])
-	if kind == "execution" and str(params.get("path", "")) != "" and ResourceLoader.exists(str(params["path"])):
-		path = str(params["path"])   # chapter-specific execution screen
+	if kind in ["execution", "gameover"] and str(params.get("path", "")) != "" and ResourceLoader.exists(str(params["path"])):
+		path = str(params["path"])   # chapter-specific execution / wrong-vote screen
 	if path == "" or not ResourceLoader.exists(path):
 		push_error("Main: missing screen script " + path)
 		_on_finished({}, step)
@@ -228,7 +332,8 @@ func _on_finished(result: Variant, step: String) -> void:
 	var r: Dictionary = result if typeof(result) == TYPE_DICTIONARY else {}
 	if Game.autotest:
 		print("[autotest] finished step: ", step, " ", r)
-	if step == "epilogue" and _bridge_to > 0:
+	# Choose Case: the previous case's ending stops where its credits would start
+	if _bridge_to > 0 and Chapters.next_step(step) == "credits":
 		var ch := _bridge_to
 		_bridge_to = 0
 		start_chapter(ch)
@@ -241,7 +346,11 @@ func _on_finished(result: Variant, step: String) -> void:
 			else:
 				goto("title")
 		"title":
-			match str(r.get("action", "new")):
+			var act := str(r.get("action", "new"))
+			if act.begins_with("case"):
+				start_case(int(act.trim_prefix("case")))
+				return
+			match act:
 				"continue":
 					var s := Game.load_checkpoint()
 					goto(s if s != "" else "prologue")
@@ -249,16 +358,26 @@ func _on_finished(result: Variant, step: String) -> void:
 					_show("credits", {"from_title": true}, "credits_from_title")
 				"quit":
 					get_tree().quit()
-				"case1":
-					start_case(1)
-				"case2":
-					start_case(2)
 				_:
-					start_chapter(1)
+					# autotest honours --chapter=N here; a player's New Game is always Case 1
+					start_chapter(Game.chapter if Game.autotest else 1)
 		"credits_from_title":
 			goto("title")
 		"trial":
-			goto("execution" if Game.get_flag("vote_correct", false) else "gameover")
+			var brk := str(Game.get_flag("trial_break", ""))
+			if brk != "" and brk != "false":
+				# a break in the middle of the trial (Case 3's recess); the trial resumes at its last @checkpoint
+				Game.set_flag("trial_break", "")
+				goto(brk)
+			elif Game.get_flag("vote_correct", false):
+				Game.trial_resume = {}
+				goto(str(Chapters.get_value("after_vote", "execution")))
+			else:
+				goto("gameover")
+		"recess":
+			if Game.trial_resume.is_empty():
+				Game.trial_resume = {"label": RECESS_RESUME, "convince": Game.convince, "missing_paid": 0.0}
+			goto("trial")
 		"gameover":
 			if Game.autotest:
 				print("[autotest] GAME OVER reached (convince=", Game.convince, ")")
@@ -275,7 +394,7 @@ func _on_finished(result: Variant, step: String) -> void:
 				print("[autotest] COMPLETE chapter=", finished_ch, " convince=", Game.convince, " clues=", Game.clues.size(), " skills=", Game.skills)
 				get_tree().quit(0)
 				return
-			# Chapter 1 flows straight on into Chapter 2; the last chapter returns to the title.
+			# A finished chapter flows straight on into the next; the last chapter returns to the title.
 			if finished_ch < Chapters.LAST:
 				start_chapter(finished_ch + 1)
 			else:
@@ -289,14 +408,47 @@ func _on_finished(result: Variant, step: String) -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
-		if _step != "title" and not _pause.is_open() and not _transitioning:
-			_pause.open("clues")
+	if e is InputEventKey and e.pressed and not e.echo and e.keycode in [KEY_ESCAPE, KEY_L]:
+		if e.keycode == KEY_L and not Chapters.logbook():
+			return
+		if _can_open_notebook():
+			_pause.open("clues" if e.keycode == KEY_ESCAPE else "log")
 			get_viewport().set_input_as_handled()
 
 
+## Debug: --notebook=<tab> opens that notebook tab once the game is up; --evidence=<clue id> opens that Truth Drop's
+## pictures from it (--evidence-zoom=<1-4> zooms in). Both are for screenshots and the autotest harness.
+func _debug_notebook() -> void:
+	var tab := ""
+	var clue := ""
+	var zoom := 1.0
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--notebook="):
+			tab = a.get_slice("=", 1)
+		elif a.begins_with("--evidence="):
+			clue = a.get_slice("=", 1)
+		elif a.begins_with("--evidence-zoom="):
+			zoom = float(a.get_slice("=", 1))
+	if tab == "" and clue == "":
+		return
+	while _transitioning or _step == "":
+		await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout
+	if clue != "":
+		Game.add_clue(clue)
+	_pause.open(tab if tab != "" else "clues")
+	if clue != "":
+		_pause.open_viewer(clue, zoom)
+
+
 func _take_shot() -> void:
-	await get_tree().create_timer(Game.shot_delay).timeout
+	# a timed --anim shot is taken by the scene itself, on the exact frame; this is only the safety net
+	await get_tree().create_timer(60.0 if Game.debug_anim_t >= 0.0 else Game.shot_delay).timeout
+	save_shot()
+
+
+## Saves the current frame to --shot=<path> and quits.
+func save_shot() -> void:
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	if img:

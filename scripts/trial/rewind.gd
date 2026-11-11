@@ -3,6 +3,8 @@ extends Control
 ## blank, and options to fill it (REWARD_REWIND_PANEL / PENALTY_REWIND, retry until right). Afterwards
 ## the finished strip slides by, then the finale line with the culprit's shocked portrait (REWARD_REWIND).
 ## data: title, panels [{caption with ___, options, answer, bg}], culprit, finale.
+## A panel with "jam": true is the one that doesn't fit: whatever is picked (no cost), the reel stops there, with no replay
+## and no finale, and the minigame ends with the flag rewind_jammed so the next segment takes over.
 ## Skill "artists_eye": one wrong option per panel is crossed out. Contract: docs/ARCHITECTURE.md section 5.
 ## Look: angular "sharp kit" (see the SHARP KIT section at the end of this file); slanted comic panels
 ## are masked with clip_children.
@@ -34,6 +36,7 @@ var _k := 1.0
 var _auto_wrong := false
 var _time := 0.0
 var _wait_click := false
+var _result := {}
 
 var _stage: Control
 var _fx: Control
@@ -212,6 +215,10 @@ func _run() -> void:
 	await _sleep(0.3 * _k)
 	while _idx < _panels.size():
 		await _play_panel(_idx)
+		if bool((_panels[_idx] as Dictionary).get("jam", false)):
+			_result = {"flags": {"rewind_jammed": true}}
+			_finish()
+			return
 		_idx += 1
 		_refresh_thumbs()
 	await _replay()
@@ -261,7 +268,7 @@ func _play_panel(i: int) -> void:
 		var tw2 := create_tween()
 		tw2.tween_property(b, "scale", Vector2.ONE, 0.18 * _k).set_delay((0.08 + j * 0.05) * _k).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	await _sleep((0.28 + _opt_buttons.size() * 0.05) * _k)
-	if Game.has_skill("artists_eye"):
+	if Game.has_skill("artists_eye") and not bool(p.get("jam", false)):
 		await _artists_eye(p)
 	_busy = false
 	if Game.autotest:
@@ -270,6 +277,8 @@ func _play_panel(i: int) -> void:
 	while not (_filled.size() > i):
 		await _sleep(0.05)
 	await _sleep(1.0 * _k)
+	if bool(p.get("jam", false)):
+		return   # the jammed panel stays up until the minigame ends
 	# panel flies into its thumbnail
 	var t: Control = _thumbs[i] if i < _thumbs.size() else null
 	var tw3 := create_tween().set_parallel(true)
@@ -616,7 +625,9 @@ func _choose(j: int) -> void:
 	tw.tween_property(b, "scale", Vector2.ONE * 0.93, 0.05 * _k)
 	tw.tween_property(b, "scale", Vector2.ONE * 1.06, 0.1 * _k).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	await _sleep(0.16 * _k)
-	if j == ans:
+	if bool(p.get("jam", false)):
+		_jam(p)
+	elif j == ans:
 		_correct(p, j)
 	else:
 		_wrong(j)
@@ -663,6 +674,21 @@ func _wrong(j: int) -> void:
 	_kit_stamp("THAT'S NOT HOW IT HAPPENED!", Style.DANGER, PANEL_RECT.get_center() + Vector2(0, -20), 42, 0.5, -4.0)
 	await _sleep(0.55 * _k)
 	_busy = false
+
+
+## None of the options fits. Nothing is charged: every option strikes out, the panel shudders and the reel stops.
+func _jam(p: Dictionary) -> void:
+	Audio.sfx("wrong", 0.8)
+	Audio.sfx("static", 1.0, -6.0)
+	_kit_glitch(0.45, 1.0)
+	_kit_jolt(_page, 18.0)
+	_kit_shake(16.0, 0.4)
+	for b in _opt_buttons:
+		_cross_out(b, Style.DANGER)
+		await _sleep(0.09 * _k)
+	_kit_stamp(str(p.get("jam_text", "IT DOESN'T FIT!")), Style.DANGER, PANEL_RECT.get_center() + Vector2(0, -20), 64, 0.8, -4.0)
+	await _sleep(0.7 * _k)
+	_filled.append("?")
 
 
 ## An angular stamp slammed onto the comic panel.
@@ -930,13 +956,16 @@ func _finish() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.25 * _k)
 	await tw.finished
-	finished.emit({})
+	finished.emit(_result)
 
 
 # =================================================================== autotest
 func _autoplay(p: Dictionary, i: int) -> void:
 	await _sleep(0.9 if Game.autotest_slow else 0.3)
 	var ans := int(p.get("answer", 0))
+	if bool(p.get("jam", false)):
+		_choose(0)
+		return
 	if _auto_wrong and i == 0:
 		for j in _opt_buttons.size():
 			if j != ans and not _crossed.has(j):

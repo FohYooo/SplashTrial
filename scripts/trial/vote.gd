@@ -8,6 +8,7 @@ extends Control
 ##  4. The majority's portrait zooms in with speed lines + a "MAJORITY: <name>" banner, then the tally
 ##     (bars per capybara). No verdict - the trial script announces it.
 ## Emits {"flags": {"vote_correct": majority == culprit, "voted": pick, "majority": majority}}.
+## data "false_vote": true makes vote_correct false whatever happens (the early vote a choice can offer).
 ## Look: angular "sharp kit" (see the SHARP KIT section at the end of this file).
 
 signal finished(result: Dictionary)
@@ -72,7 +73,7 @@ func setup(data: Dictionary) -> void:
 	_data = data
 	_culprit = str(data.get("culprit", "wisp"))
 	_fallback = str(data.get("fallback", "bruno"))
-	_threshold = float(data.get("threshold", Game.CONVINCE_THRESHOLD))
+	_threshold = float(Chapters.get_value("threshold", data.get("threshold", Game.CONVINCE_THRESHOLD)))
 
 
 func _ready() -> void:
@@ -1264,7 +1265,9 @@ func _finish() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.25 * _k)
 	await tw.finished
-	finished.emit({"flags": {"vote_correct": _majority == _culprit, "voted": _pick, "majority": _majority}})
+	# "false_vote": a vote taken before the case is finished is always the wrong answer, whoever it names
+	var correct := _majority == _culprit and not bool(_data.get("false_vote", false))
+	finished.emit({"flags": {"vote_correct": correct, "voted": _pick, "majority": _majority}})
 
 
 # =================================================================== frame
