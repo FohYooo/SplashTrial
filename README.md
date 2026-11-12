@@ -7,16 +7,24 @@ and convince everyone of the truth at the **Splash Trial**, or you'll all pay th
 - **Chapter 1: Murder at Yuzu Springs**
 - **Chapter 2: Murder on the Mudlark** (new in v3; it follows straight on from Chapter 1. After you finish Chapter 1
   once, the title screen also gets a **Chapter 2** button.)
+- **Chapter 3: Murder at Warden's Rest** (new in v4, in the 3D version only.)
+
+> The game continues in the **3D version** (release **v4**, branch `case3-depth`), where you walk around in 3D and
+> can play all three chapters. This branch is the classic 2D version, with Chapters 1 and 2.
 
 **All the hard work done by Foh, Noomie and Dani, little bit of help from Claude.**
 
 ## How to download and play (Windows)
 1. Go to the [latest release](https://github.com/FohYooo/SplashTrial/releases/latest) and download
-   **`SplashTrial-v3-windows.zip`** (the guide picture below shows an older file name; the steps are the same).
-   The "Source code" links are not the game.
+   **`SplashTrial-3D-windows.zip`**, the 3D version with all three chapters. For the classic 2D version, go to the
+   [v3 release](https://github.com/FohYooo/SplashTrial/releases/tag/v3) and download **`SplashTrial-v3-windows.zip`**
+   instead. The guide picture below shows an older file name, but the steps are the same. The "Source code" links
+   are not the game.
 2. Right-click the zip, choose **Extract All…**, then **Extract**.
-3. Double-click **`SplashTrial.exe`**. There's nothing to install. If Windows says *"Windows protected your PC"*, click
-   **More info → Run anyway**. It only asks the first time.
+3. Double-click **`SplashTrial3D.exe`** (or **`SplashTrial.exe`** for the 2D version). There's nothing to install.
+   If Windows says *"Windows protected your PC"*, click **More info → Run anyway**. It only asks the first time.
+
+The 3D version keeps its own save, so it never overwrites your 2D save.
 
 The zip also holds `GODOT_COPYRIGHT.txt`, the engine's open-source license notices. Just leave it next to the exe.
 
